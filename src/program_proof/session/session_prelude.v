@@ -1,8 +1,6 @@
 From Goose.github_com.session Require Export server.
 From Perennial.program_proof Require Export std_proof grove_prelude.
 
-Create HintDb session_hints.
-
 Module SessionPrelude.
 
   #[local] Obligation Tactic := intros.
@@ -723,4 +721,32 @@ Module SessionPrelude.
       + rewrite eqProp_spec in H_OBS. split; congruence.
   Qed.
 
+  Class record_like (A : Type) (X : nat -> Type) : Type :=
+    record_nth (i : nat) : A -> X i.
+
+  #[global]
+  Instance record_like_instance_pair {A : Type} {B : Type} {X : nat -> Type}
+    (A_record_like : record_like A X)
+    : record_like (A * B) (fun i => match i with O => B | S i' => X i' end) :=
+      fun i => match i with O => snd | S i' => fun z => record_nth i' (fst z) end.
+
+  Definition record_like_atomic {A : Type}
+    : record_like A (fun _ => A) :=
+      fun _ => fun z => z.
+
+  #[local] Hint Resolve record_like_atomic : typeclass_instances.
+
+  #[global]
+  Instance record_like_instance_u64
+    : record_like u64 (fun _ => u64) :=
+      _.
+
+  #[global]
+  Instance record_like_instance_w64
+    : record_like w64 (fun _ => w64) :=
+      _.
+
 End SessionPrelude.
+
+Notation "x 'at[' T ']' n" := (SessionPrelude.record_nth n x : T)
+  (at level 10, left associativity, format "x  'at[' T ]  n").
