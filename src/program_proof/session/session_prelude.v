@@ -429,15 +429,15 @@ Module SessionPrelude.
     Fixpoint sortedInsert (l : list A) (i : A) : list A :=
       match l with
       | [] => [i]
-      | h :: t => if ltb i h then i :: h :: t else h :: sortedInsert t i
+      | h :: t => if orb (ltb i h) (eqb h i) then i :: h :: t else h :: sortedInsert t i
       end.
 
     Lemma sortedInsert_spec (l : list A) (i : A) (l_wf : Forall well_formed l) (i_wf : well_formed i) :
       isSorted l ->
       ∃ prefix, ∃ suffix, l = prefix ++ suffix /\
         sortedInsert l i = prefix ++ [i] ++ suffix /\
-        (∀ n : nat, ∀ x, prefix !! n = Some x -> ltb x i = true \/ eqb i x = true) /\
-        (∀ n : nat, ∀ x, suffix !! n = Some x -> ltb i x = true) /\
+        (∀ n : nat, ∀ x, prefix !! n = Some x -> ltb x i = true) /\
+        (∀ n : nat, ∀ x, suffix !! n = Some x -> ltb i x = true \/ eqb i x = true) /\
         Forall well_formed (sortedInsert l i).
     Proof with eauto.
       intros SORTED. rewrite isSorted_iff_isSorted' in SORTED... revert i SORTED i_wf. induction l_wf as [ | x1 xs x1_wf xs_wf IH]; intros x0 SORTED' x0_wf.
@@ -451,23 +451,33 @@ Module SessionPrelude.
         { exists []. exists (x1 :: prefix ++ suffix)%list. repeat (split; try done).
           - intros n x H_x. enough (want_to_show : ltb x1 x = true \/ eqb x x1 = true).
             + destruct want_to_show as [H_lt | H_eq].
-              * rewrite ltb_lt...  eapply ltProp_transitivity with (y := x1); try done... rewrite <- ltb_lt...
+              * rewrite ltb_lt... left. eapply ltProp_transitivity with (y := x1); try done... rewrite <- ltb_lt...
               * rewrite ltb_lt... rewrite eqb_eq in H_eq... pose proof (ltProp_trichotomy x0 x) as [? | [? | ?]]...
-                { contradiction (ltProp_irreflexivity x0 x1)... eapply eqProp_transitivity with (y := x)... }
+                { right. rewrite eqb_eq... }
                 { contradiction (ltProp_irreflexivity x x1); try done... eapply ltProp_transitivity with (y := x0)... }
+            + red in SORTED'. eapply SORTED' with (i := 0%nat) (j := n); try (word || done)...
+          - econstructor; eauto.
+        }
+        destruct (eqb x1 x0) as [ | ] eqn: H_OBS'; rewrite eqb_obs in H_OBS'...
+        { exists []. exists (x1 :: prefix ++ suffix)%list. repeat (split; try done).
+          - intros n x H_x. enough (want_to_show : ltb x1 x = true \/ eqb x x1 = true).
+            + destruct want_to_show as [H_lt | H_eq].
+              * rewrite ltb_lt... left. rewrite ltb_lt in H_lt... pose proof (ltProp_trichotomy x0 x) as [? | [? | ?]]...
+                { contradiction (ltProp_irreflexivity x1 x); try done... eapply eqProp_transitivity with (y := x0)... }
+                { contradiction (ltProp_irreflexivity x1 x0); try done... eapply ltProp_transitivity with (y := x)... }
+              * rewrite ltb_lt... rewrite eqb_eq in H_eq... rewrite eqb_eq... right. eapply eqProp_symmetry... eapply eqProp_transitivity with (y := x1)...
             + red in SORTED'. eapply SORTED' with (i := 0%nat) (j := n); try (word || done)...
           - econstructor; eauto.
         }
         { exists (x1 :: prefix)%list. exists suffix. split. { done. } split. { simpl. rewrite EQ. simpl. reflexivity. } split.
           - intros [ | n]; simpl; intros x H_x.
             + assert (x = x1) as -> by congruence. clear H_x.
-              rewrite ltb_lt... rewrite eqb_eq... pose proof (ltProp_trichotomy x0 x1) as [? | [? | ?]]; try done.
-              * right; done.
-              * left; done.
+              rewrite ltb_lt... pose proof (ltProp_trichotomy x0 x1) as [? | [? | ?]]; try done...
+              contradiction H_OBS'. eapply eqProp_symmetry...
             + eapply H_prefix. exact H_x.
           - split. 
             + exact H_suffix.
-            + eauto.
+            + simpl...
         }
     Qed.
 
@@ -485,7 +495,7 @@ Module SessionPrelude.
         + rewrite H_l. rewrite lookup_app_l... rewrite lookup_app_l in H_x2...
       - rewrite list_lookup_middle in H_x2...
         assert (x = x2) as -> by congruence. clear H_x2.
-        eapply H_prefix. rewrite lookup_app_l in H_x1...
+        left. eapply H_prefix. rewrite lookup_app_l in H_x1...
       - cut (ltb x1 x = true \/ eqb x x1 = true).
         + intros H_middle.
           enough (H_middle' : ltb x x2 = true \/ eqb x x2 = true).
@@ -503,14 +513,14 @@ Module SessionPrelude.
               + contradiction (ltProp_irreflexivity x x1)... eapply ltProp_transitivity with (y := x2)...
             - right. eapply eqProp_transitivity with (y := x)... eapply eqProp_symmetry...
           }
-          clear H_middle. rewrite eqb_comm... left.
+          clear H_middle.
           eapply H_suffix. rewrite app_assoc in H_x2. rewrite lookup_app_r in H_x2...
           rewrite length_app. simpl. word.
-        + eapply H_prefix. rewrite lookup_app_l in H_x1...
+        + left. eapply H_prefix. rewrite lookup_app_l in H_x1...
       - rewrite list_lookup_middle in H_x1...
       - right. replace x2 with x1 by congruence. rewrite eqb_eq... eapply eqProp_reflexivity...
       - rewrite list_lookup_middle in H_x1...
-        assert (x = x1) as -> by congruence. clear H_x1. left.
+        assert (x = x1) as -> by congruence. clear H_x1. rewrite eqb_comm...
         eapply H_suffix. rewrite app_assoc in H_x2. rewrite lookup_app_r in H_x2...
         rewrite length_app. simpl. word.
       - word.

@@ -64,7 +64,9 @@ Definition coq_equalOperations (o1 : Operation.t) (o2 : Operation.t) :=
 Fixpoint coq_sortedInsert (l : list Operation.t) (i : Operation.t) :=
   match l with
   | [] => [i]
-  | cons h t => if (coq_lexicographicCompare h.(Operation.VersionVector) i.(Operation.VersionVector)) then (i :: h :: t)%list else (h :: coq_sortedInsert t i)%list
+  | cons h t => if (orb (coq_lexicographicCompare h.(Operation.VersionVector) i.(Operation.VersionVector))
+                     (coq_equalSlices h.(Operation.VersionVector) i.(Operation.VersionVector)))
+                then (i :: h :: t)%list else (h :: coq_sortedInsert t i)%list
   end.
 
 Definition coq_mergeOperations (l1: list Operation.t) (l2: list Operation.t) : (list Operation.t) :=
