@@ -24,6 +24,8 @@ Section heap.
     iDestruct "H1" as "(%H1 & %H2 & H1 & %H3 & H4 & H5 & H6 & H7 & %H4 & H8)".
     iDestruct "H2" as "(%H5 & %H6 & %H7 & %H8 & %H9 & %H10 & H9 & %H11 & %H12 & H10 & %H13 & %H14 & %H15 & %H16 & %H17 & %H18 & %H19 & H11 & %H20 & %H21)".
     rewrite /processClientRequest. wp_pures.
+    wp_apply (wp_ref_to); first repeat apply (@val_ty_pair); auto.
+    iIntros (ret) "H2".
     wp_apply (wp_compareVersionVector with "[H4 H9]"). { iFrame.
                                                          iPureIntro.
                                                          rewrite <- H3.
@@ -31,7 +33,46 @@ Section heap.
                                                          auto. }
     iIntros (r) "(%H22 & H12 & H13 & %H23)".
     wp_if_destruct.
-    - wp_pures. iModIntro.
+    - wp_pures. wp_load. 
+      assert (zero_val uint64T = #(@W64 0)) by auto. 
+      assert (zero_val (slice.T uint64T) = slice_val Slice.nil) by auto.
+      assert (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht))
+              = slice_val Slice.nil) by auto.
+      rewrite H H0 H3. unfold message_val.
+      assert (message_val ((W64 0),
+       (W64 0),
+        (W64 0),
+         (W64 0),
+          (W64 0),
+           Slice.nil,
+            (W64 0),
+             (W64 0),
+              Slice.nil,
+               (W64 0),
+                (W64 0),
+                 (W64 0),
+                  (W64 0),
+                   (W64 0),
+                    (W64 0), Slice.nil, (W64 0), (W64 0)) = (#(W64 0),
+       (#(W64 0),
+        (#(W64 0),
+         (#(W64 0),
+          (#(W64 0),
+           (Slice.nil,
+            (#(W64 0),
+             (#(W64 0),
+              (Slice.nil,
+               (#(W64 0),
+                (#(W64 0),
+                 (#(W64 0),
+                  (#(W64 0),
+                   (#(W64 0),
+                    (#(W64 0), (Slice.nil, (#(W64 0), (#(W64 0), #()))))))))))))))))))%V). { unfold message_val. simpl. auto. }
+      wp_pures.
+      iModIntro.
+      rewrite <- H22.
+      iApply "H_ret".
+                                 ).
       
       (* I'm not sure why we can't apply H_ret *)
   Admitted.

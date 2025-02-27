@@ -247,10 +247,10 @@ Definition getGossipOperations: val :=
 
 Definition processClientRequest: val :=
   rec: "processClientRequest" "server" "request" :=
-    let: "reply" := struct.mk Message [
-    ] in
+    let: "reply" := ref_to (struct.t Message) (struct.mk Message [
+    ]) in
     (if: (~ (compareVersionVector (struct.get Server "VectorClock" "server") (struct.get Message "C2S_Client_VersionVector" "request")))
-    then (#false, "server", "reply")
+    then (#false, "server", ![struct.t Message] "reply")
     else
       (if: (struct.get Message "C2S_Client_OperationType" "request") = #0
       then
@@ -260,7 +260,7 @@ Definition processClientRequest: val :=
         struct.storeF Message "S2C_Client_VersionVector" "reply" (struct.get Server "VectorClock" "server");;
         struct.storeF Message "S2C_Server_Id" "reply" (struct.get Server "Id" "server");;
         struct.storeF Message "S2C_Client_Number" "reply" (struct.get Message "C2S_Client_Id" "request");;
-        (#true, "server", "reply")
+        (#true, "server", ![struct.t Message] "reply")
       else
         SliceSet uint64T (struct.get Server "VectorClock" "server") (struct.get Server "Id" "server") ((SliceGet uint64T (struct.get Server "VectorClock" "server") (struct.get Server "Id" "server")) + #1);;
         struct.storeF Server "OperationsPerformed" "server" (SliceAppend (struct.t Operation) (struct.get Server "OperationsPerformed" "server") (struct.mk Operation [
@@ -277,7 +277,7 @@ Definition processClientRequest: val :=
         struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" "server"));;
         struct.storeF Message "S2C_Server_Id" "reply" (struct.get Server "Id" "server");;
         struct.storeF Message "S2C_Client_Number" "reply" (struct.get Message "C2S_Client_Id" "request");;
-        (#true, "server", "reply"))).
+        (#true, "server", ![struct.t Message] "reply"))).
 
 Definition processRequest: val :=
   rec: "processRequest" "server" "request" :=

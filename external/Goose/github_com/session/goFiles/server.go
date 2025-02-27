@@ -251,7 +251,7 @@ func getGossipOperations(server Server, serverId uint64) []Operation {
 }
 
 func processClientRequest(server Server, request Message) (bool, Server, Message) {
-	reply := Message{}
+	var reply = Message{}
 
 	if !compareVersionVector(server.VectorClock, request.C2S_Client_VersionVector) {
 		return false, server, reply
