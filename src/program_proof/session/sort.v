@@ -384,15 +384,6 @@ Section heap.
       + destruct H10. auto.
   Qed.
 
-  (* We will need to change this in the definition file *)
-  Fixpoint coq_sortedInsert (l : list Operation.t) (i : Operation.t) :=
-  match l with
-  | [] => [i]
-  | cons h t => if (orb (coq_lexicographicCompare h.(Operation.VersionVector) i.(Operation.VersionVector))
-                     (coq_equalSlices  h.(Operation.VersionVector) i.(Operation.VersionVector)))
-                then (i :: h :: t)%list else (h :: coq_sortedInsert t i)%list
-  end.
-  
   Lemma wp_sortedInsert (s: Slice.t) (l: list Operation.t)
     (opv: Slice.t*u64) (v: Operation.t) (n: nat) :
     {{{
