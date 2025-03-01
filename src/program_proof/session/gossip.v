@@ -29,7 +29,9 @@ Section heap.
     wp_apply (wp_slice_len). wp_pures.
     wp_bind (if: #(bool_decide (uint.Z (sv.2).(Slice.sz) ≤ uint.Z serverId)) then _ else _)%E.
     wp_if_destruct.
-    - wp_pures. admit.
+    - wp_pures. wp_load. replace (replicate (uint.nat (W64 0)) operation_into_val .(IntoVal_def (Slice.t * w64))) with (@nil (Slice.t * w64)) by reflexivity.
+      iModIntro. iApply "H_ret". iFrame. unfold coq_getGossipOperations. simpl. iSplitL "H2"; repeat (iSplit; trivial).
+      admit. (* stuck! *)
     - wp_pures. 
       wp_apply (wp_slice_len).
       assert (uint.nat serverId < length s.(Server.GossipAcknowledgements))%nat
@@ -47,7 +49,9 @@ Section heap.
         unfold own_slice. unfold slice.own_slice.
         iDestruct "H6" as "[H6 H10]".
         wp_apply (wp_SliceAppendSlice with "[H H6]"); eauto. {
-          iFrame. simpl. unfold own_slice_small.
+          iFrame. simpl. unfold own_slice_small. admit. 
+        }
+        admit.
   Admitted.
 
   Lemma wp_acknowledgeGossip (sv: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (s: Server.t)
