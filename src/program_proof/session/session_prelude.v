@@ -1,6 +1,8 @@
 From Goose.github_com.session Require Export server.
 From Perennial.program_proof Require Export std_proof grove_prelude.
 
+Create HintDb session_hints.
+
 Module SessionPrelude.
 
   #[local] Obligation Tactic := intros.
@@ -740,7 +742,7 @@ Module SessionPrelude.
     : record_like (A * B) (fun i => match i with O => B | S i' => X i' end) :=
       fun i => match i with O => snd | S i' => fun z => record_nth i' (fst z) end.
 
-  Definition record_like_atomic {A : Type}
+  Definition record_like_atomic (A : Type)
     : record_like A (fun _ => A) :=
       fun _ => fun z => z.
 
