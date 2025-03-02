@@ -735,111 +735,110 @@ Module SessionPrelude.
 
 End SessionPrelude.
 
+Reserved Notation "x '!(' i ')'" (format "x  !( i )", left associativity).
+
 Module TypeVector.
 
   Universe u.
 
   Inductive t : nat -> Type@{u + 1} :=
-    | nil : t 0
+    | nil : t O
     | cons {n: nat} (T: Type@{u}) (Ts: t n) : t (S n).
 
-  Lemma case0 (phi : TypeVector.t O -> Type)
-    (phi_nil : phi (nil))
-    : forall ts, phi ts.
+  Lemma case0 (P : TypeVector.t O -> Type)
+    (P_nil : P (nil))
+    : forall Ts, P Ts.
   Proof.
-    intros ts. revert phi phi_nil.
+    intros Ts. revert P P_nil.
     exact (
-      match ts as ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun ts => forall phi : TypeVector.t O -> Type, phi nil -> phi ts | S n' => fun ts => unit end) ts with
-      | nil => fun phi => fun phi_O => phi_O
-      | cons t' ts' => tt
+      match Ts as Ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun Ts => forall P : TypeVector.t O -> Type, P nil -> P Ts | S n' => fun Ts => unit end) Ts with
+      | nil => fun P => fun P_nil => P_nil
+      | cons T' Ts' => tt
       end
     ).
   Defined.
 
-  Lemma caseS {n' : nat} (phi : TypeVector.t (S n') -> Type)
-    (phi_cons : forall t', forall ts', phi (cons t' ts'))
-    : forall ts, phi ts.
+  Lemma caseS {n' : nat} (P : TypeVector.t (S n') -> Type)
+    (P_cons : forall T': Type@{u}, forall Ts': TypeVector.t n', P (cons T' Ts'))
+    : forall Ts, P Ts.
   Proof.
-    intros ts. revert phi phi_cons.
+    intros Ts. revert P P_cons.
     exact (
-      match ts as ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun _ => unit | S n' => fun ts => forall phi : TypeVector.t (S n') -> Type, (forall t' : Type@{u}, forall ts' : TypeVector.t n', phi (cons t' ts')) -> phi ts end) ts with
+      match Ts as Ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun Ts => unit | S n' => fun Ts => forall P : TypeVector.t (S n') -> Type, (forall T' : Type@{u}, forall Ts' : TypeVector.t n', P (cons T' Ts')) -> P Ts end) Ts with
       | nil => tt
-      | cons t' ts' => fun phi => fun phi_S => phi_S t' ts'
+      | cons T' Ts' => fun P => fun P_cons => P_cons T' Ts'
       end
     ).
   Defined.
 
   Definition head {n} (Ts: TypeVector.t (S n)) : Type@{u} :=
-    match Ts as Ts in TypeVector.t n' return
+    match Ts in TypeVector.t n' return
       match n' return Type with
       | O => unit
       | S n => Type@{u}
       end
     with
     | nil => tt
-    | cons T Ts => T
+    | cons T' Ts' => T'
     end.
 
   Definition tail {n} (Ts: TypeVector.t (S n)) : TypeVector.t n :=
-    match Ts as Ts in TypeVector.t n' return
+    match Ts in TypeVector.t n' return
       match n' return Type with
       | O => unit
       | S n => TypeVector.t n
       end
     with
     | nil => tt
-    | cons T Ts => Ts
+    | cons T' Ts' => Ts'
     end.
 
-  Fixpoint tuple {n} {struct n} : forall Ts: TypeVector.t (S n), Type@{u} :=
+  Fixpoint tuple_of (n: nat) {struct n} : forall Ts: TypeVector.t (S n), Type@{u} :=
     match n with
-    | O => head
-    | S n => fun Ts => (tuple (n := n) (tail Ts) * head Ts)%type
+    | O => fun Ts => head Ts
+    | S n => fun Ts => (tuple_of n (tail Ts) * head Ts)%type
     end.
 
-  Fixpoint nthType {n} (i: nat) {struct i} : forall Ts: TypeVector.t n, Type@{u} :=
-    match i with
-    | O =>
-      match n with
-      | O => fun _ => unit
-      | S n => head
-      end
-    | S i =>
-      match n with
-      | O => fun _ => unit
-      | S n => fun Ts => nthType i (tail Ts)
+  Fixpoint nthType {n} (i: nat) (Ts: TypeVector.t n) {struct Ts} : Type@{u} :=
+    match Ts with
+    | nil => unit
+    | cons T' Ts' =>
+      match i with
+      | O => T'
+      | S i' => nthType i' Ts'
       end
     end.
 
   Fixpoint nth (n: nat) (i: nat) {struct i}
-    : forall Ts: TypeVector.t (S n), tuple Ts -> nthType i Ts.
+    : forall Ts: TypeVector.t (S n), tuple_of n Ts -> nthType i Ts.
   Proof.
-    destruct i as [ | i'].
-    - intros Ts. pattern Ts. revert Ts. apply caseS. simpl.
-      intros t' ts'. destruct n as [ | n']; simpl.
+    destruct n as [ | n']; simpl.
+    - induction Ts as [T' Ts'] using caseS.
+      induction Ts' as [] using case0.
+      destruct i as [ | i']; simpl.
       + intros x. exact x.
+      + intros x. exact tt.
+    - induction Ts as [T' Ts'] using caseS.
+      destruct i as [ | i']; simpl.
       + intros x. exact (snd x).
-    - intros Ts. pattern Ts. revert Ts. apply caseS. simpl.
-      intros t' ts'. destruct n as [ | n']; simpl.
-      + pattern ts'. revert ts'. apply case0. simpl.
-        destruct i'; intros _; exact tt.
-      + intros x. exact (@nth n' i' ts' (fst x)).
+      + intros x. exact (nth n' i' Ts' (fst x)).
   Defined.
 
-  Definition lookup {n} {Ts} (tuple: tuple Ts) i : nthType (n - i) Ts :=
-    nth n (n - i)%nat Ts tuple.
+  Definition lookup {n} {Ts} (tuple: tuple_of n Ts) i : nthType (n - i) Ts :=
+    nth n (n - i) Ts tuple.
 
 End TypeVector.
 
-Declare Scope typevector_scope.
-Bind Scope typevector_scope with TypeVector.t.
-Delimit Scope typevector_scope with tv.
+Declare Scope TypeVector_scope.
+Bind Scope TypeVector_scope with TypeVector.t.
 
-Reserved Notation "x '!(' i ')'" (format "x  !( i )", left associativity).
+Notation "[ ]" := (TypeVector.nil) : TypeVector_scope.
+Notation "[ T1 ]" := (TypeVector.cons T1 TypeVector.nil) : TypeVector_scope.
+Notation "[ T1 , T2 , .. , Tn ]" := (TypeVector.cons Tn (.. (TypeVector.cons T2 (TypeVector.cons T1 TypeVector.nil)) ..)) : TypeVector_scope.
 
-Notation "[ ]" := TypeVector.nil : typevector_scope.
-Notation "[ T1 ]" := (TypeVector.cons T1 TypeVector.nil) : typevector_scope.
-Notation "[ T1 , T2 , .. , Tn ]" := (TypeVector.cons Tn (.. (TypeVector.cons T2 (TypeVector.cons T1 TypeVector.nil)) ..)) : typevector_scope.
 Notation "x !( i )" := (TypeVector.lookup x i).
 
-Notation tuple_of := TypeVector.tuple.
+Definition tuple_of {n: nat} (Ts: TypeVector.t (S n)) : Type@{TypeVector.u} :=
+  TypeVector.tuple_of n Ts.
+
+Arguments tuple_of {n} Ts : simpl never.

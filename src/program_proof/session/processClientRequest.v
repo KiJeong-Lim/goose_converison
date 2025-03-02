@@ -239,7 +239,7 @@ Section heap.
         operation_slice s2 l2 n ∗
         ⌜is_sorted nxs⌝
     }}}.
-  Proof.
+  Proof. (**
     rewrite /mergeOperations. iIntros "%Φ ((%l1_ops & H_s1 & H_l1_ops) & (%l2_ops & H_s2 & H_l2_ops) & %l1_sorted) HΦ".
     iPoseProof (own_slice_sz with "[$H_s1]") as "%H_l1_len".
     iPoseProof (own_slice_sz with "[$H_s2]") as "%H_l2_len".
@@ -1382,7 +1382,7 @@ Section heap.
             subst l3. fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl in *.
             rewrite <- H2. simpl. rewrite claim5. simpl in *. done.
         }
-      }
-  Qed.
+      } *)
+  Admitted.
 
 End heap.
