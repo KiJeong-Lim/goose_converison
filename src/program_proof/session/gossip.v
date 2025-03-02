@@ -3,56 +3,72 @@ From Perennial.program_proof.session Require Export versionVector sort.
 
 Section heap.
 
-  Context `{hG: !heapGS Σ}.                               
+  Context `{hG: !heapGS Σ}.
   
   Lemma wp_getGossipOperations (sv: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (s: Server.t)
     (serverId: w64) (n: nat) :
     {{{
-          is_server sv s n 
+        is_server sv s n 
     }}}
       getGossipOperations (server_val sv) #serverId
-      {{{
-            ns , RET slice_val (ns);
-            operation_slice ns (coq_getGossipOperations s serverId) n ∗
-            is_server sv s n 
-      }}}.
+    {{{
+        ns , RET slice_val (ns);
+        operation_slice ns (coq_getGossipOperations s serverId) n ∗
+        is_server sv s n 
+    }}}.
   Proof.
-    iIntros "%Φ H1 H_ret".
-    iDestruct "H1" as "(%H1 & %H2 & H1 & %H3 & H4 & H5 & H6 & H7 & %H4 & H8)".
-    rewrite /getGossipOperations.
-    iDestruct (own_slice_small_sz with "H8") as "%H5".
-    wp_pures.
-    wp_apply (wp_NewSlice).
-    iIntros (s') "H".
-    wp_apply (wp_ref_to). { auto. }
-    iIntros (ret) "H2".
-    wp_apply (wp_slice_len). wp_pures.
-    wp_bind (if: #(bool_decide (uint.Z (sv.2).(Slice.sz) ≤ uint.Z serverId)) then _ else _)%E.
-    wp_if_destruct.
-    - wp_pures. wp_load. replace (replicate (uint.nat (W64 0)) operation_into_val .(IntoVal_def (Slice.t * w64))) with (@nil (Slice.t * w64)) by reflexivity.
-      iModIntro. iApply "H_ret". iFrame. unfold coq_getGossipOperations. simpl. iSplitL "H2"; repeat (iSplit; trivial).
-      admit. (* stuck! *)
-    - wp_pures. 
-      wp_apply (wp_slice_len).
-      assert (uint.nat serverId < length s.(Server.GossipAcknowledgements))%nat
-        by word.
-      apply list_lookup_lt in H as [x H].
-      wp_apply (wp_SliceGet with "[H8]"). { iFrame. auto. }
-      iIntros "H8". wp_if_destruct.
-      + admit.
-      + wp_apply (wp_SliceGet with "[H8]"). {iFrame. auto. }
-        iIntros "H8". wp_pures.
-        wp_apply (wp_SliceSkip). { word. }
-        wp_load.
-        rewrite /operation_slice. rewrite /operation_slice'.
-        iDestruct "H6" as "(%ops & H6 & H9)".
-        unfold own_slice. unfold slice.own_slice.
-        iDestruct "H6" as "[H6 H10]".
-        wp_apply (wp_SliceAppendSlice with "[H H6]"); eauto. {
-          iFrame. simpl. unfold own_slice_small. admit. 
+    iIntros "%Φ (%H1 & %H2 & H3 & %H4 & H5 & H6 & H7 & H8 & %H9 & H10) HΦ". rewrite /getGossipOperations. wp_pures.
+    wp_apply wp_NewSlice; auto. iIntros "%s1 [H1_s1 H2_s1]".
+    iPoseProof (own_slice_small_sz with "[$H1_s1]") as "%H_s1_len".
+    iPoseProof (own_slice_small_sz with "[$H10]") as "%YES1".
+    iPoseProof (own_slice_small_sz with "[$H5]") as "%YES2".
+    wp_apply wp_ref_to; auto. iIntros "%ret H_ret".
+    wp_pures. wp_bind (if: #serverId ≥ slice.len sv.2 then #true else _)%E.
+    wp_apply wp_slice_len; auto. wp_if_destruct.
+    - wp_pures. wp_load. iModIntro. iApply "HΦ". iFrame.
+      replace (replicate (uint.nat (W64 0)) operation_into_val .(IntoVal_def (Slice.t * w64))) with (@nil (Slice.t * w64)) in *; simpl in *; trivial. iSplitL "".
+      + unfold coq_getGossipOperations. replace (s .(Server.GossipAcknowledgements) !! uint.nat serverId) with (@None u64).
+        * iApply big_sepL2_nil. done.
+        * symmetry. eapply lookup_ge_None. word.
+      + iPureIntro. tauto.
+    - wp_pures. wp_apply wp_slice_len; auto.
+      assert (is_Some (s .(Server.GossipAcknowledgements) !! uint.nat serverId)) as [v H_v].
+      { eapply lookup_lt_is_Some_2. word. }
+      wp_apply (wp_SliceGet with "[$H10]"); auto.
+      iIntros "H1". simpl. wp_pures. wp_if_destruct.
+      + wp_load. iModIntro. iApply "HΦ". iDestruct "H7" as "[%ops [H7 H4]]".
+        iPoseProof (own_slice_sz with "[$H7]") as "%YES3".
+        iPoseProof (big_sepL2_length with "[$H4]") as "%YES4".
+        iFrame. simpl in *. replace (replicate (uint.nat (W64 0)) (Slice.nil, W64 0)) with (@nil (Slice.t * w64)) in *; simpl in *; trivial. iSplitL "".
+        * unfold coq_getGossipOperations. rewrite H_v. rewrite skipn_all2.
+          { simpl. done. }
+          { word. }
+        * iPureIntro. tauto.
+      + wp_pures. wp_apply (wp_SliceGet with "[$H1]"); auto. iIntros "H9". simpl in *.
+        wp_pures. wp_apply wp_SliceSkip; auto. { word. } wp_load. iDestruct "H7" as "(%ops & [H7 H10] & H4)".
+        iPoseProof (own_slice_small_sz with "[$H7]") as "%YES3".
+        iPoseProof (big_sepL2_length with "[$H4]") as "%YES4".
+        iPoseProof (slice_small_split with "[$H7]") as "[H7 H7']".
+        { instantiate (1 := v). word. }
+        wp_apply (wp_SliceAppendSlice with "[$H1_s1 $H2_s1 H7']"); auto.
+        iIntros "%s2 [H1_s2 H2_s2]". replace (replicate (uint.nat (W64 0)) (Slice.nil, W64 0)) with (@nil (Slice.t * w64)) in * by reflexivity. simpl in *.
+        iApply "HΦ". iPoseProof (pers_big_sepL2_is_operation with "[$H4]") as "#H10_pers". iFrame.
+        iSplitL "".
+        { unfold coq_getGossipOperations. rewrite H_v. rewrite <- take_drop with (l := ops) (i := uint.nat v) at 1. rewrite <- take_drop with (l := s.(Server.MyOperations)) (i := uint.nat v) at 1.
+          iPoseProof (big_sepL2_app_equiv with "[$H10_pers]") as "[YES1 YES2]".
+          - do 2 rewrite length_take. word.
+          - iExact "YES2".
         }
-        admit.
-  Admitted.
+        iSplitL "". { iPureIntro. tauto. }
+        iSplitL "". { iPureIntro. tauto. }
+        iSplitL "". { iPureIntro. tauto. }
+        iSplitR "".
+        { iApply own_slice_small_take_drop.
+          - instantiate (1 := v). word.
+          - iFrame.
+        }
+        iPureIntro. tauto.
+  Qed.
 
   Lemma wp_acknowledgeGossip (sv: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (s: Server.t)
     (msgv: u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64)

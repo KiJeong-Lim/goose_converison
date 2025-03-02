@@ -120,15 +120,10 @@ Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) :=
   Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) gossipAcknowledgements.
 
 Definition coq_getGossipOperations (s: Server.t) (serverId: u64) : (list Operation.t) :=
-  snd (fold_left (fun (acc: Z * list Operation.t) element =>
-                    let (index, acc) := acc in
-                    match lookup (uint.nat serverId) (s.(Server.GossipAcknowledgements)) with
-                    | Some v => if index >=? (uint.nat v) then
-                                  (index + 1, acc ++ [element])
-                                else (index + 1, acc)
-                    | None => (index + 1, acc)
-                    end)
-         [] (0, s.(Server.MyOperations))).
+  match s.(Server.GossipAcknowledgements) !! uint.nat serverId with
+  | Some v => drop (uint.nat v) (s .(Server.MyOperations))
+  | None => []
+  end.
 
 Definition coq_processClientRequest (s: Server.t) (r: Message.t) :
   (bool * Server.t * Message.t) :=
