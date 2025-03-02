@@ -162,34 +162,26 @@ func mergeOperations(l1 []Operation, l2 []Operation) []Operation {
 		return make([]Operation, 0)
 	}
 
-	var intermediate = append([]Operation{}, l1...)
+	var output = append([]Operation{}, l1...)
 	var i = uint64(0)
 	var l = uint64(len(l2))
 
 	for i < l {
-		intermediate = sortedInsert(intermediate, l2[i])
+		output = sortedInsert(output, l2[i])
 		i++
 	}
 
 	var prev = uint64(1)
 	var curr = uint64(1)
-	for curr < uint64(len(intermediate)) {
-		if !equalOperations(intermediate[curr-1], intermediate[curr]) {
-			intermediate[prev] = intermediate[curr]
+	for curr < uint64(len(output)) {
+		if !equalOperations(output[curr-1], output[curr]) {
+			output[prev] = output[curr]
 			prev = prev + 1
 		}
 		curr = curr + 1
 	}
-
-	var output = make([]Operation, 0)
-
-	i = uint64(0)
-	l = prev
-	for i < prev {
-		output = append(output, intermediate[i])
-		i = i + 1
-	}
-	return output
+	
+	return output[:prev]
 }
 
 func deleteAtIndexOperation(l []Operation, index uint64) []Operation {

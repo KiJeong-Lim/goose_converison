@@ -163,34 +163,26 @@ Definition mergeOperations: val :=
     (if: ((slice.len "l1") = #0) && ((slice.len "l2") = #0)
     then NewSlice (struct.t Operation) #0
     else
-      let: "intermediate" := ref_to (slice.T (struct.t Operation)) (SliceAppendSlice (struct.t Operation) (NewSlice (struct.t Operation) #0) "l1") in
+      let: "output" := ref_to (slice.T (struct.t Operation)) (SliceAppendSlice (struct.t Operation) (NewSlice (struct.t Operation) #0) "l1") in
       let: "i" := ref_to uint64T #0 in
       let: "l" := ref_to uint64T (slice.len "l2") in
       Skip;;
       (for: (λ: <>, (![uint64T] "i") < (![uint64T] "l")); (λ: <>, Skip) := λ: <>,
-        "intermediate" <-[slice.T (struct.t Operation)] (sortedInsert (![slice.T (struct.t Operation)] "intermediate") (SliceGet (struct.t Operation) "l2" (![uint64T] "i")));;
+        "output" <-[slice.T (struct.t Operation)] (sortedInsert (![slice.T (struct.t Operation)] "output") (SliceGet (struct.t Operation) "l2" (![uint64T] "i")));;
         "i" <-[uint64T] ((![uint64T] "i") + #1);;
         Continue);;
       let: "prev" := ref_to uint64T #1 in
       let: "curr" := ref_to uint64T #1 in
       Skip;;
-      (for: (λ: <>, (![uint64T] "curr") < (slice.len (![slice.T (struct.t Operation)] "intermediate"))); (λ: <>, Skip) := λ: <>,
-        (if: (~ (equalOperations (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "intermediate") ((![uint64T] "curr") - #1)) (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "intermediate") (![uint64T] "curr"))))
+      (for: (λ: <>, (![uint64T] "curr") < (slice.len (![slice.T (struct.t Operation)] "output"))); (λ: <>, Skip) := λ: <>,
+        (if: (~ (equalOperations (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "output") ((![uint64T] "curr") - #1)) (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "output") (![uint64T] "curr"))))
         then
-          SliceSet (struct.t Operation) (![slice.T (struct.t Operation)] "intermediate") (![uint64T] "prev") (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "intermediate") (![uint64T] "curr"));;
+          SliceSet (struct.t Operation) (![slice.T (struct.t Operation)] "output") (![uint64T] "prev") (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "output") (![uint64T] "curr"));;
           "prev" <-[uint64T] ((![uint64T] "prev") + #1)
         else #());;
         "curr" <-[uint64T] ((![uint64T] "curr") + #1);;
         Continue);;
-      let: "output" := ref_to (slice.T (struct.t Operation)) (NewSlice (struct.t Operation) #0) in
-      "i" <-[uint64T] #0;;
-      "l" <-[uint64T] (![uint64T] "prev");;
-      Skip;;
-      (for: (λ: <>, (![uint64T] "i") < (![uint64T] "prev")); (λ: <>, Skip) := λ: <>,
-        "output" <-[slice.T (struct.t Operation)] (SliceAppend (struct.t Operation) (![slice.T (struct.t Operation)] "output") (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "intermediate") (![uint64T] "i")));;
-        "i" <-[uint64T] ((![uint64T] "i") + #1);;
-        Continue);;
-      ![slice.T (struct.t Operation)] "output").
+      SliceTake (![slice.T (struct.t Operation)] "output") (![uint64T] "prev")).
 
 Definition deleteAtIndexOperation: val :=
   rec: "deleteAtIndexOperation" "l" "index" :=
