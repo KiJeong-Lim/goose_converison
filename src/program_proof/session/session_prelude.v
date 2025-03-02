@@ -733,32 +733,113 @@ Module SessionPrelude.
       + rewrite eqProp_spec in H_OBS. split; congruence.
   Qed.
 
-  Class record_like (A : Type) (X : nat -> Type) : Type :=
-    record_nth (i : nat) : A -> X i.
-
-  #[global]
-  Instance record_like_instance_pair {A : Type} {B : Type} {X : nat -> Type}
-    (A_record_like : record_like A X)
-    : record_like (A * B) (fun i => match i with O => B | S i' => X i' end) :=
-      fun i => match i with O => snd | S i' => fun z => record_nth i' (fst z) end.
-
-  Definition record_like_atomic (A : Type)
-    : record_like A (fun _ => A) :=
-      fun _ => fun z => z.
-
-  #[local] Hint Resolve record_like_atomic : typeclass_instances.
-
-  #[global]
-  Instance record_like_instance_u64
-    : record_like u64 (fun _ => u64) :=
-      _.
-
-  #[global]
-  Instance record_like_instance_w64
-    : record_like w64 (fun _ => w64) :=
-      _.
-
 End SessionPrelude.
 
-Notation "x 'at[' T ']' n" := (SessionPrelude.record_nth n x : T)
-  (at level 10, left associativity, format "x  'at[' T ]  n").
+Module TypeVector.
+
+  Universe u.
+
+  Inductive t : nat -> Type@{u + 1} :=
+    | nil : t 0
+    | cons {n: nat} (T: Type@{u}) (Ts: t n) : t (S n).
+
+  Lemma case0 (phi : TypeVector.t O -> Type)
+    (phi_nil : phi (nil))
+    : forall ts, phi ts.
+  Proof.
+    intros ts. revert phi phi_nil.
+    exact (
+      match ts as ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun ts => forall phi : TypeVector.t O -> Type, phi nil -> phi ts | S n' => fun ts => unit end) ts with
+      | nil => fun phi => fun phi_O => phi_O
+      | cons t' ts' => tt
+      end
+    ).
+  Defined.
+
+  Lemma caseS {n' : nat} (phi : TypeVector.t (S n') -> Type)
+    (phi_cons : forall t', forall ts', phi (cons t' ts'))
+    : forall ts, phi ts.
+  Proof.
+    intros ts. revert phi phi_cons.
+    exact (
+      match ts as ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun _ => unit | S n' => fun ts => forall phi : TypeVector.t (S n') -> Type, (forall t' : Type@{u}, forall ts' : TypeVector.t n', phi (cons t' ts')) -> phi ts end) ts with
+      | nil => tt
+      | cons t' ts' => fun phi => fun phi_S => phi_S t' ts'
+      end
+    ).
+  Defined.
+
+  Definition head {n} (Ts: TypeVector.t (S n)) : Type@{u} :=
+    match Ts as Ts in TypeVector.t n' return
+      match n' return Type with
+      | O => unit
+      | S n => Type@{u}
+      end
+    with
+    | nil => tt
+    | cons T Ts => T
+    end.
+
+  Definition tail {n} (Ts: TypeVector.t (S n)) : TypeVector.t n :=
+    match Ts as Ts in TypeVector.t n' return
+      match n' return Type with
+      | O => unit
+      | S n => TypeVector.t n
+      end
+    with
+    | nil => tt
+    | cons T Ts => Ts
+    end.
+
+  Fixpoint tuple {n} {struct n} : forall Ts: TypeVector.t (S n), Type@{u} :=
+    match n with
+    | O => head
+    | S n => fun Ts => (tuple (n := n) (tail Ts) * head Ts)%type
+    end.
+
+  Fixpoint nthType {n} (i: nat) {struct i} : forall Ts: TypeVector.t n, Type@{u} :=
+    match i with
+    | O =>
+      match n with
+      | O => fun _ => unit
+      | S n => head
+      end
+    | S i =>
+      match n with
+      | O => fun _ => unit
+      | S n => fun Ts => nthType i (tail Ts)
+      end
+    end.
+
+  Fixpoint nth (n: nat) (i: nat) {struct i}
+    : forall Ts: TypeVector.t (S n), tuple Ts -> nthType i Ts.
+  Proof.
+    destruct i as [ | i'].
+    - intros Ts. pattern Ts. revert Ts. apply caseS. simpl.
+      intros t' ts'. destruct n as [ | n']; simpl.
+      + intros x. exact x.
+      + intros x. exact (snd x).
+    - intros Ts. pattern Ts. revert Ts. apply caseS. simpl.
+      intros t' ts'. destruct n as [ | n']; simpl.
+      + pattern ts'. revert ts'. apply case0. simpl.
+        destruct i'; intros _; exact tt.
+      + intros x. exact (@nth n' i' ts' (fst x)).
+  Defined.
+
+  Definition lookup {n} {Ts} (tuple: tuple Ts) i : nthType (n - i) Ts :=
+    nth n (n - i)%nat Ts tuple.
+
+End TypeVector.
+
+Declare Scope typevector_scope.
+Bind Scope typevector_scope with TypeVector.t.
+Delimit Scope typevector_scope with tv.
+
+Reserved Notation "x '!(' i ')'" (format "x  !( i )", left associativity).
+
+Notation "[ ]" := TypeVector.nil : typevector_scope.
+Notation "[ T1 ]" := (TypeVector.cons T1 TypeVector.nil) : typevector_scope.
+Notation "[ T1 , T2 , .. , Tn ]" := (TypeVector.cons Tn (.. (TypeVector.cons T2 (TypeVector.cons T1 TypeVector.nil)) ..)) : typevector_scope.
+Notation "x !( i )" := (TypeVector.lookup x i).
+
+Notation tuple_of := TypeVector.tuple.
