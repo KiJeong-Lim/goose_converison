@@ -125,6 +125,12 @@ Section heap.
                                                        (#msg.2,
                                                           #()))))))))))))))))))%V.
 
+  Lemma redefine_message_val
+    : message_val = @SessionPrelude.value_of (tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) _.
+  Proof.
+    reflexivity.
+  Defined.
+
   Theorem message_val_t msg : val_ty (message_val msg) (struct.t server.Message).
   Proof.
     repeat constructor; auto.
@@ -195,6 +201,30 @@ Section heap.
   #[global] Instance message_into_val_for_type : IntoValForType (u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64) (struct.t server.Message).
   Proof. constructor; auto. simpl. repeat split; auto. Qed.
   
+  Definition is_message' (msgv:tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64])
+    (msg: Message.t) (n: nat) (param5: nat) (param8: nat) (param15: nat) : iProp Σ :=
+    ⌜msgv!(0) = msg.(Message.MessageType)⌝ ∗
+    ⌜msgv!(1) = msg.(Message.C2S_Client_Id)⌝ ∗
+    ⌜msgv!(2) = msg.(Message.C2S_Server_Id)⌝ ∗
+    ⌜msgv!(3) = msg.(Message.C2S_Client_OperationType)⌝ ∗
+    ⌜msgv!(4) = msg.(Message.C2S_Client_Data)⌝ ∗
+    own_slice_small msgv!(5) uint64T (DfracOwn 1) msg.(Message.C2S_Client_VersionVector) ∗
+    ⌜param5 = length msg.(Message.C2S_Client_VersionVector)⌝ ∗
+    ⌜msgv!(6) = msg.(Message.S2S_Gossip_Sending_ServerId)⌝ ∗
+    ⌜msgv!(7) = msg.(Message.S2S_Gossip_Receiving_ServerId)⌝ ∗
+    operation_slice msgv!(8) msg.(Message.S2S_Gossip_Operations) n ∗
+    ⌜param8 = length msg.(Message.S2S_Gossip_Operations)⌝ ∗
+    ⌜msgv!(9) = msg.(Message.S2S_Gossip_Index)⌝ ∗
+    ⌜msgv!(10) = msg.(Message.S2S_Acknowledge_Gossip_Sending_ServerId)⌝ ∗
+    ⌜msgv!(11) = msg.(Message.S2S_Acknowledge_Gossip_Receiving_ServerId)⌝ ∗
+    ⌜msgv!(12) = msg.(Message.S2S_Acknowledge_Gossip_Index)⌝ ∗
+    ⌜msgv!(13) = msg.(Message.S2C_Client_OperationType)⌝ ∗
+    ⌜msgv!(14) = msg.(Message.S2C_Client_Data)⌝ ∗
+    own_slice_small msgv!(15) uint64T (DfracOwn 1) msg.(Message.S2C_Client_VersionVector) ∗
+    ⌜param15 = length msg.(Message.S2C_Client_VersionVector)⌝ ∗
+    ⌜msgv!(16) = msg.(Message.S2C_Server_Id)⌝ ∗
+    ⌜msgv!(17) = msg.(Message.S2C_Client_Number)⌝.
+
   Definition is_message (msgv: u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64)
     (msg: Message.t) (msgv_len: nat): iProp Σ :=
     ⌜msgv.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1 = msg.(Message.MessageType)⌝ ∗
@@ -231,11 +261,31 @@ Section heap.
        (#s.1.1.1.1.1.1.2,
           (slice_val s.1.1.1.1.1.2,
              (slice_val s.1.1.1.1.2,
-                (slice_val s.1.1.1.2, 
+                (slice_val s.1.1.1.2,
                    (slice_val s.1.1.2,
                       (slice_val s.1.2,
                          (slice_val s.2,
                             #()))))))))%V.
+
+  Lemma redefine_server_val
+    : server_val = @SessionPrelude.value_of (tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) _.
+  Proof.
+    reflexivity.
+  Defined.
+
+  (* FIX ME! *)
+  Definition is_server' (sv:tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t])
+    (s: Server.t) (n: nat) (param3: nat) (param4: nat) (param5: nat) (param6: nat) (param7: nat) : iProp Σ :=
+    ⌜sv!(0) = s.(Server.Id)⌝ ∗
+    ⌜sv!(1) = s.(Server.NumberOfServers)⌝ ∗
+    message_slice sv!(2) s.(Server.UnsatisfiedRequests) n ∗
+    own_slice_small sv!(3) uint64T (DfracOwn 1) s.(Server.VectorClock) ∗
+    ⌜param3 = length s.(Server.VectorClock)⌝ ∗
+    operation_slice sv!(4) s.(Server.OperationsPerformed) param4 ∗
+    operation_slice sv!(5) s.(Server.MyOperations) param5 ∗
+    operation_slice sv!(6) s.(Server.PendingOperations) param6 ∗
+    own_slice_small sv!(7) uint64T (DfracOwn 1) s.(Server.GossipAcknowledgements) ∗
+    ⌜param7 = length s.(Server.GossipAcknowledgements)⌝.
 
   Definition is_server (sv: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (s: Server.t) (n: nat): iProp Σ :=
     ⌜sv.1.1.1.1.1.1.1 = s.(Server.Id)⌝ ∗

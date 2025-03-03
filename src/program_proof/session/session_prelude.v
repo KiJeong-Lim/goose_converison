@@ -733,17 +733,32 @@ Module SessionPrelude.
       + rewrite eqProp_spec in H_OBS. split; congruence.
   Qed.
 
+  Class has_value_of (A : Type) : Type :=
+    value_of : A -> val.
+
+  #[global] Arguments value_of {A} {has_value_of} _ /.
+
+  #[global]
+  Instance w64_has_value_of : has_value_of w64 :=
+    fun x : w64 => #x.
+
+  #[global] Arguments w64_has_value_of x /.
+
+  #[global]
+  Instance Slice_has_value_of : has_value_of Slice.t :=
+    fun x : Slice.t => slice_val x.
+
+  #[global] Arguments Slice_has_value_of x /.
+
 End SessionPrelude.
 
 Reserved Notation "x '!(' i ')'" (format "x  !( i )", left associativity).
 
 Module TypeVector.
 
-  Universe u.
-
-  Inductive t : nat -> Type@{u + 1} :=
+  Inductive t : nat -> Type :=
     | nil : t O
-    | cons {n: nat} (T: Type@{u}) (Ts: t n) : t (S n).
+    | cons {n: nat} (T: Type) {has_value_of: SessionPrelude.has_value_of T} (Ts: t n) : t (S n).
 
   Lemma case0 (P : TypeVector.t O -> Type)
     (P_nil : P (nil))
@@ -759,23 +774,23 @@ Module TypeVector.
   Defined.
 
   Lemma caseS {n' : nat} (P : TypeVector.t (S n') -> Type)
-    (P_cons : forall T': Type@{u}, forall Ts': TypeVector.t n', P (cons T' Ts'))
+    (P_cons : forall T': Type, forall has_value_of: SessionPrelude.has_value_of T', forall Ts': TypeVector.t n', P (cons T' Ts'))
     : forall Ts, P Ts.
   Proof.
     intros Ts. revert P P_cons.
     exact (
-      match Ts as Ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun Ts => unit | S n' => fun Ts => forall P : TypeVector.t (S n') -> Type, (forall T' : Type@{u}, forall Ts' : TypeVector.t n', P (cons T' Ts')) -> P Ts end) Ts with
+      match Ts as Ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun Ts => unit | S n' => fun Ts => forall P : TypeVector.t (S n') -> Type, (forall T' : Type, forall has_value_of: SessionPrelude.has_value_of T', forall Ts' : TypeVector.t n', P (cons T' Ts')) -> P Ts end) Ts with
       | nil => tt
-      | cons T' Ts' => fun P => fun P_cons => P_cons T' Ts'
+      | cons T' Ts' => fun P => fun P_cons => P_cons T' _ Ts'
       end
     ).
   Defined.
 
-  Definition head {n} (Ts: TypeVector.t (S n)) : Type@{u} :=
+  Definition head {n} (Ts: TypeVector.t (S n)) : Type :=
     match Ts in TypeVector.t n' return
       match n' return Type with
       | O => unit
-      | S n => Type@{u}
+      | S n => Type
       end
     with
     | nil => tt
@@ -793,13 +808,13 @@ Module TypeVector.
     | cons T' Ts' => Ts'
     end.
 
-  Fixpoint tuple_of (n: nat) {struct n} : forall Ts: TypeVector.t (S n), Type@{u} :=
+  Fixpoint tuple_of (n: nat) {struct n} : forall Ts: TypeVector.t (S n), Type :=
     match n with
     | O => fun Ts => head Ts
     | S n => fun Ts => (tuple_of n (tail Ts) * head Ts)%type
     end.
 
-  Fixpoint nthType {n} (i: nat) (Ts: TypeVector.t n) {struct Ts} : Type@{u} :=
+  Fixpoint nthType {n} (i: nat) (Ts: TypeVector.t n) {struct Ts} : Type :=
     match Ts with
     | nil => unit
     | cons T' Ts' =>
@@ -813,12 +828,12 @@ Module TypeVector.
     : forall Ts: TypeVector.t (S n), tuple_of n Ts -> nthType i Ts.
   Proof.
     destruct n as [ | n']; simpl.
-    - induction Ts as [T' Ts'] using caseS.
+    - induction Ts as [T' has_value_of Ts'] using caseS.
       induction Ts' as [] using case0.
       destruct i as [ | i']; simpl.
       + intros x. exact x.
       + intros x. exact tt.
-    - induction Ts as [T' Ts'] using caseS.
+    - induction Ts as [T' has_value_of Ts'] using caseS.
       destruct i as [ | i']; simpl.
       + intros x. exact (snd x).
       + intros x. exact (nth n' i' Ts' (fst x)).
@@ -826,6 +841,12 @@ Module TypeVector.
 
   Definition lookup {n} {Ts} (tuple: tuple_of n Ts) i : nthType (n - i) Ts :=
     nth n (n - i) Ts tuple.
+
+  Fixpoint magic (n: nat) {struct n} : forall Ts: TypeVector.t (S n), val -> tuple_of n Ts -> val :=
+    match n with
+    | O => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => (SessionPrelude.value_of x, v)%V)
+    | S n => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => magic n Ts (SessionPrelude.value_of (snd x), v)%V (fst x))
+    end.
 
 End TypeVector.
 
@@ -838,7 +859,13 @@ Notation "[ T1 , T2 , .. , Tn ]" := (TypeVector.cons Tn (.. (TypeVector.cons T2 
 
 Notation "x !( i )" := (TypeVector.lookup x i).
 
-Definition tuple_of {n: nat} (Ts: TypeVector.t (S n)) : Type@{TypeVector.u} :=
+Definition tuple_of {n: nat} (Ts: TypeVector.t (S n)) : Type :=
   TypeVector.tuple_of n Ts.
 
 Arguments tuple_of {n} Ts : simpl never.
+
+#[global]
+Instance tuple_of_has_value_of {n} (Ts: TypeVector.t (S n)) : SessionPrelude.has_value_of (tuple_of Ts) :=
+  TypeVector.magic n Ts #()%V.
+
+Arguments tuple_of_has_value_of {n} Ts /.
