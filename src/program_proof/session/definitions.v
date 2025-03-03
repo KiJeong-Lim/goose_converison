@@ -201,6 +201,7 @@ Section heap.
   #[global] Instance message_into_val_for_type : IntoValForType (u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64) (struct.t server.Message).
   Proof. constructor; auto. simpl. repeat split; auto. Qed.
   
+  (* FIX ME! *)
   Definition is_message' (msgv:tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64])
     (msg: Message.t) (n: nat) (param5: nat) (param8: nat) (param15: nat) : iProp Σ :=
     ⌜msgv!(0) = msg.(Message.MessageType)⌝ ∗
