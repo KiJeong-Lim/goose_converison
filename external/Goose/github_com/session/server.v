@@ -207,20 +207,21 @@ Definition receiveGossip: val :=
     (if: (slice.len (struct.get Message "S2S_Gossip_Operations" "request")) = #0
     then "server"
     else
-      struct.storeF Server "PendingOperations" "server" (mergeOperations (struct.get Server "PendingOperations" "server") (struct.get Message "S2S_Gossip_Operations" "request"));;
+      let: "s" := ref_to (struct.t Server) "server" in
+      struct.storeF Server "PendingOperations" "s" (mergeOperations (struct.get Server "PendingOperations" (![struct.t Server] "s")) (struct.get Message "S2S_Gossip_Operations" "request"));;
       let: "i" := ref_to uint64T #0 in
       Skip;;
-      (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.get Server "PendingOperations" "server"))); (λ: <>, Skip) := λ: <>,
-        (if: oneOffVersionVector (struct.get Server "VectorClock" "server") (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" "server") (![uint64T] "i")))
+      (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.get Server "PendingOperations" (![struct.t Server] "s")))); (λ: <>, Skip) := λ: <>,
+        (if: oneOffVersionVector (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i")))
         then
-          struct.storeF Server "OperationsPerformed" "server" (mergeOperations (struct.get Server "OperationsPerformed" "server") (SliceSingleton (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" "server") (![uint64T] "i"))));;
-          struct.storeF Server "VectorClock" "server" (maxTS (struct.get Server "VectorClock" "server") (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" "server") (![uint64T] "i"))));;
-          struct.storeF Server "PendingOperations" "server" (deleteAtIndexOperation (struct.get Server "PendingOperations" "server") (![uint64T] "i"));;
+          struct.storeF Server "OperationsPerformed" "s" (mergeOperations (struct.get Server "OperationsPerformed" (![struct.t Server] "s")) (SliceSingleton (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i"))));;
+          struct.storeF Server "VectorClock" "s" (maxTS (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i"))));;
+          struct.storeF Server "PendingOperations" "s" (deleteAtIndexOperation (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i"));;
           Continue
         else
           "i" <-[uint64T] ((![uint64T] "i") + #1);;
           Continue));;
-      "server").
+      ![struct.t Server] "s").
 
 Definition acknowledgeGossip: val :=
   rec: "acknowledgeGossip" "server" "request" :=
@@ -254,22 +255,23 @@ Definition processClientRequest: val :=
         struct.storeF Message "S2C_Client_Number" "reply" (struct.get Message "C2S_Client_Id" "request");;
         (#true, "server", ![struct.t Message] "reply")
       else
-        SliceSet uint64T (struct.get Server "VectorClock" "server") (struct.get Server "Id" "server") ((SliceGet uint64T (struct.get Server "VectorClock" "server") (struct.get Server "Id" "server")) + #1);;
-        struct.storeF Server "OperationsPerformed" "server" (SliceAppend (struct.t Operation) (struct.get Server "OperationsPerformed" "server") (struct.mk Operation [
-          "VersionVector" ::= SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" "server");
+        let: "s" := ref_to (struct.t Server) "server" in
+        SliceSet uint64T (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Server "Id" "server") ((SliceGet uint64T (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Server "Id" "server")) + #1);;
+        struct.storeF Server "OperationsPerformed" "s" (SliceAppend (struct.t Operation) (struct.get Server "OperationsPerformed" (![struct.t Server] "s")) (struct.mk Operation [
+          "VersionVector" ::= SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" (![struct.t Server] "s"));
           "Data" ::= struct.get Message "C2S_Client_Data" "request"
         ]));;
-        struct.storeF Server "MyOperations" "server" (SliceAppend (struct.t Operation) (struct.get Server "MyOperations" "server") (struct.mk Operation [
-          "VersionVector" ::= SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" "server");
+        struct.storeF Server "MyOperations" "s" (SliceAppend (struct.t Operation) (struct.get Server "MyOperations" (![struct.t Server] "s")) (struct.mk Operation [
+          "VersionVector" ::= SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" (![struct.t Server] "s"));
           "Data" ::= struct.get Message "C2S_Client_Data" "request"
         ]));;
         struct.storeF Message "MessageType" "reply" #4;;
         struct.storeF Message "S2C_Client_OperationType" "reply" #1;;
         struct.storeF Message "S2C_Client_Data" "reply" #0;;
-        struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" "server"));;
+        struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" (![struct.t Server] "s")));;
         struct.storeF Message "S2C_Server_Id" "reply" (struct.get Server "Id" "server");;
         struct.storeF Message "S2C_Client_Number" "reply" (struct.get Message "C2S_Client_Id" "request");;
-        (#true, "server", ![struct.t Message] "reply"))).
+        (#true, ![struct.t Server] "s", ![struct.t Message] "reply"))).
 
 Definition processRequest: val :=
   rec: "processRequest" "server" "request" :=
