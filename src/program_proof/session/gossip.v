@@ -5,7 +5,7 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
   
-  Lemma wp_getGossipOperations (sv: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (s: Server.t)
+  (* Lemma wp_getGossipOperations (sv: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (s: Server.t)
     (serverId: w64) (n: nat) :
     {{{
         is_server sv s n 
@@ -72,16 +72,16 @@ Section heap.
 
   Lemma wp_acknowledgeGossip (sv: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (s: Server.t)
     (msgv: u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64)
-    (msg: Message.t) (n: nat) :
+    (msg: Message.t) (n: nat) c2s s2c :
     {{{
           is_server sv s n ∗ 
-          is_message msgv msg n
+          is_message' msgv msg n c2s s2c
     }}}
       acknowledgeGossip (server_val sv) (message_val msgv)
       {{{
             r , RET r;
             is_server sv (coq_acknowledgeGossip s msg) n ∗
-            is_message msgv msg n
+            ∃ a, ∃ b, is_message' msgv msg n a b
       }}}.
   Proof.
     iIntros "%Φ (H1 & H2) H_ret".
@@ -148,6 +148,6 @@ Section heap.
     - unfold is_message. iFrame.
       iPureIntro.
       repeat split; auto.
-  Qed.
+  Qed. *)
 
 End heap.

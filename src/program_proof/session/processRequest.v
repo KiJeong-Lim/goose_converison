@@ -4,6 +4,7 @@ From Perennial.program_proof.session Require Export versionVector processClientR
 Section heap.
   Context `{hG: !heapGS Σ}.
 
+  (*
   Lemma wp_processClientRequest sv s msgv msg (n: nat) :
     {{{
         is_server sv s n ∗ 
@@ -89,6 +90,6 @@ Section heap.
         { admit.
         }
       + admit.
-  Admitted.
+  Admitted. *)
 
 End heap.

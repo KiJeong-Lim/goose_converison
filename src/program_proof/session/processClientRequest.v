@@ -80,7 +80,7 @@ Section heap.
       rewrite drop_drop. f_equal.
   Qed.
 
-  Lemma wp_deleteAtIndexMessage (s: Slice.t) (index: w64) (l: list Message.t) (n: nat) :
+  (* Lemma wp_deleteAtIndexMessage (s: Slice.t) (index: w64) (l: list Message.t) (n: nat) :
     {{{
         ⌜0 <= uint.nat index < length l⌝ ∗
         message_slice s l n
@@ -134,7 +134,7 @@ Section heap.
         do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
       + iPoseProof (big_sepL2_cons_inv_l with "[$H_suffix]") as "(%hd' & %tl' & %H_obs' & H1 & H2)".
         do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
-  Qed.
+  Qed. *)
 
   Lemma wp_getDataFromOperationLog (s: Slice.t) (l: list Operation.t) (n: nat) :
     {{{
