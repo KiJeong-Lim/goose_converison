@@ -14,20 +14,27 @@ To compile dependencies for proofs do (`make src/program_proof/session/versionVe
 6. equalSlices
 7. equalOperations
 8. binarySearch
-9. sortedInsert (WIP)
+9. sortedInsert
 10. mergeOperations 
 11. deleteAtIndexOperation
 12. deleteAtIndexMessage 
 13. getDataFromOperationLog
 14. acknowledgeGossip
-15. getGossipOperations (WIP)
+15. getGossipOperations
 
 ## Functions left to complete:
-1. processClientRequest (medium)
+### Server
+1. processClientRequest (easy)
 2. processRequest (medium)
-3. writeToServer (easy)
-4. readFromServer (easy)
+3. receiveGossip (medium)
+### Client
+1. write (easy)
+2. read (easy)
+3. processRequest (easy) 
 
+## Other Proofs:
+1. Equivalence of u64 and nat of implementations
+   
 # Verifying concurrent, crash-safe systems with Perennial
 
 [![CI](https://github.com/mit-pdos/perennial/actions/workflows/ci.yml/badge.svg)](https://github.com/mit-pdos/perennial/actions/workflows/ci.yml)
