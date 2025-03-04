@@ -208,21 +208,23 @@ func receiveGossip(server Server, request Message) Server {
 		return server
 	}
 
-	server.PendingOperations = mergeOperations(server.PendingOperations, request.S2S_Gossip_Operations)
+	var s = server 
+
+	s.PendingOperations = mergeOperations(s.PendingOperations, request.S2S_Gossip_Operations)
 
 	var i = uint64(0)
 
-	for i < uint64(len(server.PendingOperations)) {
-		if oneOffVersionVector(server.VectorClock, server.PendingOperations[i].VersionVector) {
-			server.OperationsPerformed = mergeOperations(server.OperationsPerformed, []Operation{server.PendingOperations[i]})
-			server.VectorClock = maxTS(server.VectorClock, server.PendingOperations[i].VersionVector)
-			server.PendingOperations = deleteAtIndexOperation(server.PendingOperations, i)
+	for i < uint64(len(s.PendingOperations)) {
+		if oneOffVersionVector(s.VectorClock, s.PendingOperations[i].VersionVector) {
+			s.OperationsPerformed = mergeOperations(s.OperationsPerformed, []Operation{s.PendingOperations[i]})
+			s.VectorClock = maxTS(s.VectorClock, s.PendingOperations[i].VersionVector)
+			s.PendingOperations = deleteAtIndexOperation(s.PendingOperations, i)
 			continue
 		}
 		i = i + 1
 	}
 
-	return server
+	return s
 }
 
 func acknowledgeGossip(server Server, request Message) Server {
@@ -248,7 +250,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 	if !compareVersionVector(server.VectorClock, request.C2S_Client_VersionVector) {
 		return false, server, reply
 	}
-
+	
 	if request.C2S_Client_OperationType == 0 {
 		reply.MessageType = 4
 		reply.S2C_Client_OperationType = 0
@@ -259,26 +261,27 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 
 		return true, server, reply
 	} else {
-		server.VectorClock[server.Id] += 1
+	        var s = server
+		s.VectorClock[server.Id] += 1
 
-		server.OperationsPerformed = append(server.OperationsPerformed, Operation{
-			VersionVector: append([]uint64(nil), server.VectorClock...),
+		s.OperationsPerformed = append(s.OperationsPerformed, Operation{
+			VersionVector: append([]uint64(nil), s.VectorClock...),
 			Data:          request.C2S_Client_Data,
 		})
 
-		server.MyOperations = append(server.MyOperations, Operation{
-			VersionVector: append([]uint64(nil), server.VectorClock...),
+		s.MyOperations = append(s.MyOperations, Operation{
+			VersionVector: append([]uint64(nil), s.VectorClock...),
 			Data:          request.C2S_Client_Data,
 		})
 
 		reply.MessageType = 4
 		reply.S2C_Client_OperationType = 1
 		reply.S2C_Client_Data = 0
-		reply.S2C_Client_VersionVector = append([]uint64(nil), server.VectorClock...)
+		reply.S2C_Client_VersionVector = append([]uint64(nil), s.VectorClock...)
 		reply.S2C_Server_Id = server.Id
 		reply.S2C_Client_Number = request.C2S_Client_Id
 
-		return true, server, reply
+		return true, s, reply
 	}
 }
 
