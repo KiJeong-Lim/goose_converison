@@ -413,6 +413,41 @@ Module SessionPrelude.
       ∀ i : nat, ∀ j : nat, (i < j)%nat ->
       ∀ x1 : A, ∀ x2 : A, xs !! i = Some x1 -> xs !! j = Some x2 -> ltb x1 x2 = true \/ eqb x2 x1 = true.
 
+    Lemma isSorted_middle_1 (xs : list A) (y : A) (zs : list A)
+      (SORTED : isSorted (xs ++ y :: zs))
+      : isSorted (xs ++ zs).
+    Proof.
+      intros i j i_lt_j x1 x2 H_x1 H_x2.
+      assert (i < length xs \/ i >= length xs)%nat as [H_i | H_i] by word; assert (j < length xs \/ j >= length xs)%nat as [H_j | H_j] by word.
+      - rewrite lookup_app_l in H_x1; trivial. rewrite lookup_app_l in H_x2; trivial. eapply SORTED with (i := i) (j := j).
+        + word.
+        + rewrite lookup_app_l; trivial.
+        + rewrite lookup_app_l; trivial.
+      - rewrite lookup_app_l in H_x1; trivial. rewrite lookup_app_r in H_x2; trivial. eapply SORTED with (i := i) (j := (j + 1)%nat).
+        + word.
+        + rewrite lookup_app_l; trivial.
+        + replace (j + 1)%nat with (S j) by word. rewrite lookup_app_r.
+          * rewrite lookup_cons. replace (S j - length xs)%nat with (S (j - length xs)%nat); trivial. word.
+          * word.
+      - word.
+      - rewrite lookup_app_r in H_x1; trivial. rewrite lookup_app_r in H_x2; trivial. eapply SORTED with (i := (i + 1)%nat) (j := (j + 1)%nat).
+        + word.
+        + replace (i + 1)%nat with (S i) by word. rewrite lookup_app_r.
+          * rewrite lookup_cons. replace (S i - length xs)%nat with (S (i - length xs)%nat); trivial. word.
+          * word.
+        + replace (j + 1)%nat with (S j) by word. rewrite lookup_app_r.
+          * rewrite lookup_cons. replace (S j - length xs)%nat with (S (j - length xs)%nat); trivial. word.
+          * word.
+    Qed.
+
+    Lemma isSorted_middle (xs : list A) (ys : list A) (zs : list A)
+      (SORTED : isSorted (xs ++ ys ++ zs))
+      : isSorted (xs ++ zs).
+    Proof.
+      revert xs zs SORTED; induction ys as [ | y ys IH]; intros; simpl in *; trivial.
+      eapply IH. eapply isSorted_middle_1. exact SORTED.
+    Qed.
+
     Definition isSorted' (xs : list A) : Prop :=
       ∀ i : nat, ∀ j : nat, (i <= j)%nat ->
       ∀ x1 : A, ∀ x2 : A, xs !! i = Some x1 -> xs !! j = Some x2 -> ltb x1 x2 = true \/ eqb x2 x1 = true.
