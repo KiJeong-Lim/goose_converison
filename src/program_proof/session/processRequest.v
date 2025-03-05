@@ -92,4 +92,8 @@ Section heap.
       + admit.
   Admitted. *)
 
+  (*
+    Lemma wp_processRequest
+  *)
+
 End heap.

@@ -80,7 +80,7 @@ Section heap.
       rewrite drop_drop. f_equal.
   Qed.
 
-  (* Lemma wp_deleteAtIndexMessage (s: Slice.t) (index: w64) (l: list Message.t) (n: nat) :
+  Lemma wp_deleteAtIndexMessage (s: Slice.t) (index: w64) (l: list Message.t) (n: nat) :
     {{{
         ⌜0 <= uint.nat index < length l⌝ ∗
         message_slice s l n
@@ -127,14 +127,14 @@ Section heap.
       iApply big_sepL2_app_equiv. { do 2 rewrite length_take; word. }
       rewrite <- take_drop with (l := ops1) (i := uint.nat index) at 1.
       rewrite <- take_drop with (l := l) (i := uint.nat index) at 1.
-      iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, is_message mv m n) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, is_message mv m n))%I with "[H_ops1]" as "[H_prefix H_suffix]".
+      iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, ∃ a, ∃ b, is_message mv m n a b) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, ∃ a, ∃ b, is_message mv m n a b))%I with "[H_ops1]" as "[H_prefix H_suffix]".
       { iApply (big_sepL2_app_equiv with "[$H_ops1]"). do 2 rewrite length_take. word. }
       iFrame. destruct (drop (uint.nat index) ops1) as [ | hd tl] eqn: H_obs.
       + iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%H_obs'".
         do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
       + iPoseProof (big_sepL2_cons_inv_l with "[$H_suffix]") as "(%hd' & %tl' & %H_obs' & H1 & H2)".
         do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
-  Qed. *)
+  Qed.
 
   Lemma wp_getDataFromOperationLog (s: Slice.t) (l: list Operation.t) (n: nat) :
     {{{

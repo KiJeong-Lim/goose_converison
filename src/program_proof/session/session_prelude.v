@@ -848,6 +848,9 @@ Module TypeVector.
     | S n => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => magic n Ts (SessionPrelude.value_of (snd x), v)%V (fst x))
     end.
 
+  Ltac des H :=
+    red in H; simpl in H; repeat lazymatch type of H with (_ * _)%type => destruct H as [H ?] end.
+
 End TypeVector.
 
 Declare Scope TypeVector_scope.
@@ -869,3 +872,8 @@ Instance tuple_of_has_value_of {n} (Ts: TypeVector.t (S n)) : SessionPrelude.has
   TypeVector.magic n Ts #()%V.
 
 Arguments tuple_of_has_value_of {n} Ts /.
+
+#[global] Hint Unfold TypeVector.lookup SessionPrelude.w64_has_value_of SessionPrelude.Slice_has_value_of : session_hints.
+
+Ltac simplNotation :=
+  autounfold with session_hints in *; simpl in *.

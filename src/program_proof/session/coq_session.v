@@ -196,7 +196,7 @@ Definition coq_processRequest (s: Server.t) (r: Message.t) : (Server.t * list Me
   | _ => (s, [])
   end.
 
-Section REDEFINE.
+Section properties.
 
   Import SessionPrelude.
 
@@ -338,7 +338,7 @@ Section REDEFINE.
     - do 2 rewrite andb_false_r. reflexivity.
   Qed.
 
-End REDEFINE.
+End properties.
 
 Section heap.
 
