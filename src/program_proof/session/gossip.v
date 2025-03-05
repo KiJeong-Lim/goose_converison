@@ -54,8 +54,8 @@ Section heap.
         iPoseProof (big_sepL2_length with "[$H2_20]") as "%YES2".
         word.
     - replace ((#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #())))))))))%V with (@SessionPrelude.value_of (tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) _ (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)) by reflexivity. rewrite <- redefine_server_val. simplNotation.
-      iAssert  ⌜val_ty (server_val (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)) ptrT⌝%I as "%VAL_TY".
-      { (* Search val_ty ptrT. *) iApply is_lock_ty. unfold is_lock. admit. }
+      iAssert ⌜val_ty (server_val (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)) ptrT⌝%I as "%VAL_TY".
+      { Search val_ty ptrT. iApply is_lockty. unfold is_lock. admit. }
       (* wp_apply wp_ref_to; auto. rewrite redefine_server_val. simplNotation. iIntros "%server H_server".
       wp_pures. wp_load. wp_apply (wp_mergeOperations with "[$H8 $H20]"); auto. iIntros "%ns (%nxs & H31 & -> & H8 & H20 & %H2_sorted')".
       wp_apply (wp_storeField_struct with "[H_server]"). { repeat constructor; auto. } { iExact "H_server". }
