@@ -208,7 +208,7 @@ func receiveGossip(server Server, request Message) Server {
 		return server
 	}
 
-	var s = server 
+	var s = &server 
 
 	s.PendingOperations = mergeOperations(s.PendingOperations, request.S2S_Gossip_Operations)
 
@@ -224,7 +224,7 @@ func receiveGossip(server Server, request Message) Server {
 		i = i + 1
 	}
 
-	return s
+	return server
 }
 
 func acknowledgeGossip(server Server, request Message) Server {
@@ -261,7 +261,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 
 		return true, server, reply
 	} else {
-	        var s = server
+	        var s = &server
 		s.VectorClock[server.Id] += 1
 
 		s.OperationsPerformed = append(s.OperationsPerformed, Operation{
@@ -281,7 +281,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 		reply.S2C_Server_Id = server.Id
 		reply.S2C_Client_Number = request.C2S_Client_Id
 
-		return true, s, reply
+		return true, server, reply
 	}
 }
 
