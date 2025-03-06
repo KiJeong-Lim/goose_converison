@@ -208,7 +208,7 @@ func receiveGossip(server Server, request Message) Server {
 		return server
 	}
 
-	var s = &server 
+	var s = server 
 
 	s.PendingOperations = mergeOperations(s.PendingOperations, request.S2S_Gossip_Operations)
 
@@ -224,7 +224,7 @@ func receiveGossip(server Server, request Message) Server {
 		i = i + 1
 	}
 
-	return server
+	return s
 }
 
 func acknowledgeGossip(server Server, request Message) Server {
