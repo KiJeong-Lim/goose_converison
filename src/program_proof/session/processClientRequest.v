@@ -82,7 +82,7 @@ Section heap.
 
   Lemma wp_deleteAtIndexMessage (s: Slice.t) (index: w64) (l: list Message.t) (n: nat) :
     {{{
-        ⌜0 <= uint.nat index < length l⌝ ∗   
+        ⌜0 <= uint.nat index < length l⌝ ∗
         message_slice s l n
     }}}
       deleteAtIndexMessage s #index
@@ -127,7 +127,7 @@ Section heap.
       iApply big_sepL2_app_equiv. { do 2 rewrite length_take; word. }
       rewrite <- take_drop with (l := ops1) (i := uint.nat index) at 1.
       rewrite <- take_drop with (l := l) (i := uint.nat index) at 1.
-      iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, is_message mv m n) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, is_message mv m n))%I with "[H_ops1]" as "[H_prefix H_suffix]".
+      iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, ∃ a, ∃ b, is_message mv m n a b) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, ∃ a, ∃ b, is_message mv m n a b))%I with "[H_ops1]" as "[H_prefix H_suffix]".
       { iApply (big_sepL2_app_equiv with "[$H_ops1]"). do 2 rewrite length_take. word. }
       iFrame. destruct (drop (uint.nat index) ops1) as [ | hd tl] eqn: H_obs.
       + iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%H_obs'".
@@ -142,12 +142,13 @@ Section heap.
     }}}
       getDataFromOperationLog s
     {{{
-        r , RET #r;
-        ⌜r = coq_getDataFromOperationLog l⌝
+        r, RET #r;
+        ⌜r = coq_getDataFromOperationLog l⌝ ∗
+        operation_slice s l n
     }}}.
   Proof.
     rewrite/ getDataFromOperationLog. wp_pures. iIntros "%Φ Hl H1". wp_pures.
-    wp_rec. iDestruct "Hl" as "(%ops & Hs & Hl)". wp_if_destruct.
+    wp_rec. iDestruct "Hl" as "(%ops & Hs & Hl)". iPoseProof (pers_big_sepL2_is_operation with "[$Hl]") as "#Hl_pers". wp_if_destruct.
     - wp_rec.
       iAssert (⌜is_Some (ops !! uint.nat (w64_word_instance .(word.sub) s .(Slice.sz) (W64 1)))⌝%I) with "[Hl Hs]" as "%Hl".
       { induction ops as [ | ? ? _] using List.rev_ind.
@@ -160,10 +161,10 @@ Section heap.
       }
       iAssert (⌜length ops = length l⌝)%I with "[Hl]" as "%Hlength".
       { iApply big_sepL2_length. iExact "Hl". }
-      destruct Hl as (x & EQ).
-      wp_apply (wp_SliceGet with "[Hs] [Hl H1]").
-      + iSplitL "Hs".
-        * simpl (struct.t Operation). iApply (own_slice_to_small with "[Hs]"). iExact "Hs".
+      destruct Hl as (x & EQ). iDestruct "Hs" as "[H1s H2s]".
+      wp_apply (wp_SliceGet with "[H1s] [Hl H1 H2s]").
+      + iSplitL "H1s".
+        * simpl (struct.t Operation). iExact "H1s".
         * iPureIntro. exact EQ.
       + iModIntro. iIntros "Hs".
         wp_pures. iModIntro. iApply "H1".
@@ -181,12 +182,12 @@ Section heap.
         erewrite lookup_snoc with (l := l_init) (x := l_last).
         replace (uint.nat (w64_word_instance .(word.sub) s .(Slice.sz) (W64 1))) with (length ops_init) in EQ by word.
         rewrite lookup_snoc in EQ. assert (x = ops_last) as -> by congruence. clear EQ.
-        iDestruct "H_last" as "[H H1]". iFrame.
+        iDestruct "H_last" as "[H [-> H1]]". iFrame. iExact "Hl_pers".
     - iModIntro. iApply "H1". unfold coq_getDataFromOperationLog.
       iAssert (⌜uint.Z (W64 0) = uint.Z s .(Slice.sz)⌝)%I as "%NIL".
       { word. }
       destruct l as [ | ? ?].
-      { simpl. iPureIntro. done. }
+      { simpl. iFrame. iPureIntro. done. }
       simpl. destruct ops as [ | ? ?].
       { iPoseProof (big_sepL2_nil_inv_l with "[$Hl]") as "%Hl". congruence. }
       iPoseProof (own_slice_sz with "[$Hs]") as "%Hs".
@@ -201,7 +202,9 @@ Section heap.
       equalOperations (operation_val opv1) (operation_val opv2)
     {{{
         r, RET #r;
-        ⌜r = coq_equalOperations o1 o2⌝
+        ⌜r = coq_equalOperations o1 o2⌝ ∗
+        is_operation opv1 o1 n ∗
+        is_operation opv2 o2 n
     }}}.
   Proof.
     rewrite /equalOperations. iIntros "%Φ [Ho1 Ho2] HΦ".
@@ -209,16 +212,16 @@ Section heap.
     wp_rec. wp_pures. wp_apply (wp_equalSlices with "[Ho1 Ho2]"). { iFrame. iPureIntro. word. }
     iIntros "%r (-> & Hopv1 & Hopv2 & %LEN)". wp_if_destruct.
     - wp_pures. iModIntro. iApply "HΦ". unfold coq_equalOperations.
-      simpl. rewrite Hopv1snd Hopv2snd.
+      simpl. rewrite Hopv1snd Hopv2snd. iFrame.
       iPureIntro. destruct (_ =? _) as [ | ] eqn: H_compare.
       + rewrite Z.eqb_eq in H_compare.
         assert (EQ : o1.(Operation.Data) = o2.(Operation.Data)) by word.
-        rewrite andb_true_r. rewrite Heqb. eapply bool_decide_eq_true_2. congruence.
+        rewrite andb_true_r. rewrite Heqb. rewrite bool_decide_eq_true. repeat split; congruence.
       + rewrite Z.eqb_neq in H_compare.
         assert (NE : o1.(Operation.Data) ≠ o2.(Operation.Data)) by word.
-        rewrite andb_false_r. eapply bool_decide_eq_false_2. congruence.
+        rewrite andb_false_r. rewrite bool_decide_eq_false. repeat split; congruence.
     - iModIntro. iApply "HΦ". unfold coq_equalOperations.
-      simpl. rewrite Heqb. simpl. iPureIntro. done.
+      simpl. rewrite Heqb. simpl. iFrame. iPureIntro. done.
   Qed.
 
   Lemma wp_mergeOperations (s1 s2: Slice.t) (l1 l2: list Operation.t) (n: nat) :
@@ -232,6 +235,8 @@ Section heap.
         ns, RET slice_val (ns);
         ∃ nxs, operation_slice ns nxs n ∗
         ⌜nxs = coq_mergeOperations l1 l2⌝ ∗
+        operation_slice s1 l1 n ∗
+        operation_slice s2 l2 n ∗
         ⌜is_sorted nxs⌝
     }}}.
   Proof.
@@ -250,7 +255,7 @@ Section heap.
         iPoseProof (big_sepL2_nil_inv_l with "[$H_l1_ops]") as "->".
         iPoseProof (big_sepL2_nil_inv_l with "[$H_l2_ops]") as "->".
         wp_apply wp_NewSlice. iIntros "%s3 H_s3". replace (replicate (uint.nat (W64 0)) operation_into_val .(IntoVal_def (Slice.t * w64))) with (@nil (Slice.t * w64)) by reflexivity.
-        iApply "HΦ". iExists []. iFrame. done.
+        iApply "HΦ". iExists []. iFrame. iSplitL. { done. } iSplitL "". { iApply big_sepL2_nil; eauto. } done.
       + wp_pures. rewrite -> bool_decide_eq_true in decide_s1. rewrite -> bool_decide_eq_false in decide_s2.
         assert (s1 .(Slice.sz) = W64 0) as s1_sz_eq_0 by congruence.
         assert (s2 .(Slice.sz) ≠ W64 0) as s2_sz_ne_0 by congruence.
@@ -262,10 +267,11 @@ Section heap.
         iDestruct "H_s1" as "[H1_s1 H2_s1]". wp_apply (wp_SliceAppendSlice with "[$H_s3 $H1_s1]"); auto. simpl. iIntros "%s4 [H_s4 H1_s1]".
         wp_apply wp_ref_to; auto. iIntros "%intermediate H_intermediate". wp_pures. wp_apply wp_ref_to; auto.
         wp_pures. iIntros "%i H_i". wp_pures. wp_apply wp_slice_len. wp_apply wp_ref_to; auto. iIntros "%l H_l". wp_pures.
-        clear s3 l1_sorted decide_s1 decide_s2.
+        clear s3 l1_sorted decide_s1 decide_s2. iPoseProof (pers_emp with "[$H_l1_ops]") as "#H_l1_ops_pers". iPoseProof (pers_big_sepL2_is_operation with "[$H_l2_ops]") as "#H_l2_ops_pers".
         wp_apply (wp_forBreak_cond
           ( λ continue, ∃ s4 : Slice.t, ∃ l3_ops : list (Slice.t * w64), ∃ l2_prevs : list Operation.t, ∃ l2_nexts : list Operation.t,
-            "H_s2" ∷ own_slice_small s2 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l2_ops ∗
+            "H_s1" ∷ own_slice s1 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) [] ∗
+            "H_s2" ∷ own_slice s2 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l2_ops ∗
             "H_s4" ∷ own_slice s4 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l3_ops ∗
             ([∗ list] opv;o ∈ drop (length l2_prevs) l2_ops;l2_nexts, is_operation opv o n) ∗
             ([∗ list] opv;o ∈ l3_ops;fold_left coq_sortedInsert l2_prevs [], is_operation opv o n) ∗
@@ -278,12 +284,12 @@ Section heap.
             ⌜length (fold_left SessionPrelude.sortedInsert l2_prevs []) = length l2_prevs⌝ ∗
             ⌜continue = false -> l2_nexts = []⌝
           )%I
-        with "[] [H_l2_ops H_s2 H_s4 H_intermediate H_i H_l]").
-        { clear Φ s4. iIntros "%Φ". iModIntro. iIntros "(%s4 & %l3_ops & %l2_prevs & %l2_nexts & H_s2 & H_s4 & H_l2_ops & H_l3_ops & %l2_eq & H_i & H_l & H_intermediate & %H_is_sorted & %H_wf & %H_length & %H_continue) HΦ".
+        with "[] [H_l2_ops H1_s1 H2_s1 H_s2 H_s4 H_intermediate H_i H_l]").
+        { clear Φ s4. iIntros "%Φ". iModIntro. iIntros "(%s4 & %l3_ops & %l2_prevs & %l2_nexts & H_s1 & (H_s2 & H2_s2) & H_s4 & H_l2_ops & H_l3_ops & %l2_eq & H_i & H_l & H_intermediate & %H_is_sorted & %H_wf & %H_length & %H_continue) HΦ".
           wp_load. wp_load. wp_if_destruct.
           - wp_pures. wp_load. destruct l2_nexts as [ | l2_cur l2_nexts].
             + rewrite app_nil_r in l2_eq. subst l2_prevs. word.
-            + iNamed "H_s2". iNamed "H_s4". iPoseProof (big_sepL2_cons_inv_r with "[$H_l2_ops]") as "(%l2_ops_cur & %l2_ops_nexts & %H_OBS & H_l2_cur & H_l2_nexts)".
+            + iNamed "H_s1". iNamed "H_s2". iNamed "H_s4". iPoseProof (big_sepL2_cons_inv_r with "[$H_l2_ops]") as "(%l2_ops_cur & %l2_ops_nexts & %H_OBS & H_l2_cur & H_l2_nexts)".
               pose proof (take_drop (length l2_prevs) l2_ops) as H2_l2_ops.
               rewrite H_OBS in H2_l2_ops.
               iAssert ⌜Operation_wf n l2_cur⌝%I as "%H2_wf".
@@ -313,7 +319,7 @@ Section heap.
               iSplit. { rewrite fold_left_app. simpl in *. iPureIntro. done. }
               iSplit. { rewrite fold_left_app. simpl in *. iPureIntro. rewrite -> H2. rewrite length_app. simpl. apply f_equal with (f := length) in H1. rewrite length_app in H1. rewrite length_app. simpl. rewrite H1 in H_length. word. }
               { iPureIntro. congruence. }
-          - iNamed "H_s2". iNamed "H_s4".
+          - iNamed "H_s1". iNamed "H_s2". iNamed "H_s4".
             iAssert ⌜l2_nexts = []⌝%I as "%l2_nexts_nil".
             { rewrite l2_eq in H_l2_length. rewrite length_app in H_l2_length.
               assert (uint.Z (W64 (length l2_prevs)) = uint.Z s2 .(Slice.sz)) as YES1 by word.
@@ -323,13 +329,12 @@ Section heap.
             subst l2_nexts. rewrite app_nil_r in l2_eq. subst l2.
             iApply "HΦ". iModIntro. iExists s4. iExists l3_ops. iExists l2_prevs. iExists []. iFrame. rewrite app_nil_r. done.
         }
-        { iExists s4. iExists []. iExists []. iExists l2. simpl in *. iFrame. iSplitL "H_s2".
-          - iApply own_slice_to_small; done.
-          - iSplit. { done. } iSplit. { done. } iSplit. { done. } iSplit. { done. } { iPureIntro. congruence. }
+        { iExists s4. iExists []. iExists []. iExists l2. simpl in *. iFrame.
+          iSplit. { done. } iSplit. { done. } iSplit. { done. } iSplit. { done. } { iPureIntro. congruence. }
         }
-        clear s4. iIntros "(%s4 & %l3_ops & %l2_prevs & %l2_nexts & H_s2 & H_s4 & H_l2_ops_nexts & H_l3_ops & %H_l2_obs & H_i & H_l & H_intermediate & %H2_is_sorted & %H2_wf & %H3_length & %H_continue)".
+        clear s4. iIntros "(%s4 & %l3_ops & %l2_prevs & %l2_nexts & H_s1 & H_s2 & H_s4 & H_l2_ops_nexts & H_l3_ops & %H_l2_obs & H_i & H_l & H_intermediate & %H2_is_sorted & %H2_wf & %H3_length & %H_continue)".
         specialize (H_continue eq_refl). subst l2_nexts. rewrite app_nil_r in H_l2_obs. subst l2_prevs.
-        iNamed "H_s2". iNamed "H_s4". wp_pures. wp_apply wp_ref_to; eauto. iIntros "%prev H_prev". wp_pures. wp_apply wp_ref_to; auto. iIntros "%curr H_curr". wp_pures.
+        iNamed "H_s1". iNamed "H_s2". iNamed "H_s4". wp_pures. wp_apply wp_ref_to; eauto. iIntros "%prev H_prev". wp_pures. wp_apply wp_ref_to; auto. iIntros "%curr H_curr". wp_pures.
         replace SessionPrelude.sortedInsert with coq_sortedInsert in H2_wf by reflexivity. remember (fold_left coq_sortedInsert l2 []) as l3 eqn: H_l3 in *.
         set (loop_step := λ (acc: nat * list Operation.t) (element : Operation.t),
           let (index, acc) := acc in
@@ -343,7 +348,9 @@ Section heap.
         iPoseProof (big_sepL2_length with "[$H_l3_ops]") as "%YES1".
         wp_apply (wp_forBreak_cond
           ( λ continue, ∃ index : nat, ∃ acc : list Operation.t, ∃ peek_l : Operation.t, ∃ l3_ops : list (Slice.t * w64),
-            own_slice_small s3 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l3_ops ∗
+            own_slice s1 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) [] ∗
+            own_slice s2 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l2_ops ∗
+            own_slice s3 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l3_ops ∗
             ([∗ list] opv;o ∈ l3_ops;acc ++ [peek_l] ++ drop (length acc + 1)%nat l3, is_operation opv o n) ∗
             i ↦[uint64T] #(W64 (length l2)) ∗
             l ↦[uint64T] #s2 .(Slice.sz) ∗
@@ -359,12 +366,13 @@ Section heap.
             ⌜(length acc <= index)%nat⌝ ∗
             ⌜(index + 1 <= length l3)%nat⌝
           )%I
-        with "[] [H_l3_ops H1_s1 H_s2 H_s3 H_intermediate H_prev H_curr H_i H_l]").
-        { clear Φ l3_ops YES1. iIntros "%Φ". iModIntro. iIntros "(%index & %acc & %peek_l & %l3_ops & H_s3 & H_l3_ops & H_i & H_l & H_intermediate & H_prev & H_curr & %H) HΦ".
+        with "[] [H_l3_ops H_s1 H_s2 H_s3 H_intermediate H_prev H_curr H_i H_l]").
+        { clear Φ l3_ops YES1. iIntros "%Φ". iModIntro. iIntros "(%index & %acc & %peek_l & %l3_ops & H_s1 & H_s2 & H_s3 & H_l3_ops & H_i & H_l & H_intermediate & H_prev & H_curr & %H) HΦ".
           destruct H as (H_peek_l' & H_loop & H_continue & H3_is_sorted & H_wf & LENGTH & H1_index & H2_index).
           wp_pures. wp_load. wp_load. wp_apply (wp_slice_len). wp_if_destruct.
           - iPoseProof (pers_big_sepL2_is_operation with "[$H_l3_ops]") as "#YES".
             iPoseProof (big_sepL2_length with "[$H_l3_ops]") as "%H_l3_ops_len".
+            iDestruct "H_s3" as "[H_s3 H2_s3]".
             iPoseProof (own_slice_small_sz with "[$H_s3]") as "%H_s3_sz".
             rewrite app_assoc. rewrite <- take_drop with (l := l3_ops) (i := (length acc + 1)%nat).
             iPoseProof (big_sepL2_app_equiv with "[$H_l3_ops]") as "[H_l3_ops_prefix H_l3_ops_suffix]".
@@ -431,7 +439,7 @@ Section heap.
                   replace (index + 1 - length (acc ++ [peek_l]))%nat with (index + 1 - length (take (length acc + 1) l3))%nat; eauto.
                   { rewrite length_take. rewrite length_app. simpl in *. word. }
             }
-            iIntros "%r %Hr". wp_if_destruct.
+            iIntros "%r (%Hr & H1_is_operation & H2_is_operation)". wp_if_destruct.
             + wp_load. wp_load. wp_apply (wp_SliceGet with "[$H_s3]").
               { iPureIntro. rewrite <- H_l3_ops_prefix_obs. rewrite take_drop. replace (uint.nat (W64 (index + 1)%nat)) with (index + 1)%nat by word. exact H_peek_r_ops. }
               iIntros "H_s3". wp_load. wp_load. wp_apply (wp_SliceSet with "[$H_s3]").
@@ -443,8 +451,8 @@ Section heap.
                 - rewrite length_app. simpl. word.
               }
               iIntros "H_s3". wp_pures. wp_load. wp_store. wp_pures. wp_load. wp_store. iModIntro. iApply "HΦ".
-              iExists (index + 1)%nat. iExists (acc ++ [peek_l])%list. iExists peek_r. iExists ((<[uint.nat (W64 (length acc + 1)%nat):=peek_r_ops]> ((acc_ops ++ [peek_l_ops]) ++ drop (length acc + 1) l3_ops)))%list. iFrame.
-              iSplitL "".
+              iExists (index + 1)%nat. iExists (acc ++ [peek_l])%list. iExists peek_r. iExists ((<[uint.nat (W64 (length acc + 1)%nat):=peek_r_ops]> ((acc_ops ++ [peek_l_ops]) ++ drop (length acc + 1) l3_ops)))%list.
+              instantiate (2 := operation_into_val). iFrame. iSplitL "".
               { iApply big_sepL2_is_operation_intro.
                 - rewrite length_insert. repeat rewrite length_app. simpl in *.
                   rewrite H_acc_length. do 2 rewrite length_drop. rewrite LENGTH. word.
@@ -676,7 +684,7 @@ Section heap.
               { iPureIntro. simpl. word. }
           - iModIntro. iApply "HΦ". iExists (length l3_ops - 1)%nat. iExists acc. iExists peek_l. iExists l3_ops.
             iPoseProof (big_sepL2_length with "[$H_l3_ops]") as "%YES1".
-            iPoseProof (own_slice_small_sz with "[$H_s3]") as "%YES2".
+            iPoseProof (own_slice_sz with "[$H_s3]") as "%YES2".
             assert (length l3_ops = index + 1)%nat as YES3 by word.
             iFrame. iSplitL "H_curr".
             { replace (W64 (length l3_ops - 1 + 1)%nat) with (W64 (index + 1)%nat) by word. done. }
@@ -693,10 +701,9 @@ Section heap.
         { destruct (fold_left SessionPrelude.sortedInsert l2 []) as [ | l3_hd l3_tl] eqn: H_l3_obs.
           { simpl in *. word. }
           subst l3. rename H_l3_obs into H_l3.
-          iExists 0%nat. iExists []%list. iExists l3_hd. iExists l3_ops. iFrame. iSplitL "H_s3".
-          { iApply own_slice_to_small; eauto. }
+          iExists 0%nat. iExists []%list. iExists l3_hd. iExists l3_ops. iFrame.
           simpl in *. rewrite H_l3. simpl. replace (drop 0 l3_tl) with l3_tl by reflexivity. iFrame.
-          iClear "H1_s1". iClear "H_s2". iSplit. { iPureIntro. done. }
+          iSplit. { iPureIntro. done. }
           iSplit. { iPureIntro. done. }
           iSplit. { iPureIntro. done. }
           iSplit.
@@ -715,103 +722,47 @@ Section heap.
           iSplit. { iPureIntro. econstructor; eauto. eapply Forall_lookup_1 with (l := fold_left SessionPrelude.sortedInsert l2 []) (i := 0%nat); eauto. rewrite -> H_l3. reflexivity. }
           rewrite H3_length. rewrite YES1. rewrite -> redefine_coq_sortedInsert with (len := n). rewrite -> H_l3. simpl. word.
         }
-        { clear l3_ops YES1. iIntros "(%index & %acc & %peek_l & %l3_ops & H_s3 & H_l3_ops & H_i & H_l & H_intermediate & H_prev & H_curr & %H)".
-          wp_pures. wp_apply wp_NewSlice. iIntros "%s4 H_s4". wp_apply wp_ref_to; eauto. iIntros "%output H_output". wp_pures. wp_store. wp_load. wp_store. wp_pures.
-          replace (replicate (uint.nat (W64 0)) operation_into_val .(IntoVal_def (Slice.t * w64))) with (@nil (Slice.t * w64)) by reflexivity. destruct H as (H1 & H2 & H3 & H4 & H5 & H6 & H7 & H8). specialize (H3 eq_refl).
-          apply f_equal with (f := length) in H3. simpl in *. rewrite length_drop in H3. assert (length l3 = index + 1)%nat as YES by word.
-          wp_apply (wp_forBreak_cond
-            ( λ continue, ∃ s4 : Slice.t, ∃ l4_ops : list (Slice.t * w64),
-              own_slice_small s3 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l3_ops ∗
-              own_slice s4 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l4_ops ∗
-              intermediate ↦[slice.T (slice.T uint64T * (uint64T * unitT)%ht)] s3 ∗
-              output ↦[slice.T (slice.T uint64T * (uint64T * unitT)%ht)] s4 ∗
-              i ↦[uint64T] #(W64 (length l4_ops)) ∗
-              l ↦[uint64T] #(W64 (length acc + 1)%nat) ∗
-              prev ↦[uint64T] #(W64 (length acc + 1)%nat) ∗
-              ([∗ list] opv;o ∈ l3_ops;(acc ++ [peek_l] ++ drop (length acc + 1) l3), is_operation opv o n) ∗
-              ([∗ list] opv;o ∈ l4_ops;take (length l4_ops) (acc ++ [peek_l] ++ drop (length acc + 1) l3), is_operation opv o n) ∗
-              ⌜(length l4_ops <= (length acc + 1))%nat⌝ ∗
-              ⌜continue = false -> length l4_ops = (length acc + 1)%nat⌝ 
-            )%I
-          with "[] [H_s3 H_s4 H_l3_ops H_prev H_i H_l H_intermediate H_output]").
-          { clear Φ s4. iIntros "%Φ". iModIntro. iIntros "(%s4 & %l4_ops & H_s3 & H_s4 & H_intermediate & H_output & H_i & H_l & H_prev & H_l3 & H_l4 & %H_bound & %H_continue) HΦ".
-            iPoseProof (own_slice_small_sz with "[$H_s3]") as "%claim1".
-            wp_pures. wp_load. wp_load. wp_if_destruct.
-            - iAssert ⌜is_Some (l3_ops !! uint.nat (W64 (length l4_ops)))⌝%I with "[H_l3]" as "[%x %H_x]".
-              { iPoseProof (big_sepL2_length with "[$H_l3]") as "%YES1". iPureIntro. eapply lookup_lt_is_Some_2. word. }
-              wp_pures. wp_load. wp_load. wp_apply (wp_SliceGet with "[$H_s3]"); eauto. iIntros "H_s3". wp_load. wp_apply (wp_SliceAppend with "[$H_s4]").
-              iIntros "%s5 H_s5". wp_store. wp_load. wp_store. iModIntro. iApply "HΦ".
-              iPoseProof (pers_big_sepL2_is_operation with "[$H_l3]") as "#H_l3_pers".
-              iPoseProof (pers_big_sepL2_is_operation with "[$H_l4]") as "#H_l4_pers".
-              iExists s5. iExists (l4_ops ++ [x])%list. iFrame.
-              iPoseProof (big_sepL2_length with "[$H_l3_pers]") as "%YES1".
-              iPoseProof (big_sepL2_length with "[$H_l4_pers]") as "%YES2".
-              iSplitL "H_i". { rewrite length_app; simpl. replace (W64 (length l4_ops + 1)%nat) with (w64_word_instance .(word.add) (W64 (length l4_ops)) (W64 1)); eauto. word. }
-              iSplitL "".
-              { iApply big_sepL2_is_operation_intro.
-                - rewrite length_take. rewrite <- YES1. rewrite length_app. simpl.
-                  do 2 rewrite length_app in YES1. rewrite length_take in YES2. do 2 rewrite length_app in YES2. simpl in *.
-                  enough ((length l4_ops + 1) <= length l3_ops)%nat by word.
-                  rewrite <- H6. rewrite <- YES1 in YES2. rewrite <- H6 in YES2. word.
-                - clear i. iIntros "%i %l_i %ops_i [%YES3 %YES4]". assert (i < length (l4_ops ++ [x]))%nat as H by now eapply lookup_lt_is_Some_1.
-                  assert (i = length l4_ops \/ i < length l4_ops)%nat as [EQ | LT] by now rewrite length_app in H; simpl in H; word.
-                  + subst i. iApply (big_sepL2_is_operation_elim); cycle -1.
-                    * iExact "H_l3_pers".
-                    * instantiate (1 := length l4_ops).
-                      rewrite lookup_take in YES3; trivial.
-                    * replace (length l4_ops) with (uint.nat (W64 (length l4_ops))). { rewrite lookup_snoc in YES4. congruence. }
-                      rewrite length_take in YES2. rewrite <- YES1 in YES2. word.
-                  + iApply (big_sepL2_is_operation_elim); cycle -1.
-                    * iExact "H_l4_pers".
-                    * instantiate (1 := i). rewrite lookup_take in YES3; trivial. rewrite lookup_take; trivial.
-                    * rewrite lookup_app_l in YES4; trivial.
-              }
-              iClear "H_l4". iSplit.
-              { iPureIntro. rewrite length_app. simpl. word. }
-              { iPureIntro. congruence. }
-            - iApply "HΦ". iExists s4. iExists l4_ops. iModIntro.
-              iPoseProof (big_sepL2_length with "[$H_l4]") as "%claim3".
-              iPoseProof (big_sepL2_length with "[$H_l3]") as "%claim4".
-              iFrame. iPureIntro. split. { word. } intros _. rewrite length_take in claim3. rewrite <- claim4 in claim3.
-              do 2 rewrite length_app in claim4. simpl in *. rewrite length_drop in claim4. word.
+        { clear l3_ops YES1. iIntros "(%index & %acc & %peek_l & %l3_ops & H_s1 & H_s2 & H_s3 & H_l3_ops & H_i & H_l & H_intermediate & H_prev & H_curr & %H)".
+          destruct H as (H1 & H2 & H3 & H4 & H5 & H6 & H7 & H8). specialize (H3 eq_refl). pose proof (f_equal length H3) as YES. rewrite length_drop in YES. simpl in *.
+          assert (l3 = take index l3 ++ [peek_l]) as claim4.
+          { rewrite <- take_drop with (l := l3) (i := index) at 1. f_equal.
+            destruct (drop index l3) as [ | hd tl] eqn: H_OBS.
+            - apply f_equal with (f := length) in H_OBS. simpl in *. rewrite length_drop in H_OBS. word.
+            - f_equal.
+              + rewrite <- take_drop with (l := l3) (i := index) in H1. rewrite lookup_app_r in H1.
+                * rewrite length_take in H1. replace (index - index `min` length l3)%nat with 0%nat in H1 by word. rewrite H_OBS in H1. simpl in *. congruence.
+                * rewrite length_take. word.
+              + apply f_equal with (f := length) in H_OBS. simpl in *. rewrite length_drop in H_OBS. eapply nil_length_inv. word.
           }
-          { iExists s4. iExists []%list. iFrame. simpl. iSplit. { done. } iPureIntro. split. { word. } { congruence. } }
-          { clear s4. iIntros "(%s4 & %l4_ops & H_s3 & H_s4 & H_intermediate & H_output & H_i & H_l & H_prev & H_l3_ops & H_l4_ops & %H_bound & %H_continue)".
-            specialize (H_continue eq_refl). wp_pures. wp_load. iModIntro. iApply "HΦ".
-            assert (l3 = take index l3 ++ [peek_l]) as claim4.
-            { rewrite <- take_drop with (l := l3) (i := index) at 1. f_equal.
-              destruct (drop index l3) as [ | hd tl] eqn: H_OBS.
-              - apply f_equal with (f := length) in H_OBS. simpl in *. rewrite length_drop in H_OBS. word.
-              - f_equal.
-                + rewrite <- take_drop with (l := l3) (i := index) in H1. rewrite lookup_app_r in H1.
-                  * rewrite length_take in H1. replace (index - index `min` length l3)%nat with 0%nat in H1 by word. rewrite H_OBS in H1. simpl in *. congruence.
-                  * rewrite length_take. word.
-                + apply f_equal with (f := length) in H_OBS. simpl in *. rewrite length_drop in H_OBS. eapply nil_length_inv. word.
+          assert (fold_left coq_sortedInsert l2 [] !! (index + 1)%nat = None) as claim5.
+          { eapply lookup_ge_None. rewrite -> redefine_coq_sortedInsert with (len := n). rewrite H3_length. subst l3. rewrite <- redefine_coq_sortedInsert with (len := n) in *. word. }
+          iPoseProof (own_slice_cap_wf with "[H_s3]") as "%YES1". { iDestruct "H_s3" as "[H1_s3 H2_s3]". iExact "H2_s3". }
+          iPoseProof (big_sepL2_length with "[$H_l3_ops]") as "%YES2". rewrite length_app in YES2. simpl in *.
+          iPoseProof (own_slice_sz with "[$H_s3]") as "%YES3".
+          wp_pures. wp_load. wp_load. wp_apply wp_SliceTake. { word. } iApply "HΦ". iExists (coq_mergeOperations [] l2). iFrame. simpl. iFrame.
+          iSplitR ""; cycle 1.
+          { iSplit.
+            - done.
+            - iSplit.
+              + iExact "H_l2_ops_pers".
+              + iPureIntro. unfold coq_mergeOperations. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert by reflexivity.
+                rewrite <- H_l3. fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl. rewrite <- H2. simpl.
+                simpl. replace (l3 !! (index + 1)%nat) with (@None (Operation.t)); trivial.
+                symmetry. eapply lookup_ge_None. word.
+          }
+          unfold coq_mergeOperations. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert by reflexivity.
+          rewrite <- H_l3. fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl. rewrite <- H2. simpl.
+          simpl. replace (l3 !! (index + 1)%nat) with (@None (Operation.t)); cycle 1. { symmetry. eapply lookup_ge_None. word. }
+          simpl. iExists (take (length acc + 1) l3_ops). iSplitL "H_s3".
+          - replace (take (length acc + 1) l3_ops) with (take (uint.nat (W64 (length acc + 1)%nat)) l3_ops) by now f_equal; word.
+            iDestruct "H_s3" as "[H1_s3 H2_s3]". iPoseProof (slice_small_split with "[$H1_s3]") as "[H1 H2]". { instantiate (1 := W64 (length acc + 1)%nat). word. }
+            iApply own_slice_split. iFrame. iApply own_slice_cap_take. { word. } iFrame.
+          - iAssert (([∗ list] opv;o ∈ take (length acc + 1) l3_ops;(acc ++ [peek_l]), is_operation opv o n) ∗ ([∗ list] opv;o ∈ drop (length acc + 1) l3_ops;drop (length acc + 1) (take index l3 ++ [peek_l]), is_operation opv o n))%I with "[H_l3_ops]" as "[H1 H2]".
+            { iApply (big_sepL2_app_equiv with "[H_l3_ops]").
+              - rewrite length_app. rewrite length_take. simpl. word.
+              - rewrite take_drop. rewrite <- app_assoc. simpl. iFrame.
             }
-            assert (fold_left coq_sortedInsert l2 [] !! (index + 1)%nat = None) as claim5.
-            { eapply lookup_ge_None. rewrite -> redefine_coq_sortedInsert with (len := n). rewrite H3_length. subst l3. rewrite <- redefine_coq_sortedInsert with (len := n) in *. word. }
-            iExists (coq_mergeOperations [] l2). iSplitL "H_s4 H_l4_ops".
-            - iPoseProof (pers_big_sepL2_is_operation with "[$H_l4_ops]") as "#H_l4_ops_pers".
-              subst l3. iExists l4_ops. iFrame. iApply big_sepL2_is_operation_intro.
-              + unfold coq_mergeOperations. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert by reflexivity.
-                fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl. rewrite <- H2. simpl.
-                rewrite claim5. simpl. rewrite length_app. done.
-              + clear i. iIntros "%i %l_i %ops_i [%H_l_i %H_ops_i]".
-                iApply big_sepL2_is_operation_elim; cycle -1.
-                * iExact "H_l4_ops".
-                * instantiate (1 := i).
-                  assert ((acc ++ [peek_l]) !! i = Some l_i) as claim6.
-                  { unfold coq_mergeOperations in H_l_i. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert in H_l_i by reflexivity.
-                    fold loop_step in H_l_i. fold loop_init in H_l_i. rewrite claim4 in H_l_i. rewrite fold_left_app in H_l_i. simpl in *.
-                    rewrite <- H2 in H_l_i. simpl in H_l_i. rewrite claim5 in H_l_i. simpl in *. done.
-                  }
-                  rewrite lookup_take. { rewrite app_assoc. rewrite lookup_app_l; eauto. eapply lookup_lt_is_Some_1. eauto. }
-                  eapply lookup_lt_is_Some_1. eauto.
-                * eauto.
-            - iPureIntro. split; trivial. unfold coq_mergeOperations. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert by reflexivity.
-              subst l3. fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl in *.
-              rewrite <- H2. simpl. rewrite claim5. simpl in *. done.
-          }
+            iFrame.
         }
     - rewrite bool_decide_eq_false in decide_s1. assert (s1 .(Slice.sz) ≠ (W64 0)) as H_NE_NIL by congruence. clear decide_s1. iPoseProof (big_sepL2_length with "[$H_l1_ops]") as "%H2_NE_NIL".
       iPoseProof (big_sepL2_length with "[$H_l2_ops]") as "%H_l2_length". iPoseProof (own_slice_sz with "[$H_s2]") as "%H_s2_sz". simpl in *.
@@ -819,9 +770,11 @@ Section heap.
       iDestruct "H_s1" as "[H1_s1 H2_s1]". wp_apply (wp_SliceAppendSlice with "[$H_s3 $H1_s1]"); auto. simpl. iIntros "%s4 [H_s4 H1_s1]".
       wp_pures. wp_apply wp_ref_to; auto. iIntros "%intermediate H_intermediate". wp_pures. wp_apply wp_ref_to; auto.
       wp_pures. iIntros "%i H_i". wp_pures. wp_apply wp_slice_len. wp_apply wp_ref_to; auto. iIntros "%l H_l". wp_pures.
+      iPoseProof (pers_big_sepL2_is_operation with "[$H_l1_ops]") as "#H_l1_ops_pers". iPoseProof (pers_big_sepL2_is_operation with "[$H_l2_ops]") as "#H_l2_ops_pers".
       wp_apply (wp_forBreak_cond
         ( λ continue, ∃ s4 : Slice.t, ∃ l3_ops : list (Slice.t * w64), ∃ l2_prevs : list Operation.t, ∃ l2_nexts : list Operation.t,
-          "H_s2" ∷ own_slice_small s2 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l2_ops ∗
+          "H_s1" ∷ own_slice s1 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l1_ops ∗
+          "H_s2" ∷ own_slice s2 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l2_ops ∗
           "H_s4" ∷ own_slice s4 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l3_ops ∗
           ([∗ list] opv;o ∈ drop (length l2_prevs) l2_ops;l2_nexts, is_operation opv o n) ∗
           ([∗ list] opv;o ∈ l3_ops;fold_left coq_sortedInsert l2_prevs l1, is_operation opv o n) ∗
@@ -834,12 +787,12 @@ Section heap.
           ⌜length (fold_left SessionPrelude.sortedInsert l2_prevs l1) = (length l1 + length l2_prevs)%nat⌝ ∗
           ⌜continue = false -> l2_nexts = []⌝
         )%I
-      with "[] [H1_s1 H_s2 H_s4 H_l1_ops H_l2_ops H_intermediate H_i H_l]").
-      { clear Φ s4. iIntros "%Φ". iModIntro. iIntros "(%s4 & %l3_ops & %l2_prevs & %l2_nexts & H_s2 & H_s4 & H_l2_ops & H_l3_ops & %l2_eq & H_i & H_l & H_intermediate & %H_is_sorted & %H_wf & %H_length & %H_continue) HΦ".
+      with "[] [H_l1_ops H_l2_ops H1_s1 H2_s1 H_s2 H_s4 H_intermediate H_i H_l]").
+      { clear Φ s4. iIntros "%Φ". iModIntro. iIntros "(%s4 & %l3_ops & %l2_prevs & %l2_nexts & H_s1 & (H_s2 & H2_s2) & H_s4 & H_l2_ops & H_l3_ops & %l2_eq & H_i & H_l & H_intermediate & %H_is_sorted & %H_wf & %H_length & %H_continue) HΦ".
         wp_load. wp_load. wp_if_destruct.
         - wp_pures. wp_load. destruct l2_nexts as [ | l2_cur l2_nexts].
           + rewrite app_nil_r in l2_eq. subst l2_prevs. word.
-          + iNamed "H_s2". iNamed "H_s4". iPoseProof (big_sepL2_cons_inv_r with "[$H_l2_ops]") as "(%l2_ops_cur & %l2_ops_nexts & %H_OBS & H_l2_cur & H_l2_nexts)".
+          + iNamed "H_s1". iNamed "H_s2". iNamed "H_s4". iPoseProof (big_sepL2_cons_inv_r with "[$H_l2_ops]") as "(%l2_ops_cur & %l2_ops_nexts & %H_OBS & H_l2_cur & H_l2_nexts)".
             pose proof (take_drop (length l2_prevs) l2_ops) as H2_l2_ops.
             rewrite H_OBS in H2_l2_ops.
             iAssert ⌜Operation_wf n l2_cur⌝%I as "%H2_wf".
@@ -869,7 +822,7 @@ Section heap.
             iSplit. { rewrite fold_left_app. simpl in *. iPureIntro. done. }
             iSplit. { rewrite fold_left_app. simpl in *. iPureIntro. rewrite -> H2. rewrite length_app. simpl. apply f_equal with (f := length) in H1. rewrite length_app in H1. rewrite length_app. simpl. rewrite H1 in H_length. word. }
             { iPureIntro. congruence. }
-        - iNamed "H_s2". iNamed "H_s4".
+        - iNamed "H_s1". iNamed "H_s2". iNamed "H_s4".
           iAssert ⌜l2_nexts = []⌝%I as "%l2_nexts_nil".
           { rewrite l2_eq in H_l2_length. rewrite length_app in H_l2_length.
             assert (uint.Z (W64 (length l2_prevs)) = uint.Z s2 .(Slice.sz)) as YES1 by word.
@@ -879,13 +832,12 @@ Section heap.
           subst l2_nexts. rewrite app_nil_r in l2_eq. subst l2.
           iApply "HΦ". iModIntro. iExists s4. iExists l3_ops. iExists l2_prevs. iExists []. iFrame. rewrite app_nil_r. done.
       }
-      { iExists s4. iExists l1_ops. iExists []. iExists l2. simpl in *. iPoseProof (pers_big_sepL2_is_operation with "[$H_l1_ops]") as "#H_l1_ops_pers". iFrame. iSplitL "H_s2".
-        - iApply own_slice_to_small; done.
-        - iSplit. { done. } iSplit. { done. } iSplit. { iApply Forall_Operation_wf. done. } iSplit. { done. } { iPureIntro. congruence. }
+      { iExists s4. iExists l1_ops. iExists []. iExists l2. simpl in *. iFrame.
+        iSplit. { done. } iSplit. { done. } iSplit. { iApply Forall_Operation_wf. done. } iSplit. { done. } { iPureIntro. congruence. }
       }
-      clear s4 s3. iIntros "(%s4 & %l3_ops & %l2_prevs & %l2_nexts & H_s2 & H_s4 & H_l2_ops_nexts & H_l3_ops & %H_l2_obs & H_i & H_l & H_intermediate & %H2_is_sorted & %H2_wf & %H3_length & %H_continue)".
+      clear s4 s3. iIntros "(%s4 & %l3_ops & %l2_prevs & %l2_nexts & H_s1 & H_s2 & H_s4 & H_l2_ops_nexts & H_l3_ops & %H_l2_obs & H_i & H_l & H_intermediate & %H2_is_sorted & %H2_wf & %H3_length & %H_continue)".
       specialize (H_continue eq_refl). subst l2_nexts. rewrite app_nil_r in H_l2_obs. subst l2_prevs.
-      iNamed "H_s2". iNamed "H_s4". wp_pures. wp_apply wp_ref_to; eauto. iIntros "%prev H_prev". wp_pures. wp_apply wp_ref_to; auto. iIntros "%curr H_curr". wp_pures.
+      iNamed "H_s1". iNamed "H_s2". iNamed "H_s4". wp_pures. wp_apply wp_ref_to; eauto. iIntros "%prev H_prev". wp_pures. wp_apply wp_ref_to; auto. iIntros "%curr H_curr". wp_pures.
       replace SessionPrelude.sortedInsert with coq_sortedInsert in H2_wf by reflexivity. remember (fold_left coq_sortedInsert l2 l1) as l3 eqn: H_l3 in *.
       set (loop_step := λ (acc: nat * list Operation.t) (element : Operation.t),
         let (index, acc) := acc in
@@ -899,7 +851,9 @@ Section heap.
       iPoseProof (big_sepL2_length with "[$H_l3_ops]") as "%YES1".
       wp_apply (wp_forBreak_cond
         ( λ continue, ∃ index : nat, ∃ acc : list Operation.t, ∃ peek_l : Operation.t, ∃ l3_ops : list (Slice.t * w64),
-          own_slice_small s3 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l3_ops ∗
+          own_slice s1 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l1_ops ∗
+          own_slice s2 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l2_ops ∗
+          own_slice s3 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l3_ops ∗
           ([∗ list] opv;o ∈ l3_ops;acc ++ [peek_l] ++ drop (length acc + 1)%nat l3, is_operation opv o n) ∗
           i ↦[uint64T] #(W64 (length l2)) ∗
           l ↦[uint64T] #s2 .(Slice.sz) ∗
@@ -915,12 +869,13 @@ Section heap.
           ⌜(length acc <= index)%nat⌝ ∗
           ⌜(index + 1 <= length l3)%nat⌝
         )%I
-      with "[] [H_l3_ops H_s2 H_s3 H_intermediate H_prev H_curr H_i H_l]").
-      { clear Φ l3_ops YES1. iIntros "%Φ". iModIntro. iIntros "(%index & %acc & %peek_l & %l3_ops & H_s3 & H_l3_ops & H_i & H_l & H_intermediate & H_prev & H_curr & %H) HΦ".
+      with "[] [H_l3_ops H_s1 H_s2 H_s3 H_intermediate H_prev H_curr H_i H_l]").
+      { clear Φ l3_ops YES1. iIntros "%Φ". iModIntro. iIntros "(%index & %acc & %peek_l & %l3_ops & H_s1 & H_s2 & H_s3 & H_l3_ops & H_i & H_l & H_intermediate & H_prev & H_curr & %H) HΦ".
         destruct H as (H_peek_l' & H_loop & H_continue & H3_is_sorted & H_wf & LENGTH & H1_index & H2_index).
         wp_pures. wp_load. wp_load. wp_apply (wp_slice_len). wp_if_destruct.
         - iPoseProof (pers_big_sepL2_is_operation with "[$H_l3_ops]") as "#YES".
           iPoseProof (big_sepL2_length with "[$H_l3_ops]") as "%H_l3_ops_len".
+          iDestruct "H_s3" as "[H_s3 H2_s3]".
           iPoseProof (own_slice_small_sz with "[$H_s3]") as "%H_s3_sz".
           rewrite app_assoc. rewrite <- take_drop with (l := l3_ops) (i := (length acc + 1)%nat).
           iPoseProof (big_sepL2_app_equiv with "[$H_l3_ops]") as "[H_l3_ops_prefix H_l3_ops_suffix]".
@@ -987,7 +942,7 @@ Section heap.
                 replace (index + 1 - length (acc ++ [peek_l]))%nat with (index + 1 - length (take (length acc + 1) l3))%nat; eauto.
                 { rewrite length_take. rewrite length_app. simpl in *. word. }
           }
-          iIntros "%r %Hr". wp_if_destruct.
+          iIntros "%r (%Hr & H1_is_operation & H2_is_operation)". wp_if_destruct.
           + wp_load. wp_load. wp_apply (wp_SliceGet with "[$H_s3]").
             { iPureIntro. rewrite <- H_l3_ops_prefix_obs. rewrite take_drop. replace (uint.nat (W64 (index + 1)%nat)) with (index + 1)%nat by word. exact H_peek_r_ops. }
             iIntros "H_s3". wp_load. wp_load. wp_apply (wp_SliceSet with "[$H_s3]").
@@ -999,8 +954,8 @@ Section heap.
               - rewrite length_app. simpl. word.
             }
             iIntros "H_s3". wp_pures. wp_load. wp_store. wp_pures. wp_load. wp_store. iModIntro. iApply "HΦ".
-            iExists (index + 1)%nat. iExists (acc ++ [peek_l])%list. iExists peek_r. iExists ((<[uint.nat (W64 (length acc + 1)%nat):=peek_r_ops]> ((acc_ops ++ [peek_l_ops]) ++ drop (length acc + 1) l3_ops)))%list. iFrame.
-            iSplitL "".
+            iExists (index + 1)%nat. iExists (acc ++ [peek_l])%list. iExists peek_r. iExists ((<[uint.nat (W64 (length acc + 1)%nat):=peek_r_ops]> ((acc_ops ++ [peek_l_ops]) ++ drop (length acc + 1) l3_ops)))%list.
+            iFrame. iSplitL "".
             { iApply big_sepL2_is_operation_intro.
               - rewrite length_insert. repeat rewrite length_app. simpl in *.
                 rewrite H_acc_length. do 2 rewrite length_drop. rewrite LENGTH. word.
@@ -1232,7 +1187,7 @@ Section heap.
             { iPureIntro. simpl. word. }
         - iModIntro. iApply "HΦ". iExists (length l3_ops - 1)%nat. iExists acc. iExists peek_l. iExists l3_ops.
           iPoseProof (big_sepL2_length with "[$H_l3_ops]") as "%YES1".
-          iPoseProof (own_slice_small_sz with "[$H_s3]") as "%YES2".
+          iPoseProof (own_slice_sz with "[$H_s3]") as "%YES2".
           assert (length l3_ops = index + 1)%nat as YES3 by word.
           iFrame. iSplitL "H_curr".
           { replace (W64 (length l3_ops - 1 + 1)%nat) with (W64 (index + 1)%nat) by word. done. }
@@ -1249,10 +1204,9 @@ Section heap.
       { destruct (fold_left SessionPrelude.sortedInsert l2 l1) as [ | l3_hd l3_tl] eqn: H_l3_obs.
         { simpl in *. word. }
         subst l3. rename H_l3_obs into H_l3.
-        iExists 0%nat. iExists []%list. iExists l3_hd. iExists l3_ops. iFrame. iSplitL "H_s3".
-        { iApply own_slice_to_small; eauto. }
+        iExists 0%nat. iExists []%list. iExists l3_hd. iExists l3_ops. iFrame.
         simpl in *. rewrite H_l3. simpl. replace (drop 0 l3_tl) with l3_tl by reflexivity. iFrame.
-        iClear "H_s2". iSplit. { iPureIntro. done. }
+        iSplit. { iPureIntro. done. }
         iSplit. { iPureIntro. done. }
         iSplit. { iPureIntro. done. }
         iSplit.
@@ -1271,103 +1225,49 @@ Section heap.
         iSplit. { iPureIntro. econstructor; eauto. eapply Forall_lookup_1 with (l := fold_left SessionPrelude.sortedInsert l2 l1) (i := 0%nat); eauto. rewrite -> H_l3. reflexivity. }
         rewrite H3_length. rewrite YES1. rewrite -> redefine_coq_sortedInsert with (len := n). rewrite -> H_l3. simpl. word.
       }
-      { clear l3_ops YES1. iIntros "(%index & %acc & %peek_l & %l3_ops & H_s3 & H_l3_ops & H_i & H_l & H_intermediate & H_prev & H_curr & %H)".
-        wp_pures. wp_apply wp_NewSlice. iIntros "%s4 H_s4". wp_apply wp_ref_to; eauto. iIntros "%output H_output". wp_pures. wp_store. wp_load. wp_store. wp_pures.
-        replace (replicate (uint.nat (W64 0)) operation_into_val .(IntoVal_def (Slice.t * w64))) with (@nil (Slice.t * w64)) by reflexivity. destruct H as (H1 & H2 & H3 & H4 & H5 & H6 & H7 & H8). specialize (H3 eq_refl).
-        apply f_equal with (f := length) in H3. simpl in *. rewrite length_drop in H3. assert (length l3 = index + 1)%nat as YES by word.
-        wp_apply (wp_forBreak_cond
-          ( λ continue, ∃ s4 : Slice.t, ∃ l4_ops : list (Slice.t * w64),
-            own_slice_small s3 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l3_ops ∗
-            own_slice s4 (slice.T uint64T * (uint64T * unitT)%ht) (DfracOwn 1) l4_ops ∗
-            intermediate ↦[slice.T (slice.T uint64T * (uint64T * unitT)%ht)] s3 ∗
-            output ↦[slice.T (slice.T uint64T * (uint64T * unitT)%ht)] s4 ∗
-            i ↦[uint64T] #(W64 (length l4_ops)) ∗
-            l ↦[uint64T] #(W64 (length acc + 1)%nat) ∗
-            prev ↦[uint64T] #(W64 (length acc + 1)%nat) ∗
-            ([∗ list] opv;o ∈ l3_ops;(acc ++ [peek_l] ++ drop (length acc + 1) l3), is_operation opv o n) ∗
-            ([∗ list] opv;o ∈ l4_ops;take (length l4_ops) (acc ++ [peek_l] ++ drop (length acc + 1) l3), is_operation opv o n) ∗
-            ⌜(length l4_ops <= (length acc + 1))%nat⌝ ∗
-            ⌜continue = false -> length l4_ops = (length acc + 1)%nat⌝ 
-          )%I
-        with "[] [H_s3 H_s4 H_l3_ops H_prev H_i H_l H_intermediate H_output]").
-        { clear Φ s4. iIntros "%Φ". iModIntro. iIntros "(%s4 & %l4_ops & H_s3 & H_s4 & H_intermediate & H_output & H_i & H_l & H_prev & H_l3 & H_l4 & %H_bound & %H_continue) HΦ".
-          iPoseProof (own_slice_small_sz with "[$H_s3]") as "%claim1".
-          wp_pures. wp_load. wp_load. wp_if_destruct.
-          - iAssert ⌜is_Some (l3_ops !! uint.nat (W64 (length l4_ops)))⌝%I with "[H_l3]" as "[%x %H_x]".
-            { iPoseProof (big_sepL2_length with "[$H_l3]") as "%YES1". iPureIntro. eapply lookup_lt_is_Some_2. word. }
-            wp_pures. wp_load. wp_load. wp_apply (wp_SliceGet with "[$H_s3]"); eauto. iIntros "H_s3". wp_load. wp_apply (wp_SliceAppend with "[$H_s4]").
-            iIntros "%s5 H_s5". wp_store. wp_load. wp_store. iModIntro. iApply "HΦ".
-            iPoseProof (pers_big_sepL2_is_operation with "[$H_l3]") as "#H_l3_pers".
-            iPoseProof (pers_big_sepL2_is_operation with "[$H_l4]") as "#H_l4_pers".
-            iExists s5. iExists (l4_ops ++ [x])%list. iFrame.
-            iPoseProof (big_sepL2_length with "[$H_l3_pers]") as "%YES1".
-            iPoseProof (big_sepL2_length with "[$H_l4_pers]") as "%YES2".
-            iSplitL "H_i". { rewrite length_app; simpl. replace (W64 (length l4_ops + 1)%nat) with (w64_word_instance .(word.add) (W64 (length l4_ops)) (W64 1)); eauto. word. }
-            iSplitL "".
-            { iApply big_sepL2_is_operation_intro.
-              - rewrite length_take. rewrite <- YES1. rewrite length_app. simpl.
-                do 2 rewrite length_app in YES1. rewrite length_take in YES2. do 2 rewrite length_app in YES2. simpl in *.
-                enough ((length l4_ops + 1) <= length l3_ops)%nat by word.
-                rewrite <- H6. rewrite <- YES1 in YES2. rewrite <- H6 in YES2. word.
-              - clear i. iIntros "%i %l_i %ops_i [%YES3 %YES4]". assert (i < length (l4_ops ++ [x]))%nat as H by now eapply lookup_lt_is_Some_1.
-                assert (i = length l4_ops \/ i < length l4_ops)%nat as [EQ | LT] by now rewrite length_app in H; simpl in H; word.
-                + subst i. iApply (big_sepL2_is_operation_elim); cycle -1.
-                  * iExact "H_l3_pers".
-                  * instantiate (1 := length l4_ops).
-                    rewrite lookup_take in YES3; trivial.
-                  * replace (length l4_ops) with (uint.nat (W64 (length l4_ops))). { rewrite lookup_snoc in YES4. congruence. }
-                    rewrite length_take in YES2. rewrite <- YES1 in YES2. word.
-                + iApply (big_sepL2_is_operation_elim); cycle -1.
-                  * iExact "H_l4_pers".
-                  * instantiate (1 := i). rewrite lookup_take in YES3; trivial. rewrite lookup_take; trivial.
-                  * rewrite lookup_app_l in YES4; trivial.
-            }
-            iClear "H_l4". iSplit.
-            { iPureIntro. rewrite length_app. simpl. word. }
-            { iPureIntro. congruence. }
-          - iApply "HΦ". iExists s4. iExists l4_ops. iModIntro.
-            iPoseProof (big_sepL2_length with "[$H_l4]") as "%claim3".
-            iPoseProof (big_sepL2_length with "[$H_l3]") as "%claim4".
-            iFrame. iPureIntro. split. { word. } intros _. rewrite length_take in claim3. rewrite <- claim4 in claim3.
-            do 2 rewrite length_app in claim4. simpl in *. rewrite length_drop in claim4. word.
+      { clear l3_ops YES1. iIntros "(%index & %acc & %peek_l & %l3_ops & H_s1 & H_s2 & H_s3 & H_l3_ops & H_i & H_l & H_intermediate & H_prev & H_curr & %H)".
+        destruct H as (H1 & H2 & H3 & H4 & H5 & H6 & H7 & H8). specialize (H3 eq_refl). pose proof (f_equal length H3) as YES. rewrite length_drop in YES. simpl in *.
+        assert (l3 = take index l3 ++ [peek_l]) as claim4.
+        { rewrite <- take_drop with (l := l3) (i := index) at 1. f_equal.
+          destruct (drop index l3) as [ | hd tl] eqn: H_OBS.
+          - apply f_equal with (f := length) in H_OBS. simpl in *. rewrite length_drop in H_OBS. word.
+          - f_equal.
+            + rewrite <- take_drop with (l := l3) (i := index) in H1. rewrite lookup_app_r in H1.
+              * rewrite length_take in H1. replace (index - index `min` length l3)%nat with 0%nat in H1 by word. rewrite H_OBS in H1. simpl in *. congruence.
+              * rewrite length_take. word.
+            + apply f_equal with (f := length) in H_OBS. simpl in *. rewrite length_drop in H_OBS. eapply nil_length_inv. word.
         }
-        { iExists s4. iExists []%list. iFrame. simpl. iSplit. { done. } iPureIntro. split. { word. } { congruence. } }
-        { clear s4. iIntros "(%s4 & %l4_ops & H_s3 & H_s4 & H_intermediate & H_output & H_i & H_l & H_prev & H_l3_ops & H_l4_ops & %H_bound & %H_continue)".
-          specialize (H_continue eq_refl). wp_pures. wp_load. iModIntro. iApply "HΦ".
-          assert (l3 = take index l3 ++ [peek_l]) as claim4.
-          { rewrite <- take_drop with (l := l3) (i := index) at 1. f_equal.
-            destruct (drop index l3) as [ | hd tl] eqn: H_OBS.
-            - apply f_equal with (f := length) in H_OBS. simpl in *. rewrite length_drop in H_OBS. word.
-            - f_equal.
-              + rewrite <- take_drop with (l := l3) (i := index) in H1. rewrite lookup_app_r in H1.
-                * rewrite length_take in H1. replace (index - index `min` length l3)%nat with 0%nat in H1 by word. rewrite H_OBS in H1. simpl in *. congruence.
-                * rewrite length_take. word.
-              + apply f_equal with (f := length) in H_OBS. simpl in *. rewrite length_drop in H_OBS. eapply nil_length_inv. word.
+        assert (fold_left coq_sortedInsert l2 l1 !! (index + 1)%nat = None) as claim5.
+        { eapply lookup_ge_None. rewrite -> redefine_coq_sortedInsert with (len := n). rewrite H3_length. subst l3. rewrite <- redefine_coq_sortedInsert with (len := n) in *. word. }
+        iPoseProof (own_slice_cap_wf with "[H_s3]") as "%YES1". { iDestruct "H_s3" as "[H1_s3 H2_s3]". iExact "H2_s3". }
+        iPoseProof (big_sepL2_length with "[$H_l3_ops]") as "%YES2". rewrite length_app in YES2. simpl in *.
+        iPoseProof (own_slice_sz with "[$H_s3]") as "%YES3".
+        wp_pures. wp_load. wp_load. wp_apply wp_SliceTake. { word. } iApply "HΦ". iExists (coq_mergeOperations l1 l2). iFrame. simpl. iFrame.
+        iSplitR ""; cycle 1.
+        { iSplit.
+          - done.
+          - iSplit.
+            + iExact "H_l1_ops_pers".
+            + iSplit.
+              * iExact "H_l2_ops_pers".
+              * iPureIntro. unfold coq_mergeOperations. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert by reflexivity.
+                rewrite <- H_l3. fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl. rewrite <- H2. simpl.
+                simpl. replace (l3 !! (index + 1)%nat) with (@None (Operation.t)); trivial.
+                symmetry. eapply lookup_ge_None. word.
+        }
+        unfold coq_mergeOperations. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert by reflexivity.
+        rewrite <- H_l3. fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl. rewrite <- H2. simpl.
+        simpl. replace (l3 !! (index + 1)%nat) with (@None (Operation.t)); cycle 1. { symmetry. eapply lookup_ge_None. word. }
+        simpl. iExists (take (length acc + 1) l3_ops). iSplitL "H_s3".
+        - replace (take (length acc + 1) l3_ops) with (take (uint.nat (W64 (length acc + 1)%nat)) l3_ops) by now f_equal; word.
+          iDestruct "H_s3" as "[H1_s3 H2_s3]". iPoseProof (slice_small_split with "[$H1_s3]") as "[H1 H2]". { instantiate (1 := W64 (length acc + 1)%nat). word. }
+          iApply own_slice_split. iFrame. iApply own_slice_cap_take. { word. } iFrame.
+        - iAssert (([∗ list] opv;o ∈ take (length acc + 1) l3_ops;(acc ++ [peek_l]), is_operation opv o n) ∗ ([∗ list] opv;o ∈ drop (length acc + 1) l3_ops;drop (length acc + 1) (take index l3 ++ [peek_l]), is_operation opv o n))%I with "[H_l3_ops]" as "[H1 H2]".
+          { iApply (big_sepL2_app_equiv with "[H_l3_ops]").
+            - rewrite length_app. rewrite length_take. simpl. word.
+            - rewrite take_drop. rewrite <- app_assoc. simpl. iFrame.
           }
-          assert (fold_left coq_sortedInsert l2 l1 !! (index + 1)%nat = None) as claim5.
-          { eapply lookup_ge_None. rewrite -> redefine_coq_sortedInsert with (len := n). rewrite H3_length. subst l3. rewrite <- redefine_coq_sortedInsert with (len := n) in *. word. }
-          iExists (coq_mergeOperations l1 l2). iSplitL "H_s4 H_l4_ops".
-          - iPoseProof (pers_big_sepL2_is_operation with "[$H_l4_ops]") as "#H_l4_ops_pers".
-            subst l3. iExists l4_ops. iFrame. iApply big_sepL2_is_operation_intro.
-            + unfold coq_mergeOperations. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert by reflexivity.
-              fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl. rewrite <- H2. simpl.
-              rewrite claim5. simpl. rewrite length_app. done.
-            + clear i. iIntros "%i %l_i %ops_i [%H_l_i %H_ops_i]".
-              iApply big_sepL2_is_operation_elim; cycle -1.
-              * iExact "H_l4_ops".
-              * instantiate (1 := i).
-                assert ((acc ++ [peek_l]) !! i = Some l_i) as claim6.
-                { unfold coq_mergeOperations in H_l_i. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert in H_l_i by reflexivity.
-                  fold loop_step in H_l_i. fold loop_init in H_l_i. rewrite claim4 in H_l_i. rewrite fold_left_app in H_l_i. simpl in *.
-                  rewrite <- H2 in H_l_i. simpl in H_l_i. rewrite claim5 in H_l_i. simpl in *. done.
-                }
-                rewrite lookup_take. { rewrite app_assoc. rewrite lookup_app_l; eauto. eapply lookup_lt_is_Some_1. eauto. }
-                eapply lookup_lt_is_Some_1. eauto.
-              * eauto.
-          - iPureIntro. split; trivial. unfold coq_mergeOperations. replace (fun acc => fun element => coq_sortedInsert acc element) with coq_sortedInsert by reflexivity.
-            subst l3. fold loop_step. fold loop_init. rewrite claim4. rewrite fold_left_app. simpl in *.
-            rewrite <- H2. simpl. rewrite claim5. simpl in *. done.
-        }
+          iFrame.
       }
   Qed.
 

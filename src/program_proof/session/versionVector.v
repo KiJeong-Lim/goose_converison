@@ -443,10 +443,10 @@ Section heap.
       auto.
   Qed.
 
-  Lemma wp_maxTS (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (d: dfrac) :
+  Lemma wp_maxTS (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (d: dfrac) (d': dfrac) :
     {{{
           own_slice_small x uint64T d xs ∗
-            own_slice_small y uint64T d ys ∗
+            own_slice_small y uint64T d' ys ∗
             ⌜length xs = length ys⌝
     }}}
       maxTS x y 
@@ -454,7 +454,7 @@ Section heap.
             (s': Slice.t), RET slice_val s'; 
             own_slice s' uint64T (DfracOwn 1) (coq_maxTS xs ys) ∗ 
             own_slice_small x uint64T d xs ∗
-            own_slice_small y uint64T d ys 
+            own_slice_small y uint64T d' ys 
       }}}.
   Proof.
     iIntros (Φ) "(H & H1 & %H3) H2".
@@ -475,7 +475,7 @@ Section heap.
     wp_apply (wp_forBreak_cond
                 (λ continue, ∃ (i: w64) (l: list w64),
                     own_slice_small x uint64T d xs ∗
-                    own_slice_small y uint64T d ys ∗
+                    own_slice_small y uint64T d' ys ∗
                     own_slice s' uint64T (DfracOwn 1) l ∗ 
                     index ↦[uint64T] #i ∗
                     len ↦[uint64T] #(length xs) ∗
@@ -851,17 +851,17 @@ Section heap.
             } 
     Qed.
 
-    Lemma wp_oneOffVersionVector (x: Slice.t) (xs: list u64) (y: Slice.t) (ys: list u64) :
+    Lemma wp_oneOffVersionVector (x: Slice.t) (xs: list u64) (y: Slice.t) (ys: list u64) dq_x dq_y :
     {{{
-          own_slice_small x uint64T (DfracOwn 1) xs ∗
-          own_slice_small y uint64T (DfracOwn 1) ys ∗
+          own_slice_small x uint64T dq_x xs ∗
+          own_slice_small y uint64T dq_y ys ∗
           ⌜length xs = length ys⌝
     }}}
       oneOffVersionVector x y
       {{{ (b: bool) , RET #b ;
           ⌜b = coq_oneOffVersionVector xs ys⌝ ∗
-          own_slice_small x uint64T (DfracOwn 1) xs ∗
-          own_slice_small y uint64T (DfracOwn 1) ys ∗
+          own_slice_small x uint64T dq_x xs ∗
+          own_slice_small y uint64T dq_y ys ∗
           ⌜length xs = length ys⌝ 
       }}}.
   Proof.
@@ -893,8 +893,8 @@ Section heap.
     set (loop_init := (true, true)).
     wp_apply (wp_forBreak_cond
                 ( λ continue, ∃ (b1 b2 : bool) , ∃ (xs_prev xs_next ys_prev ys_next : list u64),
-                    own_slice_small x uint64T (DfracOwn 1) xs ∗
-                    own_slice_small y uint64T (DfracOwn 1) ys ∗
+                    own_slice_small x uint64T dq_x xs ∗
+                    own_slice_small y uint64T dq_y ys ∗
                     output ↦[boolT] #b1 ∗
                     canApply ↦[boolT] #b2 ∗
                     index ↦[uint64T] #(length xs_prev) ∗

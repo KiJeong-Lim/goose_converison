@@ -1,9 +1,23 @@
 From Goose.github_com.session Require Export server.
 From Perennial.program_proof Require Export std_proof grove_prelude.
 
+Create HintDb session_hints.
+
 Module SessionPrelude.
 
   #[local] Obligation Tactic := intros.
+
+  Lemma list_ext {A : Type} (xs : list A) (ys : list A)
+    (LENGTH: length xs = length ys)
+    (LOOKUP: ∀ i : nat, ∀ x : A, ∀ y : A, (xs !! i = Some x /\ ys !! i = Some y) -> x = y)
+    : xs = ys.
+  Proof.
+    generalize dependent ys. induction xs as [ | x xs IH], ys as [ | y ys]; simpl; intros; try congruence.
+    f_equal.
+    - eapply LOOKUP with (i := 0%nat); simpl; tauto.
+    - eapply IH. { word. }
+      intros i x1 y1 [H_x1 H_y1]. eapply LOOKUP with (i := S i); simpl; tauto.
+  Qed.
 
   Class hsEq (A : Type) {well_formed : A -> Prop} : Type :=
     { eqProp (x : A) (y : A) : Prop
@@ -411,6 +425,41 @@ Module SessionPrelude.
       ∀ i : nat, ∀ j : nat, (i < j)%nat ->
       ∀ x1 : A, ∀ x2 : A, xs !! i = Some x1 -> xs !! j = Some x2 -> ltb x1 x2 = true \/ eqb x2 x1 = true.
 
+    Lemma isSorted_middle_1 (xs : list A) (y : A) (zs : list A)
+      (SORTED : isSorted (xs ++ y :: zs))
+      : isSorted (xs ++ zs).
+    Proof.
+      intros i j i_lt_j x1 x2 H_x1 H_x2.
+      assert (i < length xs \/ i >= length xs)%nat as [H_i | H_i] by word; assert (j < length xs \/ j >= length xs)%nat as [H_j | H_j] by word.
+      - rewrite lookup_app_l in H_x1; trivial. rewrite lookup_app_l in H_x2; trivial. eapply SORTED with (i := i) (j := j).
+        + word.
+        + rewrite lookup_app_l; trivial.
+        + rewrite lookup_app_l; trivial.
+      - rewrite lookup_app_l in H_x1; trivial. rewrite lookup_app_r in H_x2; trivial. eapply SORTED with (i := i) (j := (j + 1)%nat).
+        + word.
+        + rewrite lookup_app_l; trivial.
+        + replace (j + 1)%nat with (S j) by word. rewrite lookup_app_r.
+          * rewrite lookup_cons. replace (S j - length xs)%nat with (S (j - length xs)%nat); trivial. word.
+          * word.
+      - word.
+      - rewrite lookup_app_r in H_x1; trivial. rewrite lookup_app_r in H_x2; trivial. eapply SORTED with (i := (i + 1)%nat) (j := (j + 1)%nat).
+        + word.
+        + replace (i + 1)%nat with (S i) by word. rewrite lookup_app_r.
+          * rewrite lookup_cons. replace (S i - length xs)%nat with (S (i - length xs)%nat); trivial. word.
+          * word.
+        + replace (j + 1)%nat with (S j) by word. rewrite lookup_app_r.
+          * rewrite lookup_cons. replace (S j - length xs)%nat with (S (j - length xs)%nat); trivial. word.
+          * word.
+    Qed.
+
+    Lemma isSorted_middle (xs : list A) (ys : list A) (zs : list A)
+      (SORTED : isSorted (xs ++ ys ++ zs))
+      : isSorted (xs ++ zs).
+    Proof.
+      revert xs zs SORTED; induction ys as [ | y ys IH]; intros; simpl in *; trivial.
+      eapply IH. eapply isSorted_middle_1. exact SORTED.
+    Qed.
+
     Definition isSorted' (xs : list A) : Prop :=
       ∀ i : nat, ∀ j : nat, (i <= j)%nat ->
       ∀ x1 : A, ∀ x2 : A, xs !! i = Some x1 -> xs !! j = Some x2 -> ltb x1 x2 = true \/ eqb x2 x1 = true.
@@ -731,32 +780,147 @@ Module SessionPrelude.
       + rewrite eqProp_spec in H_OBS. split; congruence.
   Qed.
 
-  Class record_like (A : Type) (X : nat -> Type) : Type :=
-    record_nth (i : nat) : A -> X i.
+  Class has_value_of (A : Type) : Type :=
+    value_of : A -> val.
+
+  #[global] Arguments value_of {A} {has_value_of} _ /.
 
   #[global]
-  Instance record_like_instance_pair {A : Type} {B : Type} {X : nat -> Type}
-    (A_record_like : record_like A X)
-    : record_like (A * B) (fun i => match i with O => B | S i' => X i' end) :=
-      fun i => match i with O => snd | S i' => fun z => record_nth i' (fst z) end.
+  Instance w64_has_value_of : has_value_of w64 :=
+    fun x : w64 => #x.
 
-  Definition record_like_atomic {A : Type}
-    : record_like A (fun _ => A) :=
-      fun _ => fun z => z.
-
-  #[local] Hint Resolve record_like_atomic : typeclass_instances.
+  #[global] Arguments w64_has_value_of x /.
 
   #[global]
-  Instance record_like_instance_u64
-    : record_like u64 (fun _ => u64) :=
-      _.
+  Instance Slice_has_value_of : has_value_of Slice.t :=
+    fun x : Slice.t => slice_val x.
 
-  #[global]
-  Instance record_like_instance_w64
-    : record_like w64 (fun _ => w64) :=
-      _.
+  #[global] Arguments Slice_has_value_of x /.
 
 End SessionPrelude.
 
-Notation "x 'at[' T ']' n" := (SessionPrelude.record_nth n x : T)
-  (at level 10, left associativity, format "x  'at[' T ]  n").
+Reserved Notation "x '!(' i ')'" (format "x  !( i )", left associativity).
+
+Module TypeVector.
+
+  Inductive t : nat -> Type :=
+    | nil : t O
+    | cons {n: nat} (T: Type) {has_value_of: SessionPrelude.has_value_of T} (Ts: t n) : t (S n).
+
+  Lemma case0 (P : TypeVector.t O -> Type)
+    (P_nil : P (nil))
+    : forall Ts, P Ts.
+  Proof.
+    intros Ts. revert P P_nil.
+    exact (
+      match Ts as Ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun Ts => forall P : TypeVector.t O -> Type, P nil -> P Ts | S n' => fun Ts => unit end) Ts with
+      | nil => fun P => fun P_nil => P_nil
+      | cons T' Ts' => tt
+      end
+    ).
+  Defined.
+
+  Lemma caseS {n' : nat} (P : TypeVector.t (S n') -> Type)
+    (P_cons : forall T': Type, forall has_value_of: SessionPrelude.has_value_of T', forall Ts': TypeVector.t n', P (cons T' Ts'))
+    : forall Ts, P Ts.
+  Proof.
+    intros Ts. revert P P_cons.
+    exact (
+      match Ts as Ts in TypeVector.t n return (match n as n return TypeVector.t n -> Type with O => fun Ts => unit | S n' => fun Ts => forall P : TypeVector.t (S n') -> Type, (forall T' : Type, forall has_value_of: SessionPrelude.has_value_of T', forall Ts' : TypeVector.t n', P (cons T' Ts')) -> P Ts end) Ts with
+      | nil => tt
+      | cons T' Ts' => fun P => fun P_cons => P_cons T' _ Ts'
+      end
+    ).
+  Defined.
+
+  Definition head {n} (Ts: TypeVector.t (S n)) : Type :=
+    match Ts in TypeVector.t n' return
+      match n' return Type with
+      | O => unit
+      | S n => Type
+      end
+    with
+    | nil => tt
+    | cons T' Ts' => T'
+    end.
+
+  Definition tail {n} (Ts: TypeVector.t (S n)) : TypeVector.t n :=
+    match Ts in TypeVector.t n' return
+      match n' return Type with
+      | O => unit
+      | S n => TypeVector.t n
+      end
+    with
+    | nil => tt
+    | cons T' Ts' => Ts'
+    end.
+
+  Fixpoint tuple_of (n: nat) {struct n} : forall Ts: TypeVector.t (S n), Type :=
+    match n with
+    | O => fun Ts => head Ts
+    | S n => fun Ts => (tuple_of n (tail Ts) * head Ts)%type
+    end.
+
+  Fixpoint nthType {n} (i: nat) (Ts: TypeVector.t n) {struct Ts} : Type :=
+    match Ts with
+    | nil => unit
+    | cons T' Ts' =>
+      match i with
+      | O => T'
+      | S i' => nthType i' Ts'
+      end
+    end.
+
+  Fixpoint nth (n: nat) (i: nat) {struct i}
+    : forall Ts: TypeVector.t (S n), tuple_of n Ts -> nthType i Ts.
+  Proof.
+    destruct n as [ | n']; simpl.
+    - induction Ts as [T' has_value_of Ts'] using caseS.
+      induction Ts' as [] using case0.
+      destruct i as [ | i']; simpl.
+      + intros x. exact x.
+      + intros x. exact tt.
+    - induction Ts as [T' has_value_of Ts'] using caseS.
+      destruct i as [ | i']; simpl.
+      + intros x. exact (snd x).
+      + intros x. exact (nth n' i' Ts' (fst x)).
+  Defined.
+
+  Definition lookup {n} {Ts} (tuple: tuple_of n Ts) i : nthType (n - i) Ts :=
+    nth n (n - i) Ts tuple.
+
+  Fixpoint magic (n: nat) {struct n} : forall Ts: TypeVector.t (S n), val -> tuple_of n Ts -> val :=
+    match n with
+    | O => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => (SessionPrelude.value_of x, v)%V)
+    | S n => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => magic n Ts (SessionPrelude.value_of (snd x), v)%V (fst x))
+    end.
+
+  Ltac des H :=
+    red in H; simpl in H; repeat lazymatch type of H with (_ * _)%type => destruct H as [H ?] end.
+
+End TypeVector.
+
+Declare Scope TypeVector_scope.
+Bind Scope TypeVector_scope with TypeVector.t.
+
+Notation "[ ]" := (TypeVector.nil) : TypeVector_scope.
+Notation "[ T1 ]" := (TypeVector.cons T1 TypeVector.nil) : TypeVector_scope.
+Notation "[ T1 , T2 , .. , Tn ]" := (TypeVector.cons Tn (.. (TypeVector.cons T2 (TypeVector.cons T1 TypeVector.nil)) ..)) : TypeVector_scope.
+
+Notation "x !( i )" := (TypeVector.lookup x i).
+
+Definition tuple_of {n: nat} (Ts: TypeVector.t (S n)) : Type :=
+  TypeVector.tuple_of n Ts.
+
+Arguments tuple_of {n} Ts : simpl never.
+
+#[global]
+Instance tuple_of_has_value_of {n} (Ts: TypeVector.t (S n)) : SessionPrelude.has_value_of (tuple_of Ts) :=
+  TypeVector.magic n Ts #()%V.
+
+Arguments tuple_of_has_value_of {n} Ts /.
+
+#[global] Hint Unfold TypeVector.lookup SessionPrelude.w64_has_value_of SessionPrelude.Slice_has_value_of : session_hints.
+
+Ltac simplNotation :=
+  autounfold with session_hints in *; simpl in *.
