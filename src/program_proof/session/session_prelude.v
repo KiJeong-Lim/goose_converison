@@ -799,7 +799,7 @@ Module SessionPrelude.
 
 End SessionPrelude.
 
-Reserved Notation "x '!(' i ')'" (format "x  !( i )", left associativity).
+Reserved Notation "x '!(' i ')'" (format "x  !( i )", left associativity, at level 1).
 
 Module TypeVector.
 
