@@ -261,7 +261,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 
 		return true, server, reply
 	} else {
-	        var s = &server
+	        var s = server
 		s.VectorClock[server.Id] += 1
 
 		s.OperationsPerformed = append(s.OperationsPerformed, Operation{
