@@ -7,6 +7,18 @@ Module SessionPrelude.
 
   #[local] Obligation Tactic := intros.
 
+  Lemma list_ext {A : Type} (xs : list A) (ys : list A)
+    (LENGTH: length xs = length ys)
+    (LOOKUP: ∀ i : nat, ∀ x : A, ∀ y : A, (xs !! i = Some x /\ ys !! i = Some y) -> x = y)
+    : xs = ys.
+  Proof.
+    generalize dependent ys. induction xs as [ | x xs IH], ys as [ | y ys]; simpl; intros; try congruence.
+    f_equal.
+    - eapply LOOKUP with (i := 0%nat); simpl; tauto.
+    - eapply IH. { word. }
+      intros i x1 y1 [H_x1 H_y1]. eapply LOOKUP with (i := S i); simpl; tauto.
+  Qed.
+
   Class hsEq (A : Type) {well_formed : A -> Prop} : Type :=
     { eqProp (x : A) (y : A) : Prop
     ; eqb (x : A) (y : A) : bool 
