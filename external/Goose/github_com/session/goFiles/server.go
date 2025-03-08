@@ -281,7 +281,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 		reply.S2C_Server_Id = server.Id
 		reply.S2C_Client_Number = request.C2S_Client_Id
 
-		return true, server, reply
+		return true, s, reply
 	}
 }
 

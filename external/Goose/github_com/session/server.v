@@ -271,7 +271,7 @@ Definition processClientRequest: val :=
         struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" (![struct.t Server] "s")));;
         struct.storeF Message "S2C_Server_Id" "reply" (struct.get Server "Id" "server");;
         struct.storeF Message "S2C_Client_Number" "reply" (struct.get Message "C2S_Client_Id" "request");;
-        (#true, "server", ![struct.t Message] "reply"))).
+        (#true, ![struct.t Server] "s", ![struct.t Message] "reply"))).
 
 Definition processRequest: val :=
   rec: "processRequest" "server" "request" :=
