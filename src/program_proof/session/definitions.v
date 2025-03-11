@@ -255,15 +255,51 @@ Section heap.
 
   Hint Resolve server_val_t : core.
 
-  Definition server_from_val (v : val) : option (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t).
-  Admitted.
+  Definition server_from_val (v : val) : option (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) :=
+    match v with
+    | (#(LitInt Id),
+         (#(LitInt NumberOfServers),
+            (UnsatisfiedRequests,
+               (VectorClock,
+                  (OperationsPerformed,
+                     (MyOperations,
+                        (PendingOperations,
+                           (GossipAcknowledgements, #()))))))))%V =>
+        match ((from_val UnsatisfiedRequests: option Slice.t),
+                 (from_val VectorClock: option Slice.t),
+                   (from_val OperationsPerformed: option Slice.t),
+                     (from_val MyOperations: option Slice.t),
+                       (from_val PendingOperations: option Slice.t),
+                         (from_val GossipAcknowledgements: option Slice.t)
+              ) with
+        | (Some s1, Some s2, Some s3, Some s4, Some s5, Some s6) =>
+            Some (Id, NumberOfServers, s1, s2, s3, s4, s5, s6)
+        | _ => None
+        end
+    | _ => None
+    end.
   
   Global Instance server_into_val : IntoVal (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t).
-  Admitted.
+  Proof.
+    refine {| into_val.to_val := server_val;
+             from_val := server_from_val ;
+             IntoVal_def := (W64 0, W64 0, 
+                               IntoVal_def Slice.t,
+                                 IntoVal_def Slice.t,
+                                   IntoVal_def Slice.t,
+                                     IntoVal_def Slice.t,
+                                       IntoVal_def Slice.t,
+                                         IntoVal_def Slice.t);
+           |}.
+    destruct v. repeat destruct p. simpl. f_equal.
+    destruct t0. destruct t. destruct t1. destruct t2. destruct t3.
+    destruct t4. 
+    simpl. auto.
+  Defined.
 
   #[global] Instance server_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (struct.t server.Server).
-  Proof. Admitted.
-  
+  Proof. constructor; auto. simpl. repeat split; auto. Qed.
+
   Definition is_server (sv:tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t])
     (s: Server.t) (n: nat) (len_vc: nat) (len_op: nat) (len_mo: nat) (len_po: nat) (len_ga: nat) : iProp Σ :=
     ⌜sv!(0) = s.(Server.Id)⌝ ∗
