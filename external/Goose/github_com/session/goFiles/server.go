@@ -255,7 +255,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 		reply.MessageType = 4
 		reply.S2C_Client_OperationType = 0
 		reply.S2C_Client_Data = getDataFromOperationLog(server.OperationsPerformed)
-		reply.S2C_Client_VersionVector = server.VectorClock
+		reply.S2C_Client_VersionVector = append(make([]uint64, 0), server.VectorClock...)
 		reply.S2C_Server_Id = server.Id
 		reply.S2C_Client_Number = request.C2S_Client_Id
 
@@ -265,7 +265,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 		s.VectorClock[server.Id] += 1
 
 		s.OperationsPerformed = append(s.OperationsPerformed, Operation{
-			VersionVector: append([]uint64(nil), s.VectorClock...),
+			VersionVector: append(make([]uint64, 0), server.VectorClock...),
 			Data:          request.C2S_Client_Data,
 		})
 
@@ -277,7 +277,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 		reply.MessageType = 4
 		reply.S2C_Client_OperationType = 1
 		reply.S2C_Client_Data = 0
-		reply.S2C_Client_VersionVector = append([]uint64(nil), s.VectorClock...)
+		reply.S2C_Client_VersionVector = append(make([]uint64, 0), server.VectorClock...)
 		reply.S2C_Server_Id = server.Id
 		reply.S2C_Client_Number = request.C2S_Client_Id
 

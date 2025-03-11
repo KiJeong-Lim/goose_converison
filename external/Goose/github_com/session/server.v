@@ -250,7 +250,7 @@ Definition processClientRequest: val :=
         struct.storeF Message "MessageType" "reply" #4;;
         struct.storeF Message "S2C_Client_OperationType" "reply" #0;;
         struct.storeF Message "S2C_Client_Data" "reply" (getDataFromOperationLog (struct.get Server "OperationsPerformed" "server"));;
-        struct.storeF Message "S2C_Client_VersionVector" "reply" (struct.get Server "VectorClock" "server");;
+        struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" "server"));;
         struct.storeF Message "S2C_Server_Id" "reply" (struct.get Server "Id" "server");;
         struct.storeF Message "S2C_Client_Number" "reply" (struct.get Message "C2S_Client_Id" "request");;
         (#true, "server", ![struct.t Message] "reply")
@@ -258,7 +258,7 @@ Definition processClientRequest: val :=
         let: "s" := ref_to (struct.t Server) "server" in
         SliceSet uint64T (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Server "Id" "server") ((SliceGet uint64T (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Server "Id" "server")) + #1);;
         struct.storeF Server "OperationsPerformed" "s" (SliceAppend (struct.t Operation) (struct.get Server "OperationsPerformed" (![struct.t Server] "s")) (struct.mk Operation [
-          "VersionVector" ::= SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" (![struct.t Server] "s"));
+          "VersionVector" ::= SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" "server");
           "Data" ::= struct.get Message "C2S_Client_Data" "request"
         ]));;
         struct.storeF Server "MyOperations" "s" (SliceAppend (struct.t Operation) (struct.get Server "MyOperations" (![struct.t Server] "s")) (struct.mk Operation [
@@ -268,7 +268,7 @@ Definition processClientRequest: val :=
         struct.storeF Message "MessageType" "reply" #4;;
         struct.storeF Message "S2C_Client_OperationType" "reply" #1;;
         struct.storeF Message "S2C_Client_Data" "reply" #0;;
-        struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" (![struct.t Server] "s")));;
+        struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" "server"));;
         struct.storeF Message "S2C_Server_Id" "reply" (struct.get Server "Id" "server");;
         struct.storeF Message "S2C_Client_Number" "reply" (struct.get Message "C2S_Client_Id" "request");;
         (#true, ![struct.t Server] "s", ![struct.t Message] "reply"))).
