@@ -62,7 +62,7 @@ End Server.
 Section heap.
   Context `{hG: !heapGS Σ}.
 
-  Definition operation_val (op:Slice.t*u64): val :=
+  Definition operation_val (op:Slice.t*u64) : val :=
     (slice_val op.1, (#op.2, #()))%V.
 
   Theorem operation_val_t op : val_ty (operation_val op) (struct.t Operation).
@@ -138,7 +138,7 @@ Section heap.
 
   Hint Resolve message_val_t : core.
 
-  Definition message_from_val (v : val) :=
+  Definition message_from_val (v : val) : option (u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64) :=
     match v with
     | (#(LitInt MessageType),
          (#(LitInt C2S_Client_Id),
@@ -248,6 +248,22 @@ Section heap.
     reflexivity.
   Defined.
 
+  Theorem server_val_t msg : val_ty (server_val msg) (struct.t server.Server).
+  Proof.
+    repeat constructor; auto.
+  Qed.
+
+  Hint Resolve server_val_t : core.
+
+  Definition server_from_val (v : val) : option (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t).
+  Admitted.
+  
+  Global Instance server_into_val : IntoVal (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t).
+  Admitted.
+
+  #[global] Instance server_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (struct.t server.Server).
+  Proof. Admitted.
+  
   Definition is_server (sv:tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t])
     (s: Server.t) (n: nat) (len_vc: nat) (len_op: nat) (len_mo: nat) (len_po: nat) (len_ga: nat) : iProp Σ :=
     ⌜sv!(0) = s.(Server.Id)⌝ ∗

@@ -94,24 +94,24 @@ Definition coq_getDataFromOperationLog (l: list Operation.t) :=
   | None => 0
   end. 
 
-  Definition coq_receiveGossip (s: Server.t) (r: Message.t) : Server.t :=
-    if length (r.(Message.S2S_Gossip_Operations)) =? 0 then
-      s
-    else
-      let focus := (coq_mergeOperations s.(Server.PendingOperations) r.(Message.S2S_Gossip_Operations)) in
-      let loop_init : nat * Server.t :=
-        (0%nat, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) focus s.(Server.GossipAcknowledgements))
-      in
-      let loop_step acc e : nat * Server.t :=
-        let '(i, s) := acc in
-        if coq_oneOffVersionVector s.(Server.VectorClock) e.(Operation.VersionVector) then
-          let OperationsPerformed := coq_mergeOperations s.(Server.OperationsPerformed) [e] in
-          let VectorClock := coq_maxTS s.(Server.VectorClock) e.(Operation.VersionVector) in
-          let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) i in
-          (i, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed s.(Server.MyOperations) PendingOperations s.(Server.GossipAcknowledgements))
-        else ((i + 1)%nat, s)
-      in
-      snd (fold_left loop_step focus loop_init).
+Definition coq_receiveGossip (s: Server.t) (r: Message.t) : Server.t :=
+  if length (r.(Message.S2S_Gossip_Operations)) =? 0 then
+    s
+  else
+    let focus := coq_mergeOperations s.(Server.PendingOperations) r.(Message.S2S_Gossip_Operations) in
+    let loop_init : nat * Server.t :=
+      (0%nat, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) focus s.(Server.GossipAcknowledgements))
+    in
+    let loop_step (acc: nat * Server.t) (e: Operation.t) : nat * Server.t :=
+      let '(i, s) := acc in
+      if coq_oneOffVersionVector s.(Server.VectorClock) e.(Operation.VersionVector) then
+        let OperationsPerformed := coq_mergeOperations s.(Server.OperationsPerformed) [e] in
+        let VectorClock := coq_maxTS s.(Server.VectorClock) e.(Operation.VersionVector) in
+        let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) i in
+        (i, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed s.(Server.MyOperations) PendingOperations s.(Server.GossipAcknowledgements))
+      else ((i + 1)%nat, s)
+    in
+    snd (fold_left loop_step focus loop_init).
 
 Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) :=
   let i := r.(Message.S2S_Acknowledge_Gossip_Sending_ServerId) in
