@@ -33,24 +33,26 @@ Section heap.
     {{{
         is_server sv s n len_vc len_op len_mo len_po len_ga ∗
         is_message msgv msg n len_c2s len_s2c ∗
-        ⌜len_vc = len_c2s⌝
+        ⌜len_vc = len_c2s /\ (uint.nat s .(Server.Id) < length s .(Server.VectorClock))%nat⌝
     }}}
       processClientRequest (server_val sv) (message_val msgv)
-    {{{ (b: bool) ns nm, RET (#b, server_val ns, message_val nm);
+    {{{
+        (b: bool) ns nm, RET (#b, server_val ns, message_val nm);
         ∃ len_c2s', ∃ len_s2c',
         ⌜b = (coq_processClientRequest s msg).1.1⌝ ∗
         is_server ns (coq_processClientRequest s msg).1.2 n len_vc len_op len_mo len_po len_ga ∗
         is_message nm (coq_processClientRequest s msg).2 n len_c2s' len_s2c' ∗
-        ⌜(b = true -> len_c2s = len_c2s' /\ len_s2c = len_s2c') /\ (b = false -> len_c2s' = 0%nat /\ len_s2c' = 0%nat)⌝
+        is_message msgv msg n len_c2s len_s2c ∗
+        ⌜if b then len_c2s' = 0%nat /\ len_s2c' = len_c2s else len_c2s' = 0%nat /\ len_s2c' = 0%nat⌝
     }}}.
   Proof.
-    rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_precondition) HΦ".
+    rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H1_precondition & %H2_precondition) HΦ".
     iDestruct "H_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)".
     iDestruct "H_message" as "(%H11 & %H12 & %H13 & %H14 & %H15 & H16 & %H17 & %H18 & %H19 & H20 & %H21 & %H22 & %H23 & %H24 & %H25 & %H26 & H27 & %H28 & %H29 & %H30)".
     simplNotation. subst. rewrite /processClientRequest.
     wp_pures. wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. }
     iIntros "%reply H_reply". wp_pures. wp_apply (wp_compareVersionVector with "[$H4 $H16]"); auto.
-    iIntros "%r (-> & H4 & H16)". wp_if_destruct.
+    iIntros "%r (-> & H4 & [H16 %TMP])". clear TMP. wp_if_destruct.
     - wp_load. wp_pures. iModIntro.
       pose (b := false).
       set (ns := (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)).
@@ -58,31 +60,61 @@ Section heap.
       replace (Φ (#false, (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #())))))))), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #())))))))))))))))))))%V) with (Φ (#b, (#ns.1.1.1.1.1.1.1, (#ns.1.1.1.1.1.1.2, (ns.1.1.1.1.1.2, (ns.1.1.1.1.2, (ns.1.1.1.2, (ns.1.1.2, (ns.1.2, (ns.2, #())))))))), (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1, (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.2, (nm.1.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.2, (nm.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.2, (#nm.1.1.1.1.2, (#nm.1.1.1.2, (nm.1.1.2, (#nm.1.2, (#nm.2, #())))))))))))))))))))%V) by f_equal.
       unfold tuple_of. simpl TypeVector.tuple_of. iApply "HΦ". subst b ns nm.
       iExists 0%nat. iExists 0%nat. unfold coq_processClientRequest. rewrite Heqb. simpl. iFrame.
-      unfold is_message; simplNotation; simpl. iClear "H20". iClear "H27". iClear "H_reply". iClear "H16". repeat (iSplit; try done).
+      unfold is_message; simplNotation; simpl. iClear "H_reply". repeat (iSplit; try done).
       iSplitL "". { iApply own_slice_small_nil. done. } repeat (iSplit; try done).
-      iSplitL "". { iExists []. iSplit. - iApply own_slice_nil; done. - simpl. done. } repeat (iSplit; try done).
+      iSplitL "".
+      { iExists []. iSplit.
+        - iApply own_slice_nil; done.
+        - simpl. done.
+      }
+      repeat (iSplit; try done).
       iApply own_slice_small_nil. done.
     - wp_pures. wp_if_destruct.
       + wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
         wp_apply (wp_getDataFromOperationLog with "[$H6]"). iIntros "%r (-> & H6)".
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
+        wp_apply (wp_NewSlice). iIntros "%s1 H_s1". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with (@nil u64) by reflexivity.
+        wp_apply (wp_SliceAppendSlice with "[$H_s1 $H4]"); auto. clear s1. iIntros "%s1 [H_s1 H4]". simpl.
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
         wp_load. wp_pures. iModIntro. simpl.
         pose (b := true).
         set (ns := (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)).
-        set (nm := (W64 4, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, coq_getDataFromOperationLog s .(Server.OperationsPerformed), t3, s .(Server.Id), msg .(Message.C2S_Client_Id))).
-        replace (Φ (#true, (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #())))))))), (#(W64 4), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (#(W64 0), (#(coq_getDataFromOperationLog s .(Server.OperationsPerformed)), (t3, (#s .(Server.Id), (#msg .(Message.C2S_Client_Id), #())))))))))))))))))))%V) with (Φ (#b, server_val ns, message_val nm)%V) by f_equal.
+        set (nm := (W64 4, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, coq_getDataFromOperationLog s .(Server.OperationsPerformed), s1, s .(Server.Id), msg .(Message.C2S_Client_Id))).
+        replace (Φ (#true, (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #())))))))), (#(W64 4), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (#(W64 0), (#(coq_getDataFromOperationLog s .(Server.OperationsPerformed)), (s1, (#s .(Server.Id), (#msg .(Message.C2S_Client_Id), #())))))))))))))))))))%V) with (Φ (#b, server_val ns, message_val nm)%V) by f_equal.
         unfold server_val, message_val. iApply "HΦ". subst b ns nm.
-        iExists (length s .(Server.VectorClock)). iExists (length msg .(Message.S2C_Client_VersionVector)).
+        iExists 0%nat. iExists (length s .(Server.VectorClock)).
         unfold coq_processClientRequest; rewrite Heqb; simpl.
         assert ((uint.nat msg .(Message.C2S_Client_OperationType) =? 0) = true) as H_OBS1.
         { rewrite Z.eqb_eq. word. }
-        rewrite H_OBS1; simpl. unfold is_message; simplNotation; simpl. iFrame.
+        rewrite H_OBS1; simpl. unfold is_message; simplNotation; simpl. rewrite Z.eqb_eq in H_OBS1.
         iSplitL "". { done. }
-  Qed.
+        iSplitL "H3 H7 H8 H9 H6 H4".
+        { iFrame. done. }
+        { iSplitL "H_s1".
+          - repeat (iSplit; try done). iSplitL "".
+            { iApply own_slice_small_nil. reflexivity. }
+            repeat (iSplit; try done). iSplitL "".
+            { iExists []; simpl; iSplit.
+              - iApply own_slice_nil; reflexivity.
+              - iPureIntro. tauto.
+            }
+            repeat (iSplit; try done). iApply (own_slice_to_small with "[$H_s1]").
+          - iFrame. done.
+        }
+      + wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%s1 H_s1". wp_pures.
+        iAssert ⌜is_Some (s .(Server.VectorClock) !! uint.nat s .(Server.Id))⌝%I as "[%x %H_x]".
+        { iPoseProof (own_slice_small_sz with "[$H4]") as "%LEN".
+          iPureIntro. eapply lookup_lt_is_Some_2. word.
+        }
+        wp_load. wp_pures. wp_apply (wp_SliceGet with "[$H4]"); auto. iIntros "H4".
+        wp_load. wp_pures. wp_apply (wp_SliceSet with "[$H4]"); auto. iIntros "H4".
+        wp_pures. wp_apply (wp_NewSlice). iIntros "%s2 H_s2". wp_apply (wp_SliceAppendSlice with "[$H_s2 $H4]"); auto.
+        clear s2. iIntros "%s2 [H_s2 H4]". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with (@nil w64) by reflexivity. simpl.
+        wp_pures. wp_load. wp_pures. admit.
+  Admitted.
 
   Definition coq_processRequest (s: Server.t) (r: Message.t) : (Server.t * list Message.t) :=
     match (uint.nat r.(Message.MessageType))%nat with
