@@ -255,7 +255,7 @@ Section heap.
 
   Hint Resolve server_val_t : core.
 
-  Definition server_from_val (v : val) : option (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) :=
+  Definition server_from_val (v : val) : option (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t).
   Admitted.
   
   Global Instance server_into_val : IntoVal (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t).
