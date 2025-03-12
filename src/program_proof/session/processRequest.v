@@ -5,42 +5,18 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
-  Definition coq_processClientRequest (s: Server.t) (r: Message.t) :
-    (bool * Server.t * Message.t) :=
-    if (negb (coq_compareVersionVector s.(Server.VectorClock) r.(Message.C2S_Client_VersionVector))) then
-      (false, s, (Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0))
-    else
-      if (uint.nat r.(Message.C2S_Client_OperationType) =? 0) then
-        let S2C_Client_Data : u64 := coq_getDataFromOperationLog s.(Server.OperationsPerformed) in
-        let S2C_Client_VersionVector : (list u64) := s.(Server.VectorClock) in
-        let S2C_Client_Number : u64 := r.(Message.C2S_Client_Id) in
-        let S2C_Server_Id : u64 := s.(Server.Id) in
-        (true, s, (Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 0 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number))
-      else
-        let v : nat := uint.nat (list_lookup_total (uint.nat s.(Server.Id)) s.(Server.VectorClock)) in
-        let VectorClock : list u64 := <[(uint.nat s.(Server.Id))%nat := (W64 (v + 1))]>s.(Server.VectorClock) in
-        let OperationsPerformed : list Operation.t := s.(Server.OperationsPerformed) ++ [Operation.mk VectorClock r.(Message.C2S_Client_Data)] in
-        let MyOperations : list Operation.t := s.(Server.MyOperations) ++ [Operation.mk VectorClock r.(Message.C2S_Client_Data)] in
-        let S2C_Client_OperationType := 1 in
-        let S2C_Client_Data := 0 in
-        let S2C_Client_VersionVector := VectorClock in
-        let S2C_Client_Number := r.(Message.C2S_Client_Id) in
-        let S2C_Server_Id : u64 := s.(Server.Id) in
-        (true, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed MyOperations s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), (Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 1 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)).
-
-  Lemma wp_processClientRequest sv s msgv msg (n: nat)
-    len_vc len_op len_mo len_po len_ga len_c2s len_s2c :
+  Lemma wp_processClientRequest sv s msgv msg (n: nat) (m: nat) len_po len_ga len_c2s len_s2c :
     {{{
-        is_server sv s n len_vc len_op len_mo len_po len_ga ∗
+        is_server sv s n m m m len_po len_ga ∗
         is_message msgv msg n len_c2s len_s2c ∗
-        ⌜len_vc = len_c2s /\ (uint.nat s .(Server.Id) < length s .(Server.VectorClock))%nat⌝
+        ⌜m = len_c2s /\ (uint.nat s .(Server.Id) < m)%nat⌝
     }}}
       processClientRequest (server_val sv) (message_val msgv)
     {{{
         (b: bool) ns nm, RET (#b, server_val ns, message_val nm);
-        ∃ len_c2s', ∃ len_s2c',
+        ∃ len_c2s' : nat, ∃ len_s2c' : nat,
         ⌜b = (coq_processClientRequest s msg).1.1⌝ ∗
-        is_server ns (coq_processClientRequest s msg).1.2 n len_vc len_op len_mo len_po len_ga ∗
+        is_server ns (coq_processClientRequest s msg).1.2 n m m m len_po len_ga ∗
         is_message nm (coq_processClientRequest s msg).2 n len_c2s' len_s2c' ∗
         is_message msgv msg n len_c2s len_s2c ∗
         ⌜if b then len_c2s' = 0%nat /\ len_s2c' = len_c2s else len_c2s' = 0%nat /\ len_s2c' = 0%nat⌝
@@ -59,7 +35,8 @@ Section heap.
       set (nm := (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)).
       replace (Φ (#false, (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #())))))))), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #())))))))))))))))))))%V) with (Φ (#b, (#ns.1.1.1.1.1.1.1, (#ns.1.1.1.1.1.1.2, (ns.1.1.1.1.1.2, (ns.1.1.1.1.2, (ns.1.1.1.2, (ns.1.1.2, (ns.1.2, (ns.2, #())))))))), (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1, (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.1.1.1.2, (nm.1.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.1.1.2, (nm.1.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.1.2, (#nm.1.1.1.1.1.2, (#nm.1.1.1.1.2, (#nm.1.1.1.2, (nm.1.1.2, (#nm.1.2, (#nm.2, #())))))))))))))))))))%V) by f_equal.
       unfold tuple_of. simpl TypeVector.tuple_of. iApply "HΦ". subst b ns nm.
-      iExists 0%nat. iExists 0%nat. unfold coq_processClientRequest. rewrite Heqb. simpl. iFrame.
+      iExists 0%nat. iExists 0%nat.
+      unfold coq_processClientRequest. rewrite Heqb. simpl. iFrame.
       unfold is_message; simplNotation; simpl. iClear "H_reply". repeat (iSplit; try done).
       iSplitL "". { iApply own_slice_small_nil. done. } repeat (iSplit; try done).
       iSplitL "".
@@ -113,8 +90,62 @@ Section heap.
         wp_load. wp_pures. wp_apply (wp_SliceSet with "[$H4]"); auto. iIntros "H4".
         wp_pures. wp_apply (wp_NewSlice). iIntros "%s2 H_s2". wp_apply (wp_SliceAppendSlice with "[$H_s2 $H4]"); auto.
         clear s2. iIntros "%s2 [H_s2 H4]". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with (@nil w64) by reflexivity. simpl.
-        wp_pures. wp_load. wp_pures. admit.
-  Admitted.
+        wp_pures. wp_load. wp_pures. replace (s2, (#msg .(Message.C2S_Client_Data), #()))%V with (to_val (s2, msg .(Message.C2S_Client_Data))) by reflexivity.
+        iDestruct "H6" as "(%t2_ops & H6 & H_t2_ops)". wp_apply (wp_SliceAppend with "[$H6]"). iIntros "%s3 H_s3".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_s1]"). { repeat econstructor; eauto. } { iExact "H_s1". } iIntros "H_s1".
+        wp_pures. wp_load. wp_pures. replace (SliceAppendSlice uint64T slice.nil t3) with (SliceAppendSlice uint64T Slice.nil t3) by reflexivity.
+        wp_apply (wp_SliceAppendSlice with "[H4]"). { repeat econstructor; eauto. }
+        { iSplitL "".
+          - unfold own_slice. instantiate (1 := @nil u64). simpl list.untype. iApply own_slice_nil; done.
+          - iExact "H4".
+        }
+        simpl. iIntros "%s4 [H_s4 H4]". wp_load. wp_pures. replace (s4, (#msg .(Message.C2S_Client_Data), #()))%V with (to_val (s4, msg .(Message.C2S_Client_Data))) by reflexivity.
+        iDestruct "H7" as "(%t1_ops & H7 & H_t1_ops)". wp_apply (wp_SliceAppend with "[$H7]"). iIntros "%s5 H_s5". wp_apply (wp_storeField_struct with "[H_s1]"). { repeat econstructor; eauto. } { iExact "H_s1". } iIntros "H_s1".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"); eauto. simpl. iIntros "H_reply".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"); eauto. simpl. iIntros "H_reply".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"); eauto. simpl. iIntros "H_reply".
+        wp_pures. wp_apply (wp_NewSlice). iIntros "%s6 H_s6".
+        wp_pures. wp_apply (wp_SliceAppendSlice with "[$H_s6 $H4]"); eauto. clear s6. iIntros "%s6 [H_s6 H4]".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"); eauto. simpl. iIntros "H_reply".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"); eauto. simpl. iIntros "H_reply".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"); eauto. simpl. iIntros "H_reply".
+        wp_pures. wp_load. wp_pures. wp_load. wp_pures.
+        iDestruct "H_s2" as "[H1_s2 H2_s2]". iMod (own_slice_small_persist with "[$H1_s2]") as "H1_s2".
+        iDestruct "H_s4" as "[H1_s4 H2_s4]". iMod (own_slice_small_persist with "[$H1_s4]") as "H1_s4".
+        iModIntro.
+        pose (b := true).
+        set (ns := (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, s3, s5, t0, t)).
+        set (nm := (W64 4, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 1, W64 0, s6, s .(Server.Id), msg .(Message.C2S_Client_Id))).
+        replace (Φ (#true, (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (s3, (s5, (t0, (t, #())))))))), (#(W64 4), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (#(W64 1), (#(W64 0), (s6, (#s .(Server.Id), (#msg .(Message.C2S_Client_Id), #())))))))))))))))))))%V) with (Φ (#b, server_val ns, message_val nm)%V) by f_equal.
+        unfold server_val, message_val. iApply "HΦ". subst b ns nm. simpl.
+        iExists 0%nat. iExists (length s .(Server.VectorClock)).
+        unfold coq_processClientRequest; rewrite Heqb; simpl.
+        assert ((uint.nat msg .(Message.C2S_Client_OperationType) =? 0) = false) as H_OBS1.
+        { rewrite Z.eqb_neq. word. }
+        rewrite H_OBS1; simpl. unfold is_message; simplNotation; simpl. rewrite Z.eqb_neq in H_OBS1.
+        iSplitL "". { done. }
+        iSplitL "H3 H4 H1_s2 H_s3 H1_s4 H_s5 H8 H9 H_t2_ops H_t1_ops".
+        { apply list_lookup_total_correct in H_x. subst x. unfold lookup_total.
+          replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.nat (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) in * by word.
+          iFrame; simpl; simplNotation. repeat rewrite length_insert. repeat (iSplit; try done).
+        }
+        repeat rewrite length_insert.
+        iSplitL "H_s6".
+        { apply list_lookup_total_correct in H_x. subst x. unfold lookup_total.
+          replace (replicate (uint.nat (W64 0)) (W64 0)) with (@nil u64) by reflexivity. simpl.
+          replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.nat (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) by word.
+          repeat (iSplit; try done). iSplitL "". { iApply own_slice_small_nil; eauto. }
+          repeat (iSplit; try done). iSplitL "".
+          { iExists []. iSplit.
+            - iApply own_slice_nil; eauto.
+            - simpl. done.
+          }
+          repeat (iSplit; try done). iApply (own_slice_to_small with "[$H_s6]").
+        }
+        iSplitL "H20 H27 H16".
+        { iFrame. done. }
+        done.
+  Qed.
 
   Definition coq_processRequest (s: Server.t) (r: Message.t) : (Server.t * list Message.t) :=
     match (uint.nat r.(Message.MessageType))%nat with
