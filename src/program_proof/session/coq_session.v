@@ -405,8 +405,8 @@ Section heap.
     { rewrite length_take. word. }
     assert (i = length (take i ops)) as H4_i.
     { rewrite length_take. word. }
-    pose proof (list_lookup_middle (take i l) l_suffix l_i' i H3_i) as H1.
-    pose proof (list_lookup_middle (take i ops) ops_suffix ops_i' i H4_i) as H2.
+    pose proof (list_lookup_middle (take i l) l_suffix l_i' i H3_i) as EQ_l_i.
+    pose proof (list_lookup_middle (take i ops) ops_suffix ops_i' i H4_i) as EQ_ops_i.
     assert (l_i = l_i') as <- by congruence.
     assert (ops_i = ops_i') as <- by congruence.
     iExact "H3".
@@ -420,9 +420,8 @@ Section heap.
     - iIntros "#H". iClear "H". done.
     - iIntros "#H". iSplit.
       + iApply "H". instantiate (1 := 0%nat). done.
-      + iApply IH.
-        * word.
-        * iIntros "%i %l_i %ops_i [%H_l_i %H_ops_i]". iApply "H". instantiate (1 := S i). done.
+      + iApply IH. { word. }
+        iIntros "%i %l_i %ops_i [%H_l_i %H_ops_i]". iApply "H". instantiate (1 := S i). done.
   Qed.
 
 End heap.
