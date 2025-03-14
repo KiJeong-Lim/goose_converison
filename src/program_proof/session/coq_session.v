@@ -389,15 +389,13 @@ Section heap.
   Lemma big_sepL2_is_operation_elim l ops (n: nat) (i: nat) l_i ops_i
     (H_l_i: l !! i = Some l_i)
     (H_ops_i: ops !! i = Some ops_i)
-    : ([∗ list] opv;o ∈ ops;l, is_operation opv o n) ⊢@{iProp Σ} is_operation ops_i l_i n.
+    : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} is_operation ops_i l_i n.
   Proof.
     rewrite <- take_drop with (l := l) (i := i). rewrite <- take_drop with (l := ops) (i := i). iIntros "H". 
     assert (i < length l)%nat as H1_i by now eapply lookup_lt_is_Some_1.
     assert (i < length ops)%nat as H2_i by now eapply lookup_lt_is_Some_1.  
     iAssert (([∗ list] opv;o ∈ take i ops;take i l, is_operation opv o n) ∗ ([∗ list] opv;o ∈ drop i ops;drop i l, is_operation opv o n))%I with "[H]" as "[H1 H2]".
-    { iApply (big_sepL2_app_equiv with "H").
-      do 2 rewrite length_take. word.
-    }
+    { iApply (big_sepL2_app_equiv with "H"). do 2 rewrite length_take. word. }
     destruct (drop i ops) as [ | ops_i' ops_suffix] eqn: H_ops_suffix.
     { apply f_equal with (f := length) in H_ops_suffix. simpl in *. rewrite length_drop in H_ops_suffix. word. }
     iPoseProof (big_sepL2_cons_inv_l with "[$H2]") as "(%l_i' & %l_suffix & %H_l_suffix & H3 & H4)".
@@ -416,7 +414,7 @@ Section heap.
 
   Lemma big_sepL2_is_operation_intro (l: list Operation.t) (ops: list (Slice.t * w64)) (n: nat)
     (LENGTH: length l = length ops)
-    : (∀ i : nat, ∀ l_i, ∀ ops_i, ⌜(l !! i = Some l_i) /\ (ops !! i = Some ops_i)⌝ -∗ is_operation ops_i l_i n) ⊢@{iProp Σ} ([∗ list] opv;o ∈ ops;l, is_operation opv o n).
+    : (∀ i : nat, ∀ l_i, ∀ ops_i, ⌜(l !! i = Some l_i) /\ (ops !! i = Some ops_i)⌝ -∗ is_operation ops_i l_i n)%I ⊢@{iProp Σ} ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I.
   Proof.
     revert ops n LENGTH. induction l as [ | l_hd l_tl IH], ops as [ | ops_hd ops_tl]; intros; simpl in *; try congruence.
     - iIntros "#H". iClear "H". done.

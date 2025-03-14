@@ -21,7 +21,7 @@ Section heap.
         is_message msgv msg n len_c2s len_s2c ∗
         ⌜if b then len_c2s' = 0%nat /\ len_s2c' = len_c2s else len_c2s' = 0%nat /\ len_s2c' = 0%nat⌝
     }}}.
-  Proof. (**
+  Proof.
     rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H1_precondition & %H2_precondition) HΦ".
     iDestruct "H_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)".
     iDestruct "H_message" as "(%H11 & %H12 & %H13 & %H14 & %H15 & H16 & %H17 & %H18 & %H19 & H20 & %H21 & %H22 & %H23 & %H24 & %H25 & %H26 & H27 & %H28 & %H29 & %H30)".
@@ -144,8 +144,8 @@ Section heap.
         }
         iSplitL "H20 H27 H16".
         { iFrame. done. }
-        done. *)
-  Admitted.
+        done.
+  Qed.
 
   Definition coq_processRequest (s: Server.t) (r: Message.t) : (Server.t * list Message.t) :=
     match (uint.nat r.(Message.MessageType))%nat with
