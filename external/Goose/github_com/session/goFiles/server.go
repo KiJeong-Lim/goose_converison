@@ -264,12 +264,12 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 	        var s = server
 		s.VectorClock[server.Id] += 1
 
-		s.OperationsPerformed = append(s.OperationsPerformed, Operation{
+		s.OperationsPerformed = sortedInsert(s.OperationsPerformed, Operation{
 			VersionVector: append(make([]uint64, 0), server.VectorClock...),
 			Data:          request.C2S_Client_Data,
 		})
 
-		s.MyOperations = append(s.MyOperations, Operation{
+		s.MyOperations = sortedInsert(s.MyOperations, Operation{
 			VersionVector: append([]uint64(nil), s.VectorClock...),
 			Data:          request.C2S_Client_Data,
 		})

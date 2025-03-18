@@ -257,11 +257,11 @@ Definition processClientRequest: val :=
       else
         let: "s" := ref_to (struct.t Server) "server" in
         SliceSet uint64T (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Server "Id" "server") ((SliceGet uint64T (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Server "Id" "server")) + #1);;
-        struct.storeF Server "OperationsPerformed" "s" (SliceAppend (struct.t Operation) (struct.get Server "OperationsPerformed" (![struct.t Server] "s")) (struct.mk Operation [
+        struct.storeF Server "OperationsPerformed" "s" (sortedInsert (struct.get Server "OperationsPerformed" (![struct.t Server] "s")) (struct.mk Operation [
           "VersionVector" ::= SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" "server");
           "Data" ::= struct.get Message "C2S_Client_Data" "request"
         ]));;
-        struct.storeF Server "MyOperations" "s" (SliceAppend (struct.t Operation) (struct.get Server "MyOperations" (![struct.t Server] "s")) (struct.mk Operation [
+        struct.storeF Server "MyOperations" "s" (sortedInsert (struct.get Server "MyOperations" (![struct.t Server] "s")) (struct.mk Operation [
           "VersionVector" ::= SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" (![struct.t Server] "s"));
           "Data" ::= struct.get Message "C2S_Client_Data" "request"
         ]));;
