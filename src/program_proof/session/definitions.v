@@ -59,6 +59,20 @@ Module Server.
 
 End Server.
 
+Module Client.
+
+  Record t :=
+    mk {
+        Id: u64 ;
+        NumberOfServers: u64 ;
+        WriteVersionVector: list u64 ;
+        ReadVersionVector: list u64 ;
+        SessionSemantic: u64 ;
+      }.
+  
+End Client.
+       
+
 Section heap.
   Context `{hG: !heapGS Σ}.
 
