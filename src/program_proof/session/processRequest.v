@@ -12,7 +12,7 @@ Section heap.
     {{{
         is_server sv s n m m m len_po len_ga ∗
         is_message msgv msg n len_c2s len_s2c ∗
-        ⌜m = len_c2s /\ (uint.nat s.(Server.Id) < m)%nat /\ SERVER_INVARIANT s⌝
+        ⌜m = len_c2s /\ SERVER_INVARIANT s⌝
     }}}
       processClientRequest (server_val sv) (message_val msgv)
     {{{
@@ -213,7 +213,7 @@ Section heap.
     {{{
         is_server sv s n m m m len_po len_ga ∗
         is_message msgv msg n m len_s2c ∗
-        ⌜(uint.nat s.(Server.Id) < m)%nat /\ SERVER_INVARIANT s⌝
+        ⌜SERVER_INVARIANT s⌝
     }}}
       processRequest (server_val sv) (message_val msgv)
     {{{
