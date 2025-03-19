@@ -359,6 +359,8 @@ Module INVARIANT.
 
 End INVARIANT.
 
+Notation SERVER_INVARIANT := INVARIANT.SERVER.
+
 Section heap.
 
   Context `{hG: !heapGS Σ}.
