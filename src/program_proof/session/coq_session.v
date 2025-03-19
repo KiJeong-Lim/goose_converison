@@ -131,77 +131,74 @@ Definition coq_getGossipOperations (s: Server.t) (serverId: u64) : (list Operati
   | None => []
   end.
 
-Definition coq_processClientRequest (s: Server.t) (r: Message.t) :
-  (bool * Server.t * Message.t) :=
+Definition coq_processClientRequest (s: Server.t) (r: Message.t) : bool * Server.t * Message.t :=
   if (negb (coq_compareVersionVector s.(Server.VectorClock) r.(Message.C2S_Client_VersionVector))) then
     (false, s, (Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0))
   else
     if (uint.nat r.(Message.C2S_Client_OperationType) =? 0) then
-      let S2C_Client_Data : u64 := coq_getDataFromOperationLog s.(Server.OperationsPerformed) in
-      let S2C_Client_VersionVector : (list u64) := s.(Server.VectorClock) in
-      let S2C_Client_Number : u64 := r.(Message.C2S_Client_Id) in
-      let S2C_Server_Id : u64 := s.(Server.Id) in
+      let S2C_Client_Data := coq_getDataFromOperationLog s.(Server.OperationsPerformed) in
+      let S2C_Client_VersionVector := s.(Server.VectorClock) in
+      let S2C_Client_Number := r.(Message.C2S_Client_Id) in
+      let S2C_Server_Id := s.(Server.Id) in
       (true, s, (Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 0 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number))
     else
-      let v : nat := uint.nat (list_lookup_total (uint.nat s.(Server.Id)) s.(Server.VectorClock)) in
-      let VectorClock : list u64 := <[(uint.nat s.(Server.Id))%nat := (W64 (v + 1))]>s.(Server.VectorClock) in
-      let OperationsPerformed : list Operation.t := s.(Server.OperationsPerformed) ++ [Operation.mk VectorClock r.(Message.C2S_Client_Data)] in
-      let MyOperations : list Operation.t := s.(Server.MyOperations) ++ [Operation.mk VectorClock r.(Message.C2S_Client_Data)] in
+      let v := uint.nat (list_lookup_total (uint.nat s.(Server.Id)) s.(Server.VectorClock)) in
+      let VectorClock := <[uint.nat s.(Server.Id) := W64 (v + 1)]> s.(Server.VectorClock) in
+      let OperationsPerformed := coq_sortedInsert s.(Server.OperationsPerformed) (Operation.mk VectorClock r.(Message.C2S_Client_Data)) in
+      let MyOperations := coq_sortedInsert s.(Server.MyOperations) (Operation.mk VectorClock r.(Message.C2S_Client_Data)) in
       let S2C_Client_OperationType := 1 in
       let S2C_Client_Data := 0 in
       let S2C_Client_VersionVector := VectorClock in
       let S2C_Client_Number := r.(Message.C2S_Client_Id) in
-      let S2C_Server_Id : u64 := s.(Server.Id) in
+      let S2C_Server_Id := s.(Server.Id) in
       (true, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed MyOperations s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), (Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 1 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)).
 
-Definition coq_processRequest (s: Server.t) (r: Message.t) : (Server.t * list Message.t) :=
-  match (uint.nat r.(Message.MessageType))%nat with
+Definition coq_processRequest (server: Server.t) (request: Message.t) : Server.t * list Message.t :=
+  match uint.nat request.(Message.MessageType) with
   | 0%nat =>
-      let '(succeeded, server, reply) := coq_processClientRequest s r in
+      let '(succeeded, server, reply) := coq_processClientRequest server request in
       if succeeded then
         (server, [reply])
       else
-        let UnsatisfiedRequests := s.(Server.UnsatisfiedRequests) ++ [r] in 
-        let server := Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements) in
+        let UnsatisfiedRequests := server.(Server.UnsatisfiedRequests) ++ [request] in 
+        let server := Server.mk server.(Server.Id) server.(Server.NumberOfServers) UnsatisfiedRequests server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements) in
         (server, [])
   | 1%nat =>
-      let s := coq_receiveGossip s r in
-      let outGoingRequests := [Message.mk 0 0 0 0 0 [] 0 0 [] 0 (s.(Server.Id)) (r.(Message.S2S_Gossip_Sending_ServerId)) (r.(Message.S2S_Gossip_Index)) 0 0 [] 0 0] in
-      let '(_, deletedIndex, outGoingRequests) := fold_left (fun (acc: nat * list nat * list Message.t) element =>
-                                           let '(index, deletedIndex, acc) := acc in
-                                           let '(succeeded, server, reply) := coq_processClientRequest s r in
-                                           if succeeded then
-                                             ((index + 1)%nat, deletedIndex ++ [index], acc ++ [reply])
-                                           else
-                                             ((index + 1)%nat, deletedIndex, acc)) s.(Server.UnsatisfiedRequests) (0%nat, [], outGoingRequests) in
-      let remainingIndexes := list_difference (seq 0 (length s.(Server.UnsatisfiedRequests))) deletedIndex in 
-      let UnsatisfiedRequests := 
-        fold_left (fun acc index =>
-                     match (s.(Server.UnsatisfiedRequests) !! index) with
-                     | Some v => acc ++ [v]
-                     | None => acc
-                     end
-          ) remainingIndexes [] in
-      let s := Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements) in
-      (s, outGoingRequests)
-  | 2%nat =>
-      let s := coq_acknowledgeGossip s r in
-      (s, [])
+      let server := coq_receiveGossip server request in
+      let focus := server.(Server.UnsatisfiedRequests) in
+      let loop_init : nat * (Server.t * list Message.t) :=
+        (0%nat, (server, [Message.mk 0 0 0 0 0 [] 0 0 [] 0 (server.(Server.Id)) (request.(Message.S2S_Gossip_Sending_ServerId)) (request.(Message.S2S_Gossip_Index)) 0 0 [] 0 0]))
+      in
+      let loop_step (acc: nat * (Server.t * list Message.t)) (element: Message.t) : nat * (Server.t * list Message.t) :=
+        let '(i, (s, outGoingRequests)) := acc in
+        let '(succeeded, s, reply) := coq_processClientRequest s element in
+        if succeeded then
+          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
+          (i, (Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply]))
+        else
+          ((i + 1)%nat, (s, outGoingRequests))
+      in
+      snd (fold_left loop_step focus loop_init)
+  | 2%nat => (coq_acknowledgeGossip server request, [])
   | 3%nat =>
-      let outGoingRequests := fold_left (fun acc (index: nat) =>
-                                           if (negb (index =? (uint.nat s.(Server.Id)))) then
-                                             let S2S_Gossip_Sending_ServerId := s.(Server.Id) in
-                                              let S2S_Gossip_Receiving_ServerId := index in
-                                              let S2S_Gossip_Operations := coq_getGossipOperations s index in
-                                              let S2S_Gossip_Index := length (s.(Server.MyOperations)) in
-                                              let message := Message.mk 1 0 0 0 0 [] S2S_Gossip_Sending_ServerId S2S_Gossip_Receiving_ServerId S2S_Gossip_Operations S2S_Gossip_Index 0 0 0 0 0 [] 0 0 in acc ++ [message]
-                                            else
-                                              acc) (seq 0 (uint.nat s.(Server.NumberOfServers)))  [] in
-      (s, outGoingRequests)
-        
-  | _ => (s, [])
+    let loop_init : list Message.t :=
+      []
+    in
+    let loop_step (acc: list Message.t) (index: nat) : list Message.t :=
+      if (negb (index =? (uint.nat server.(Server.Id)))) then
+        let S2S_Gossip_Sending_ServerId := server.(Server.Id) in
+        let S2S_Gossip_Receiving_ServerId := index in
+        let S2S_Gossip_Operations := coq_getGossipOperations server index in
+        let S2S_Gossip_Index := length (server.(Server.MyOperations)) in
+        let message := Message.mk 1 0 0 0 0 [] S2S_Gossip_Sending_ServerId S2S_Gossip_Receiving_ServerId S2S_Gossip_Operations S2S_Gossip_Index 0 0 0 0 0 [] 0 0 in
+        acc ++ [message]
+      else
+        acc
+    in
+    (server, fold_left loop_step (seq 0%nat (uint.nat server.(Server.NumberOfServers))) loop_init)
+  | _ => (server, [])
   end.
-
+  
 Section properties.
 
   Import SessionPrelude.
@@ -344,7 +341,23 @@ Section properties.
     - do 2 rewrite andb_false_r. reflexivity.
   Qed.
 
+  Definition is_sorted (l: list Operation.t) : Prop :=
+    ∀ i j, (i < j)%nat -> ∀ o1 o2, l !! i = Some o1 -> l !! j = Some o2 ->
+    coq_lexicographicCompare (o2.(Operation.VersionVector)) (o1.(Operation.VersionVector)) = true \/ coq_equalSlices (o2.(Operation.VersionVector)) (o1.(Operation.VersionVector)) = true.
+
 End properties.
+
+Module INVARIANT.
+
+  Record SERVER (s: Server.t) : Prop :=
+    SERVER_INVARIANT_INTRO
+    { PendingOperations_isSorted: is_sorted s.(Server.PendingOperations)
+    ; OperationsPerformed_isSorted: is_sorted s.(Server.OperationsPerformed)
+    ; MyOperations_isSorted: is_sorted s.(Server.MyOperations)
+    ; Id_inRange: (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
+    }.
+
+End INVARIANT.
 
 Section heap.
 
