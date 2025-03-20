@@ -10,12 +10,11 @@ Module SessionPrelude.
     Context {A : Type}.
 
     Lemma list_ext (xs : list A) (ys : list A)
-      (LENGTH: length xs = length ys)
-      (LOOKUP: ∀ i : nat, ∀ x : A, ∀ y : A, (xs !! i = Some x /\ ys !! i = Some y) -> x = y)
+      (LENGTH : length xs = length ys)
+      (LOOKUP : ∀ i : nat, ∀ x : A, ∀ y : A, (xs !! i = Some x /\ ys !! i = Some y) -> x = y)
       : xs = ys.
     Proof.
-      generalize dependent ys. induction xs as [ | x xs IH], ys as [ | y ys]; simpl; intros; try congruence.
-      f_equal.
+      generalize dependent ys. induction xs as [ | x xs IH], ys as [ | y ys]; simpl; intros; try congruence. f_equal.
       - eapply LOOKUP with (i := 0%nat); simpl; tauto.
       - eapply IH. { word. }
         intros i x1 y1 [H_x1 H_y1]. eapply LOOKUP with (i := S i); simpl; tauto.
@@ -30,22 +29,19 @@ Module SessionPrelude.
     Qed.
 
     Lemma rev_dual (P : list A -> Prop)
-      (DUAL : forall l, P (rev l))
-      : forall l, P l.
+      (DUAL : ∀ l : list A, P (rev l))
+      : ∀ l : list A, P l.
     Proof.
       induction l as [ | x l _] using rev_ind.
       - eapply DUAL with (l := []).
-      - rewrite <- rev_involutive with (l := l).
-        eapply DUAL with (l := (x :: rev l)).
+      - rewrite <- rev_involutive with (l := l). eapply DUAL with (l := (x :: rev l)).
     Qed.
 
     Lemma rev_inj (l1 : list A) (l2 : list A)
       (EQ : rev l1 = rev l2)
       : l1 = l2.
     Proof.
-      rewrite <- rev_involutive with (l := l1).
-      rewrite <- rev_involutive with (l := l2).
-      congruence.
+      rewrite <- rev_involutive with (l := l1). rewrite <- rev_involutive with (l := l2). congruence.
     Qed.
 
     Lemma app_cancel_l (prefix : list A) (suffix1 : list A) (suffix2 : list A)
@@ -59,9 +55,8 @@ Module SessionPrelude.
       (EQ : prefix1 ++ suffix = prefix2 ++ suffix)
       : prefix1 = prefix2.
     Proof.
-      revert prefix1 prefix2 EQ. induction suffix as [suffix] using rev_dual.
-      induction prefix1 as [prefix1] using rev_dual. induction prefix2 as [prefix2] using rev_dual.
-      do 2 rewrite <- rev_app. intros EQ. apply rev_inj, app_cancel_l in EQ. congruence.
+      revert prefix1 prefix2 EQ. induction suffix as [suffix] using rev_dual. induction prefix1 as [prefix1] using rev_dual. induction prefix2 as [prefix2] using rev_dual.
+      do 2 rewrite <- rev_app. intros EQ. apply rev_inj in EQ. apply app_cancel_l in EQ. congruence.
     Qed.
 
   End MORE_LIST_LEMMAS.
