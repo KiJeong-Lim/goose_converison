@@ -444,4 +444,53 @@ Section heap.
         iIntros "%i %l_i %ops_i [%H_l_i %H_ops_i]". iApply "H". instantiate (1 := S i). done.
   Qed.
 
+  Lemma big_sepL2_middle_split {A: Type} {B: Type} {Φ: A -> B -> iProp Σ} {xs: list A} {ys: list B} (i: nat) (x0: A)
+    (LOOKUP: xs !! i = Some x0)
+    : ([∗ list] x;y ∈ xs;ys, Φ x y)%I ⊢@{iProp Σ} (∃ y0, ∃ ys1, ∃ ys2, ⌜ys = (ys1 ++ y0 :: ys2)%list⌝ ∗ Φ x0 y0 ∗ ([∗ list] x;y ∈ take i xs;ys1, Φ x y) ∗ ([∗ list] x;y ∈ drop (i + 1)%nat xs;ys2, Φ x y))%I.
+  Proof.
+    pose proof (take_drop_middle xs i x0 LOOKUP) as claim1.
+    assert (i < length xs)%nat as claim2.
+    { now eapply lookup_lt_is_Some_1. }
+    iIntros "H_big_sepL2".
+    iPoseProof (big_sepL2_length with "[$H_big_sepL2]") as "%LENGTH".
+    rewrite <- take_drop with (l := xs) (i := i).
+    rewrite <- take_drop with (l := ys) (i := i).
+    iPoseProof (big_sepL2_app_equiv with "H_big_sepL2") as "[H_prefix H_suffix]".
+    { (do 2 rewrite length_take); word. }
+    assert (is_Some (ys !! i)) as [y0 H_y0].
+    { eapply lookup_lt_is_Some_2; word. }
+    iExists y0. iExists (take i ys). iExists (drop (S i) ys).
+    pose proof (take_drop_middle ys i y0 H_y0) as claim3.
+    iSplitL "".
+    { iPureIntro; rewrite claim3; eapply take_drop. }
+    rewrite <- take_drop with (l := ys) (i := i) in claim3 at -1.
+    apply SessionPrelude.app_cancel_l in claim3; rewrite take_drop in claim3.                                
+    rewrite <- claim3.
+    iPoseProof (big_sepL2_cons_inv_r with "[$H_suffix]") as "(%x0' & %xs2 & %EQ & H_middle & H_suffix)".
+    rewrite <- take_drop with (l := xs) (i := i) in claim1 at -1.
+    apply SessionPrelude.app_cancel_l in claim1; rewrite take_drop in claim1.
+    assert (x0' = x0) as -> by congruence.
+    iSplitL "H_middle".
+    { iExact "H_middle". }
+    rewrite take_drop; iSplitL "H_prefix".
+    { iExact "H_prefix". }
+    { rewrite <- drop_drop with (l := xs) (n1 := 1%nat) (n2 := i). rewrite -> EQ. iExact "H_suffix". }
+  Qed.
+
+  Lemma big_sepL2_middle_merge {A: Type} {B: Type} {Φ: A -> B -> iProp Σ} {xs: list A} (y0: B) (ys1: list B) (ys2: list B) (i: nat) (x0: A)
+    (LOOKUP: xs !! i = Some x0)
+    : (Φ x0 y0 ∗ ([∗ list] x;y ∈ take i xs;ys1, Φ x y) ∗ ([∗ list] x;y ∈ drop (i + 1)%nat xs;ys2, Φ x y))%I ⊢@{iProp Σ} ([∗ list] x;y ∈ xs;(ys1 ++ y0 :: ys2)%list, Φ x y)%I.
+  Proof.
+    pose proof (take_drop_middle xs i x0 LOOKUP) as claim1.
+    assert (i < length xs)%nat as claim2.
+    { now eapply lookup_lt_is_Some_1. }
+    iIntros "(H_middle & H_prefix & H_suffix)".
+    replace ([∗ list] x;y ∈ xs;(ys1 ++ y0 :: ys2), Φ x y)%I with ([∗ list] x;y ∈ take i xs ++ x0 :: drop (S i) xs;(ys1 ++ y0 :: ys2), Φ x y)%I by now rewrite claim1.
+    rewrite <- drop_drop with (l := xs) (n1 := 1%nat) (n2 := i).
+    rewrite <- take_drop with (l := xs) (i := i) in claim1 at -1.
+    apply SessionPrelude.app_cancel_l in claim1; rewrite take_drop in claim1.
+    rewrite <- claim1; simpl; replace (drop 0 (drop (S i) xs)) with (drop (S i) xs) by reflexivity.
+    iApply (big_sepL2_app with "[$H_prefix] [H_middle H_suffix]"); simpl; iFrame.
+  Qed.
+
 End heap.

@@ -252,7 +252,9 @@ Section heap.
             - rewrite length_take. word.
           }
           wp_apply (wp_SliceGet with "[$H1_UnsatisfiedRequests]"). { iPureIntro. exact H_e. } iIntros "H1_UnsatisfiedRequests".
-          wp_load. wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := false) with "[H1_UnsatisfiedRequests H2_UnsatisfiedRequests H3_UnsatisfiedRequests H_VectorClock H_OperationsPerformed H_MyOperations H_PendingOperations H_GossipAcknowledgements H_out_going_requests]"). { admit. } admit.
+          wp_load. wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := false) with "[H1_UnsatisfiedRequests H2_UnsatisfiedRequests H3_UnsatisfiedRequests H_VectorClock H_OperationsPerformed H_MyOperations H_PendingOperations H_GossipAcknowledgements H_out_going_requests]").
+          { admit. }
+          { admit. }
         - admit.
       }
       { admit. }

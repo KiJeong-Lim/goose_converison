@@ -780,6 +780,55 @@ Module SessionPrelude.
       + rewrite eqProp_spec in H_OBS. split; congruence.
   Qed.
 
+  Section MORE_LIST_LEMMAS.
+
+    Context {A : Type}.
+
+    Lemma rev_app (l1 : list A) (l2 : list A)
+      : rev (l1 ++ l2) = (rev l2 ++ rev l1).
+    Proof.
+      induction l1 as [ | x1 l1 IH]; simpl.
+      - rewrite app_nil_r. reflexivity.
+      - rewrite IH. now rewrite <- app_assoc.
+    Qed.
+
+    Lemma rev_dual (P : list A -> Prop)
+      (DUAL : forall l, P (rev l))
+      : forall l, P l.
+    Proof.
+      induction l as [ | x l _] using rev_ind.
+      - eapply DUAL with (l := []).
+      - rewrite <- rev_involutive with (l := l).
+        eapply DUAL with (l := (x :: rev l)).
+    Qed.
+
+    Lemma rev_inj (l1 : list A) (l2 : list A)
+      (EQ : rev l1 = rev l2)
+      : l1 = l2.
+    Proof.
+      rewrite <- rev_involutive with (l := l1).
+      rewrite <- rev_involutive with (l := l2).
+      congruence.
+    Qed.
+
+    Lemma app_cancel_l (prefix : list A) (suffix1 : list A) (suffix2 : list A)
+      (EQ : prefix ++ suffix1 = prefix ++ suffix2)
+      : suffix1 = suffix2.
+    Proof.
+      revert suffix1 suffix2 EQ; induction prefix as [ | x xs IH]; simpl; intros; eauto. eapply IH; congruence.
+    Qed.
+
+    Lemma app_cancel_r (prefix1 : list A) (prefix2 : list A) (suffix : list A)
+      (EQ : prefix1 ++ suffix = prefix2 ++ suffix)
+      : prefix1 = prefix2.
+    Proof.
+      revert prefix1 prefix2 EQ. induction suffix as [suffix] using rev_dual.
+      induction prefix1 as [prefix1] using rev_dual. induction prefix2 as [prefix2] using rev_dual.
+      do 2 rewrite <- rev_app. intros EQ. apply rev_inj, app_cancel_l in EQ. congruence.
+    Qed.
+
+  End MORE_LIST_LEMMAS.
+
   Class has_value_of (A : Type) : Type :=
     value_of : A -> val.
 
