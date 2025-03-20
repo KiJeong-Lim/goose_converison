@@ -329,13 +329,17 @@ Definition processRequest: val :=
               (if: (![uint64T] "i") ≠ (struct.get Server "Id" (![struct.t Server] "s"))
               then
                 let: "index" := ![uint64T] "i" in
-                "outGoingRequests" <-[slice.T (struct.t Message)] (SliceAppend (struct.t Message) (![slice.T (struct.t Message)] "outGoingRequests") (struct.mk Message [
-                  "MessageType" ::= #1;
-                  "S2S_Gossip_Sending_ServerId" ::= struct.get Server "Id" (![struct.t Server] "s");
-                  "S2S_Gossip_Receiving_ServerId" ::= "index";
-                  "S2S_Gossip_Operations" ::= getGossipOperations (![struct.t Server] "s") "index";
-                  "S2S_Gossip_Index" ::= (slice.len (struct.get Server "MyOperations" (![struct.t Server] "s"))) - #1
-                ]))
+                let: "operations" := getGossipOperations (![struct.t Server] "s") "index" in
+                (if: (slice.len "operations") = #0
+                then
+                  "outGoingRequests" <-[slice.T (struct.t Message)] (SliceAppend (struct.t Message) (![slice.T (struct.t Message)] "outGoingRequests") (struct.mk Message [
+                    "MessageType" ::= #1;
+                    "S2S_Gossip_Sending_ServerId" ::= struct.get Server "Id" (![struct.t Server] "s");
+                    "S2S_Gossip_Receiving_ServerId" ::= "index";
+                    "S2S_Gossip_Operations" ::= "operations";
+                    "S2S_Gossip_Index" ::= (slice.len (struct.get Server "MyOperations" (![struct.t Server] "s"))) - #1
+                  ]))
+                else #())
               else #());;
               "i" <-[uint64T] ((![uint64T] "i") + #1);;
               Continue)
