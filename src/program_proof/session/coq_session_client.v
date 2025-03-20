@@ -29,7 +29,7 @@ Module CoqSessionClient.
     | _ => Message.mk 0 (c.(Client.Id)) serverId 1 value (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
     end.
 
-    Definition coq_processRequest (c: Client.t) (requestType serverId value: u64) (ackMessage: Message.t) : (Client.t * Message.t) :=
+  Definition coq_processRequest (c: Client.t) (requestType serverId value: u64) (ackMessage: Message.t) : (Client.t * Message.t) :=
     match (uint.Z requestType) with
     | 0 => (c, coq_read c serverId)
     | 1 => (c, coq_write c serverId value)
