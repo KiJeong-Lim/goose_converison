@@ -330,7 +330,7 @@ Definition processRequest: val :=
               then
                 let: "index" := ![uint64T] "i" in
                 let: "operations" := getGossipOperations (![struct.t Server] "s") "index" in
-                (if: (slice.len "operations") = #0
+                (if: (slice.len "operations") ≠ #0
                 then
                   "outGoingRequests" <-[slice.T (struct.t Message)] (SliceAppend (struct.t Message) (![slice.T (struct.t Message)] "outGoingRequests") (struct.mk Message [
                     "MessageType" ::= #1;

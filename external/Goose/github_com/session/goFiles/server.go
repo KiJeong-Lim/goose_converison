@@ -328,7 +328,7 @@ func processRequest(server Server, request Message) (Server, []Message) {
 				index := uint64(i)
 				operations := getGossipOperations(s, index)
 
-				if uint64(len(operations)) == uint64(0) {
+				if uint64(len(operations)) != uint64(0) {
 
 					outGoingRequests = append(outGoingRequests,
 						Message{MessageType: 1,
