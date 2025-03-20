@@ -314,7 +314,7 @@ Section heap.
   #[global] Instance server_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (struct.t server.Server).
   Proof. constructor; auto. simpl. repeat split; auto. Qed.
 
-  Definition is_server (sv:tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t])
+  Definition is_server (sv: tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t])
     (s: Server.t) (n: nat) (len_vc: nat) (len_op: nat) (len_mo: nat) (len_po: nat) (len_ga: nat) : iProp Σ :=
     ⌜sv!(0) = s.(Server.Id)⌝ ∗
     ⌜sv!(1) = s.(Server.NumberOfServers)⌝ ∗
