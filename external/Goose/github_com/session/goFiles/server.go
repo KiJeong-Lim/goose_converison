@@ -326,13 +326,18 @@ func processRequest(server Server, request Message) (Server, []Message) {
 		for i < server.NumberOfServers {
 			if uint64(i) != uint64(s.Id) {
 				index := uint64(i)
-				outGoingRequests = append(outGoingRequests,
-					Message{MessageType: 1,
-						S2S_Gossip_Sending_ServerId:   s.Id,
-						S2S_Gossip_Receiving_ServerId: index,
-						S2S_Gossip_Operations:         getGossipOperations(s, index),
-						S2S_Gossip_Index:              uint64(len(s.MyOperations) - 1),
-					})
+				operations := getGossipOperations(s, index)
+
+				if uint64(len(operations)) == uint64(0) {
+
+					outGoingRequests = append(outGoingRequests,
+						Message{MessageType: 1,
+							S2S_Gossip_Sending_ServerId:   s.Id,
+							S2S_Gossip_Receiving_ServerId: index,
+							S2S_Gossip_Operations:         operations,
+							S2S_Gossip_Index:              uint64(len(s.MyOperations) - 1),
+						})
+				}
 			}
 			i = i + 1
 		}

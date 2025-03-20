@@ -45,8 +45,11 @@ Definition coq_processRequest (c: Client.t) (requestType serverId value: u64) (a
   | 0 => (c, coq_read c serverId)
   | 1 => (c, coq_write c serverId value)
   | _ =>
-      match (uint.Z ackMessage.(Message.S2C_Client_OperationType)) with
-      | 0 => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) c.(Client.WriteVersionVector) (coq_maxTS c.(Client.ReadVersionVector) (ackMessage.(Message.S2C_Client_VersionVector))) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
-      | _ => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) (ackMessage.(Message.S2C_Client_VersionVector)) c.(Client.WriteVersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
-      end
+      if ((uint.Z ackMessage.(Message.MessageType)) =? 4) then 
+        match (uint.Z ackMessage.(Message.S2C_Client_OperationType)) with
+        | 0 => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) c.(Client.WriteVersionVector) ackMessage.(Message.S2C_Client_VersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
+        | _ => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) (ackMessage.(Message.S2C_Client_VersionVector)) c.(Client.ReadVersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
+        end
+      else
+        (c, Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
   end.
