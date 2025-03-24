@@ -1,4 +1,5 @@
 From Perennial.program_proof.session Require Export session_prelude.
+From Goose.github_com.session Require Export client. (* NOTE: I've included this in session_prelude however I'm not sure why it doesn't work without this line *)
 
 Module Operation.
 
@@ -258,7 +259,7 @@ Section heap.
     reflexivity.
   Defined.
 
-  Theorem server_val_t msg : val_ty (server_val msg) (struct.t server.Server).
+  Theorem server_val_t server : val_ty (server_val server) (struct.t Server).
   Proof.
     repeat constructor; auto.
   Qed.
@@ -322,5 +323,71 @@ Section heap.
     operation_slice sv!(6) s.(Server.PendingOperations) len_po ∗
     own_slice_small sv!(7) uint64T (DfracOwn 1) s.(Server.GossipAcknowledgements) ∗
     ⌜len_ga = length s.(Server.GossipAcknowledgements)⌝.
+
+  Definition client_val (c:u64*u64*Slice.t*Slice.t*u64) : val :=
+    (#c.1.1.1.1,
+       (#c.1.1.1.2,
+          (slice_val c.1.1.2,
+             (slice_val c.1.2 ,
+                (#c.2 ,
+                   #())))))%V.
+
+  Lemma redefine_client_val
+    : client_val = @SessionPrelude.value_of (tuple_of[u64,u64,Slice.t,Slice.t,u64]) _.
+  Proof.
+    reflexivity.
+  Defined.
+
+  Theorem client_val_t client : val_ty (client_val client) (struct.t client.Client).
+  Proof.
+    repeat constructor; auto.
+  Qed.
+
+  Hint Resolve client_val_t : core.
+
+  Definition client_from_val (v : val) : option (u64*u64*Slice.t*Slice.t*u64) :=
+    match v with
+    | (#(LitInt Id),
+         (#(LitInt NumberOfServers),
+            (WriteVersionVector,
+               (ReadVersionVector,
+                  (#(LitInt SessionSemantic),
+                     #())))))%V =>
+        match ((from_val WriteVersionVector: option Slice.t),
+                 (from_val ReadVersionVector: option Slice.t))
+        with
+        | (Some s1, Some s2) =>
+            Some (Id, NumberOfServers, s1, s2, SessionSemantic)
+        | _ => None
+        end
+    | _ => None
+    end.
+  
+  Global Instance client_into_val : IntoVal (u64*u64*Slice.t*Slice.t*u64).
+  Proof.
+    refine {| into_val.to_val := client_val;
+             from_val := client_from_val ;
+             IntoVal_def := (W64 0, W64 0, 
+                               IntoVal_def Slice.t,
+                                 IntoVal_def Slice.t,
+                                   W64 0);
+           |}.
+    destruct v. repeat destruct p. simpl. f_equal.
+    destruct t0. destruct t.
+    simpl. auto.
+  Defined.
+
+  #[global] Instance client_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*u64) (struct.t client.Client).
+  Proof. constructor; auto. cbn. split; auto. Qed.
+
+  Definition is_client (cv:tuple_of[u64,u64,Slice.t,Slice.t,u64])
+    (c: Client.t) (n: nat) : iProp Σ :=
+    ⌜cv!(0) = c.(Client.Id)⌝ ∗
+    ⌜cv!(1) = c.(Client.NumberOfServers)⌝ ∗
+    own_slice_small cv!(2) uint64T (DfracOwn 1) c.(Client.WriteVersionVector) ∗
+    ⌜n = length c.(Client.WriteVersionVector)⌝ ∗
+    own_slice_small cv!(3) uint64T (DfracOwn 1) c.(Client.ReadVersionVector) ∗
+    ⌜n = length c.(Client.ReadVersionVector)⌝ ∗
+    ⌜cv!(4) = c.(Client.SessionSemantic)⌝.
 
 End heap.

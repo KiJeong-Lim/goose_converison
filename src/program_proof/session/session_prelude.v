@@ -1,4 +1,5 @@
 From Goose.github_com.session Require Export server.
+From Goose.github_com.session Require Export client.
 From Perennial.program_proof Require Export std_proof grove_prelude.
 
 Create HintDb session_hints.
