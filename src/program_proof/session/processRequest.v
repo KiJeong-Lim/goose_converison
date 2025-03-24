@@ -18,7 +18,8 @@ Section heap.
         is_server ns (coq_processClientRequest s msg).1.2 n m m m len_po len_ga OWN_UnsatisfiedRequests ∗
         is_message nm (coq_processClientRequest s msg).2 n 0%nat (if b then m else 0%nat) ∗
         is_message msgv msg n m len_s2c ∗
-        ⌜SERVER_INVARIANT (coq_processClientRequest s msg).1.2⌝
+        ⌜SERVER_INVARIANT (coq_processClientRequest s msg).1.2⌝ ∗
+        ⌜s.(Server.UnsatisfiedRequests) = (coq_processClientRequest s msg).1.2.(Server.UnsatisfiedRequests)⌝
     }}}.
   Proof.
     rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_precondition) HΦ". destruct H_precondition as [? ? ? ?].
@@ -145,7 +146,7 @@ Section heap.
         { iFrame. done. }
         apply list_lookup_total_correct in H_x. subst x. unfold lookup_total in *.
         replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.nat (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) in * by word.
-        iPureIntro. split; simpl; trivial. rewrite length_insert; word.
+        iPureIntro. split; simpl; trivial. split; simpl; trivial. rewrite length_insert; word.
   Qed.
 
   Lemma wp_processRequest sv s msgv msg (n: nat) len_ga len_s2c :
@@ -154,11 +155,11 @@ Section heap.
         is_message msgv msg n n len_s2c ∗
         ⌜SERVER_INVARIANT s⌝
     }}}
-      processRequest (server_val sv) (message_val msgv)
+      server.processRequest (server_val sv) (message_val msgv)
     {{{
         ns nms, RET (server_val ns, slice_val nms);
         is_server ns (coq_processRequest s msg).1 n n n n n len_ga true ∗
-        message_slice nms (coq_processRequest s msg).2 n ∗
+        message_slice nms (coq_processRequest s msg).2 n 0%nat ∗
         ⌜SERVER_INVARIANT (coq_processRequest s msg).1⌝
     }}}.
   Proof.
@@ -166,15 +167,15 @@ Section heap.
     rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_precondition) HΦ".
     iDestruct "H_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)".
     iDestruct "H_message" as "(%H11 & %H12 & %H13 & %H14 & %H15 & H16 & %H17 & %H18 & %H19 & H20 & %H21 & %H22 & %H23 & %H24 & %H25 & %H26 & H27 & %H28 & %H29 & %H30)".
-    destruct H_precondition as [? ? ? ?]; simplNotation; subst; rewrite /processRequest.
-    wp_pures. wp_apply wp_NewSlice. simpl. rewrite rewrite_nil; cycle 1. { word. } iIntros "%s1 H_s1".
+    destruct H_precondition as [? ? ? ?]; simplNotation; subst; rewrite /server.processRequest.
+    wp_pure. wp_apply wp_NewSlice. simpl. rewrite rewrite_nil; cycle 1. { word. } iIntros "%s1 H_s1".
     wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%outGoingRequests H_outGoingRequests".
     wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%server H_server".
     wp_if_destruct.
     { wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%succeeded H_succeeded".
       wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%reply H_reply".
       wp_pures. wp_load. replace (processClientRequest (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #()))))))))%V (#msg .(Message.MessageType), (#msg .(Message.C2S_Client_Id), (#msg .(Message.C2S_Server_Id), (#msg .(Message.C2S_Client_OperationType), (#msg .(Message.C2S_Client_Data), (t7, (#msg .(Message.S2S_Gossip_Sending_ServerId), (#msg .(Message.S2S_Gossip_Receiving_ServerId), (t6, (#msg .(Message.S2S_Gossip_Index), (#msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Index), (#msg .(Message.S2C_Client_OperationType), (#msg .(Message.S2C_Client_Data), (t5, (#msg .(Message.S2C_Server_Id), (#msg .(Message.S2C_Client_Number), #()))))))))))))))))))%V) with (processClientRequest (server_val (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)) (message_val (msg .(Message.MessageType), msg .(Message.C2S_Client_Id), msg .(Message.C2S_Server_Id), msg .(Message.C2S_Client_OperationType), msg .(Message.C2S_Client_Data), t7, msg .(Message.S2S_Gossip_Sending_ServerId), msg .(Message.S2S_Gossip_Receiving_ServerId), t6, msg .(Message.S2S_Gossip_Index), msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), msg .(Message.S2S_Acknowledge_Gossip_Index), msg .(Message.S2C_Client_OperationType), msg .(Message.S2C_Client_Data), t5, msg .(Message.S2C_Server_Id), msg .(Message.S2C_Client_Number)))) by f_equal.
-      wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := true) with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame. simplNotation; subst. done. } iIntros "%b %ns %nm (-> & H_server' & H_message' & H_message & %H1_postcondition)".
+      wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := true) with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame. simplNotation; subst. done. } iIntros "%b %ns %nm (-> & H_server' & H_message' & H_message & %H1_postcondition & %H2_postcondition)".
       wp_store. wp_store. wp_pures; lazymatch goal with [ |- envs_entails _ (wp ?s ?E (App ?k ?e)%E ?Q) ] => eapply (tac_wp_store_ty _ _ _ _ _ _ [AppRCtx k]%list); [repeat econstructor; eauto | tc_solve | let l := reply in iAssumptionCore | reflexivity | simpl] end.
       wp_pures. wp_load. wp_if_destruct.
       - wp_load. wp_load. replace message_val with (message_into_val .(to_val)) by reflexivity. wp_apply (wp_SliceAppend with "[$H_s1]"). iIntros "%s2 H_s2".
@@ -215,24 +216,26 @@ Section heap.
           reply ↦[(uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (slice.T uint64T * (uint64T * (uint64T * (slice.T (slice.T uint64T * (uint64T * unitT)) * (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (slice.T uint64T * (uint64T * (uint64T * unitT))))))))))))))))))%ht] message_val msgv ∗
           succeeded ↦[boolT] #b ∗
           server ↦[(uint64T * (uint64T * (slice.T (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (slice.T uint64T * (uint64T * (uint64T * (slice.T (slice.T uint64T * (uint64T * unitT)) * (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (slice.T uint64T * (uint64T * (uint64T * unitT)))))))))))))))))) * (slice.T uint64T * (slice.T (slice.T uint64T * (uint64T * unitT)) * (slice.T (slice.T uint64T * (uint64T * unitT)) * (slice.T (slice.T uint64T * (uint64T * unitT)) * (slice.T uint64T * unitT))))))))%ht] server_val (Id, NumberOfServers, UnsatisfiedRequests, VectorClock, OperationsPerformed, MyOperations, PendingOperations, GossipAcknowledgements)%core ∗
-          message_slice UnsatisfiedRequests s.(Server.UnsatisfiedRequests) n ∗
+          message_slice UnsatisfiedRequests s.(Server.UnsatisfiedRequests) n n ∗
           own_slice_small VectorClock uint64T (DfracOwn 1) s.(Server.VectorClock) ∗
           operation_slice OperationsPerformed s.(Server.OperationsPerformed) n ∗
           operation_slice MyOperations s.(Server.MyOperations) n ∗
           operation_slice PendingOperations s.(Server.PendingOperations) n ∗
           own_slice_small GossipAcknowledgements uint64T (DfracOwn 1) s.(Server.GossipAcknowledgements) ∗
-          message_slice out_going_requests msgs n ∗
+          message_slice out_going_requests msgs n 0%nat ∗
           ⌜SERVER_INVARIANT s⌝ ∗
           ⌜length s.(Server.UnsatisfiedRequests) = (index + length nexts)%nat⌝ ∗
           ⌜drop index s.(Server.UnsatisfiedRequests) = nexts⌝ ∗
           ⌜length s.(Server.VectorClock) = length s0.(Server.VectorClock)⌝ ∗
           ⌜(index <= uint.nat UnsatisfiedRequests.(Slice.sz))%nat⌝ ∗
           ⌜length s.(Server.UnsatisfiedRequests) = uint.nat UnsatisfiedRequests.(Slice.sz)⌝ ∗
+          ⌜Id = s.(Server.Id)⌝ ∗
+          ⌜NumberOfServers = s.(Server.NumberOfServers)⌝ ∗
           ⌜continue = false -> nexts = []⌝
         )%I
       with "[] [H_outGoingRequests H_server H3 H4 H6 H7 H8 H9 H_message H_s2 H_i H_reply H_succeeded]").
       { subst Id NumberOfServers. clear Φ UnsatisfiedRequests VectorClock OperationsPerformed MyOperations PendingOperations GossipAcknowledgements.
-        iIntros "%Φ". iModIntro. iIntros "(%prevs & %nexts & %s & %msgs & %out_going_requests & %index & %msgv & %b & %Id & %NumberOfServers & %UnsatisfiedRequests & %VectorClock & %OperationPerformed & %MyOperations & %PendingOperations & %GossipAcknowledgements & %FOCUS & %LOOP & H_outGoingRequests & H_i & H_reply & H_succeeded & H_server & H_UnsatisfiedRequests & H_VectorClock & H_OperationsPerformed & H_MyOperations & H_PendingOperations & H_GossipAcknowledgements & H_out_going_requests & %H_server_invariant & %claim1 & %claim2 & %claim3 & %claim4 & %H_continue) HΦ". iDestruct "H_UnsatisfiedRequests" as "(%msgv1 & [H1_UnsatisfiedRequests H2_UnsatisfiedRequests] & H3_UnsatisfiedRequests)".
+        iIntros "%Φ". iModIntro. iIntros "(%prevs & %nexts & %s & %msgs & %out_going_requests & %index & %msgv & %b & %Id & %NumberOfServers & %UnsatisfiedRequests & %VectorClock & %OperationPerformed & %MyOperations & %PendingOperations & %GossipAcknowledgements & %FOCUS & %LOOP & H_outGoingRequests & H_i & H_reply & H_succeeded & H_server & H_UnsatisfiedRequests & H_VectorClock & H_OperationsPerformed & H_MyOperations & H_PendingOperations & H_GossipAcknowledgements & H_out_going_requests & %H_server_invariant & %claim1 & %claim2 & %claim3 & %claim4 & %claim5 & %claim6 & %claim7 & %H_continue) HΦ". iDestruct "H_UnsatisfiedRequests" as "(%msgv1 & [H1_UnsatisfiedRequests H2_UnsatisfiedRequests] & H3_UnsatisfiedRequests)".
         wp_load. wp_load. wp_apply (wp_slice_len). wp_if_destruct.
         - wp_pures. wp_load. wp_pures. wp_load. wp_pures.
           iPoseProof (big_sepL2_length with "[$H3_UnsatisfiedRequests]") as "%YES1".
@@ -244,17 +247,17 @@ Section heap.
           destruct nexts as [ | cur nexts].
           { simpl in NE_NIL. word. }
           clear NE_NIL H_continue.
-          assert (s .(Server.UnsatisfiedRequests) !! index = Some cur) as H_cur.
-          { rewrite <- take_drop with (l := s .(Server.UnsatisfiedRequests)) (i := index). rewrite lookup_app_r.
-            - rewrite claim2. replace (index - length (take index s .(Server.UnsatisfiedRequests)))%nat with 0%nat.
-              + reflexivity.
-              + symmetry. rewrite length_take. word.
-            - rewrite length_take. word.
-          }
+          iPoseProof (big_sepL2_middle_split _ _ H_e with "[$H3_UnsatisfiedRequests]") as "(%cur' & %prevs' & %nexts' & [%EQ %H_cur'] & [%len_s2c is_message_cur'] & message_slice_prevs' & message_slice_nexts')".
           wp_apply (wp_SliceGet with "[$H1_UnsatisfiedRequests]"). { iPureIntro. exact H_e. } iIntros "H1_UnsatisfiedRequests".
-          wp_load. wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := false) with "[H1_UnsatisfiedRequests H2_UnsatisfiedRequests H3_UnsatisfiedRequests H_VectorClock H_OperationsPerformed H_MyOperations H_PendingOperations H_GossipAcknowledgements H_out_going_requests]").
-          { admit. }
-          { admit. }
+          wp_load. wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := false) with "[H_VectorClock H_OperationsPerformed H_MyOperations H_PendingOperations H_GossipAcknowledgements is_message_cur']").
+          { iSplitR "is_message_cur'".
+            - iFrame; simplNotation; done.
+            - iSplitL "is_message_cur'".
+              + iExact "is_message_cur'".
+              + iPureIntro; done.
+          }
+          { admit.
+          }
         - admit.
       }
       { admit. }

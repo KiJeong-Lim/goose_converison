@@ -238,9 +238,9 @@ Section heap.
     ⌜msgv!(16) = msg.(Message.S2C_Server_Id)⌝ ∗
     ⌜msgv!(17) = msg.(Message.S2C_Client_Number)⌝.
 
-  Definition message_slice (s: Slice.t) (l: list Message.t) (n: nat) : iProp Σ :=
+  Definition message_slice (s: Slice.t) (l: list Message.t) (n: nat) (len_c2s: nat) : iProp Σ :=
     ∃ msgs, own_slice s (struct.t server.Message) (DfracOwn 1) msgs ∗
-            [∗ list] mv;m ∈ msgs;l, ∃ len_c2s, ∃ len_s2c, is_message mv m n len_c2s len_s2c.
+            [∗ list] mv;m ∈ msgs;l, ∃ len_s2c, is_message mv m n len_c2s len_s2c.
 
   Definition server_val (s: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) : val :=
     (#s.1.1.1.1.1.1.1,
@@ -315,7 +315,7 @@ Section heap.
     (n: nat) (len_vc: nat) (len_op: nat) (len_mo: nat) (len_po: nat) (len_ga: nat) (OWN_UnsatisfiedRequests: bool) : iProp Σ :=
     ⌜sv!(0) = s.(Server.Id)⌝ ∗
     ⌜sv!(1) = s.(Server.NumberOfServers)⌝ ∗
-    (if OWN_UnsatisfiedRequests then message_slice sv!(2) s.(Server.UnsatisfiedRequests) n else emp)%I ∗
+    (if OWN_UnsatisfiedRequests then message_slice sv!(2) s.(Server.UnsatisfiedRequests) n len_vc else emp)%I ∗
     own_slice_small sv!(3) uint64T (DfracOwn 1) s.(Server.VectorClock) ∗
     ⌜len_vc = length s.(Server.VectorClock)⌝ ∗
     operation_slice sv!(4) s.(Server.OperationsPerformed) len_op ∗

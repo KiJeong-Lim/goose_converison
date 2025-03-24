@@ -7,17 +7,17 @@ Section heap.
 
   Lemma wp_receiveGossip (sv: tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
     (msgv: tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t)
-    (n: nat) c2s s2c len_mo len_ga :
+    (n: nat) len_c2s len_s2c len_mo len_ga :
     {{{
         is_server sv s n n n len_mo n len_ga true ∗ 
-        is_message msgv msg n c2s s2c ∗
+        is_message msgv msg n len_c2s len_s2c ∗
         ⌜is_sorted s .(Server.PendingOperations) /\ is_sorted s .(Server.OperationsPerformed)⌝
     }}}
       receiveGossip (server_val sv) (message_val msgv)
     {{{
         r, RET server_val r;
         is_server r (coq_receiveGossip s msg) n n n len_mo n len_ga true ∗
-        is_message msgv msg n c2s s2c ∗
+        is_message msgv msg n len_c2s len_s2c ∗
         ⌜is_sorted (coq_receiveGossip s msg) .(Server.PendingOperations) /\ is_sorted (coq_receiveGossip s msg) .(Server.OperationsPerformed)⌝
     }}}.
   Proof.
@@ -61,7 +61,7 @@ Section heap.
           ⌜(index, s) = fold_left loop_step prevs loop_init⌝ ∗
           i ↦[uint64T] #index ∗
           server ↦[struct.t Server] (#s .(Server.Id), (#s .(Server.NumberOfServers), (UnsatisfiedRequests, (VectorClock, (OperationsPerformed, (MyOperations, (PendingOperations, (GossipAcknowledgements, #())))))))) ∗
-          message_slice UnsatisfiedRequests s .(Server.UnsatisfiedRequests) n ∗
+          message_slice UnsatisfiedRequests s .(Server.UnsatisfiedRequests) n n ∗
           own_slice_small VectorClock uint64T (DfracOwn 1) s .(Server.VectorClock) ∗
           operation_slice OperationsPerformed s .(Server.OperationsPerformed) n ∗
           operation_slice MyOperations s .(Server.MyOperations) len_mo ∗
@@ -232,16 +232,16 @@ Section heap.
 
   Lemma wp_acknowledgeGossip (sv: tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
     (msgv: tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t)
-    (n: nat) c2s s2c len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests :
+    (n: nat) len_c2s len_s2c len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests :
     {{{
         is_server sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗ 
-        is_message msgv msg n c2s s2c
+        is_message msgv msg n len_c2s len_s2c
     }}}
       acknowledgeGossip (server_val sv) (message_val msgv)
     {{{
-        r, RET r;
+        RET (server_val sv);
         is_server sv (coq_acknowledgeGossip s msg) n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗
-        is_message msgv msg n c2s s2c
+        is_message msgv msg n len_c2s len_s2c
     }}}.
   Proof.
     TypeVector.des sv. TypeVector.des msgv.
@@ -286,9 +286,9 @@ Section heap.
     {{{
         is_server sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}
-      getGossipOperations (server_val sv) #serverId
+      getGossipOperations (server_val sv) (#serverId)
     {{{
-        ns , RET slice_val (ns);
+        ns, RET (slice_val ns);
         operation_slice ns (coq_getGossipOperations s serverId) len_mo ∗
         is_server sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}.

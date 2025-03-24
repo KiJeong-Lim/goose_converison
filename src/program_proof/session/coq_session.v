@@ -114,7 +114,7 @@ Module CoqSession.
       in
       snd (fold_left loop_step focus loop_init).
 
-  Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) :=
+  Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) : Server.t :=
     let i := r.(Message.S2S_Acknowledge_Gossip_Sending_ServerId) in
     let l : (list u64) := s.(Server.GossipAcknowledgements) in
     if (uint.Z i >=? length l) then s else 
@@ -356,10 +356,10 @@ Module INVARIANT.
 
   Record SERVER (s: Server.t) : Prop :=
     SERVER_INVARIANT_INTRO
-    { PendingOperations_isSorted: is_sorted s.(Server.PendingOperations)
-    ; OperationsPerformed_isSorted: is_sorted s.(Server.OperationsPerformed)
-    ; MyOperations_isSorted: is_sorted s.(Server.MyOperations)
-    ; Id_inRange: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
+    { PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations)
+    ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
+    ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
+    ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
     }.
 
 End INVARIANT.
@@ -370,7 +370,7 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
-  Lemma Forall_Operation_wf l ops (n : nat)
+  Lemma Forall_Operation_wf l ops (n: nat)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (⌜Forall (Operation_wf n) l⌝)%I.
   Proof.
     revert ops. induction l as [ | hd tl IH]; intros ops.
@@ -386,7 +386,7 @@ Section heap.
       + exact YES1.
   Qed.
 
-  Lemma pers_big_sepL2_is_operation l ops (n : nat)
+  Lemma pers_big_sepL2_is_operation l ops (n: nat)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (<pers> ([∗ list] opv;o ∈ ops;l, is_operation opv o n))%I.
   Proof.
     iIntros "H_big_sepL2". iApply (big_sepL2_persistently). iApply (big_sepL2_mono (λ k, λ y1, λ y2, is_operation y1 y2 n)%I).
@@ -394,7 +394,7 @@ Section heap.
     - done.
   Qed.
 
-  Lemma pers_is_operation opv o (n : nat)
+  Lemma pers_is_operation opv o (n: nat)
     : (is_operation opv o n)%I ⊢@{iProp Σ} (<pers> (is_operation opv o n))%I.
   Proof.
     iIntros "#H". done.
