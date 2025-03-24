@@ -7,16 +7,17 @@ Section heap.
 
   Lemma wp_deleteAtIndexOperation (s: Slice.t) (index: w64) (l: list Operation.t) (n: nat) :
     {{{
-        ⌜0 <= uint.nat index < length l⌝ ∗
-        operation_slice s l n
+        operation_slice s l n ∗
+        ⌜(uint.nat index < length l)%nat⌝
     }}}
       deleteAtIndexOperation s #index
     {{{
-        ns, RET slice_val (ns);
-        operation_slice ns (coq_deleteAtIndexOperation l (uint.nat index)) n
+        ns, RET (slice_val ns);
+        operation_slice ns (coq_deleteAtIndexOperation l (uint.nat index)) n ∗
+        ⌜(length (coq_deleteAtIndexOperation l (uint.nat index)) + 1 = length l)%nat⌝
     }}}.
   Proof.
-    rewrite/ deleteAtIndexOperation. rename s into s1. iIntros (Φ) "[%H_index (%ops1 & H_s1 & H_ops1)] HΦ".
+    rewrite/ deleteAtIndexOperation. rename s into s1. iIntros (Φ) "[(%ops1 & H_s1 & H_ops1) %H_index] HΦ".
     iPoseProof (big_sepL2_length with "[$H_ops1]") as "%claim1".
     iPoseProof (own_slice_sz with "[$H_s1]") as "%claim2".
     wp_pures. wp_apply wp_NewSlice. iIntros "%s2 H_s2". wp_apply wp_ref_to; auto.
@@ -60,38 +61,41 @@ Section heap.
     }
     iIntros "%s4 [H1_s4 H2_s4]". iApply "HΦ". simpl.
     replace (coq_deleteAtIndexOperation l (uint.nat index)) with (take (uint.nat index) l ++ drop (uint.nat (W64 1)) (drop (uint.nat index) l)).
-    - iExists ((take (uint.nat index) ops1 ++ drop (uint.nat (W64 1)) (drop (uint.nat index) ops1)))%list. iSplitR "H_ops1".
-      + iFrame.
-      + iPoseProof (big_sepL2_app_equiv with "[H_ops1]") as "[H_prefix H_suffix]".
-        { instantiate (1 := take (uint.nat index) l). instantiate (1 := take (uint.nat index) ops1).
-          rewrite length_take. rewrite length_take. word.
-        }
-        { instantiate (2 := drop (uint.nat index) ops1). instantiate (1 := drop (uint.nat index) l).
-          rewrite take_drop. rewrite take_drop. iExact "H_ops1".
-        }
-        simpl. iApply (big_sepL2_app with "[H_prefix]"). { iExact "H_prefix". }
-        destruct (drop (uint.nat index) ops1) as [ | ops1_hd ops1_tl] eqn: H_ops1.
-        { simpl in *. iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%NIL".
-          rewrite NIL. iExact "H_suffix".
-        }
-        iPoseProof (big_sepL2_cons_inv_l with "[$H_suffix]") as "(%l_hd & %l_tl & %H_l & H_hd & H_tl)".
-        rewrite H_l. iExact "H_tl".
+    - iSplitR "".
+      + iExists ((take (uint.nat index) ops1 ++ drop (uint.nat (W64 1)) (drop (uint.nat index) ops1)))%list. iSplitR "H_ops1".
+        * iFrame.
+        * iPoseProof (big_sepL2_app_equiv with "[H_ops1]") as "[H_prefix H_suffix]".
+          { instantiate (1 := take (uint.nat index) l). instantiate (1 := take (uint.nat index) ops1).
+            rewrite length_take. rewrite length_take. word.
+          }
+          { instantiate (2 := drop (uint.nat index) ops1). instantiate (1 := drop (uint.nat index) l).
+            rewrite take_drop. rewrite take_drop. iExact "H_ops1".
+          }
+          simpl. iApply (big_sepL2_app with "[H_prefix]"). { iExact "H_prefix". }
+          destruct (drop (uint.nat index) ops1) as [ | ops1_hd ops1_tl] eqn: H_ops1.
+          { simpl in *. iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%NIL".
+            rewrite NIL. iExact "H_suffix".
+          }
+          iPoseProof (big_sepL2_cons_inv_l with "[$H_suffix]") as "(%l_hd & %l_tl & %H_l & H_hd & H_tl)".
+          rewrite H_l. iExact "H_tl".
+      + iPureIntro. rewrite length_app. rewrite length_take. rewrite length_drop. rewrite length_drop. word.
     - unfold coq_deleteAtIndexOperation. replace (drop (uint.nat index + 1) l) with (drop (uint.nat (W64 1)) (drop (uint.nat index) l)); trivial.
       rewrite drop_drop. f_equal.
   Qed.
 
   Lemma wp_deleteAtIndexMessage (s: Slice.t) (index: w64) (l: list Message.t) (n: nat) (len_c2s: nat) :
-    {{{
-        ⌜0 <= uint.nat index < length l⌝ ∗
-        message_slice s l n len_c2s
+    {{{ 
+        message_slice s l n len_c2s ∗
+        ⌜(uint.nat index < length l)%nat⌝
     }}}
       deleteAtIndexMessage s #index
     {{{
         (ns: Slice.t), RET slice_val (ns);
-        message_slice ns (coq_deleteAtIndexMessage l (uint.nat index)) n len_c2s
+        message_slice ns (coq_deleteAtIndexMessage l (uint.nat index)) n len_c2s ∗
+        ⌜(length (coq_deleteAtIndexMessage l (uint.nat index)) + 1 = length l)%nat⌝
     }}}.
   Proof.
-    rewrite/ deleteAtIndexMessage. rename s into s1. iIntros (Φ) "[%H_index (%ops1 & H_s1 & H_ops1)] HΦ".
+    rewrite/ deleteAtIndexMessage. rename s into s1. iIntros (Φ) "[(%ops1 & H_s1 & H_ops1) %H_index] HΦ".
     iPoseProof (big_sepL2_length with "[$H_ops1]") as "%claim1".
     iPoseProof (own_slice_sz with "[$H_s1]") as "%claim2".
     wp_pures. wp_apply wp_NewSlice. iIntros "%s2 H_s2". wp_apply wp_ref_to; auto.
@@ -119,21 +123,23 @@ Section heap.
     { done. } { iFrame. } iIntros "%s' [H1_s' H2_s']". wp_pures. wp_store.
     wp_apply (wp_SliceSkip); eauto. { word. } wp_load. wp_apply (wp_SliceAppendSlice with "[H1_s' H3_s1]"). { done. }
     { simpl in *. iFrame. } iIntros "%s'' [H1_s'' H2_s'']". iApply "HΦ".
-    unfold message_slice. iExists (take (uint.nat index) ops1 ++ drop (uint.nat index + 1)%nat ops1). iSplitR "H_ops1".
-    - remember (uint.nat index) as k eqn: H_k in *.
-      replace (uint.nat (w64_word_instance .(word.add) index (W64 1))) with (k + 1)%nat in * by word.
-      rewrite take_take. replace (k `min` (k + 1))%nat with k by word. iFrame.
-    - unfold coq_deleteAtIndexMessage. iPoseProof (big_sepL2_length with "[$H_ops1]") as "%YES1".
-      iApply big_sepL2_app_equiv. { do 2 rewrite length_take; word. }
-      rewrite <- take_drop with (l := ops1) (i := uint.nat index) at 1.
-      rewrite <- take_drop with (l := l) (i := uint.nat index) at 1.
-      iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, ∃ b, is_message mv m n len_c2s b) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, ∃ b, is_message mv m n len_c2s b))%I with "[H_ops1]" as "[H_prefix H_suffix]".
-      { iApply (big_sepL2_app_equiv with "[$H_ops1]"). do 2 rewrite length_take. word. }
-      iFrame. destruct (drop (uint.nat index) ops1) as [ | hd tl] eqn: H_obs.
-      + iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%H_obs'".
-        do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
-      + iPoseProof (big_sepL2_cons_inv_l with "[$H_suffix]") as "(%hd' & %tl' & %H_obs' & H1 & H2)".
-        do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
+    unfold message_slice. iSplitR "".
+    - iExists (take (uint.nat index) ops1 ++ drop (uint.nat index + 1)%nat ops1). iSplitR "H_ops1".
+      + remember (uint.nat index) as k eqn: H_k in *.
+        replace (uint.nat (w64_word_instance .(word.add) index (W64 1))) with (k + 1)%nat in * by word.
+        rewrite take_take. replace (k `min` (k + 1))%nat with k by word. iFrame.
+      + unfold coq_deleteAtIndexMessage. iPoseProof (big_sepL2_length with "[$H_ops1]") as "%YES1".
+        iApply big_sepL2_app_equiv. { do 2 rewrite length_take; word. }
+        rewrite <- take_drop with (l := ops1) (i := uint.nat index) at 1.
+        rewrite <- take_drop with (l := l) (i := uint.nat index) at 1.
+        iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, ∃ b, is_message mv m n len_c2s b) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, ∃ b, is_message mv m n len_c2s b))%I with "[H_ops1]" as "[H_prefix H_suffix]".
+        { iApply (big_sepL2_app_equiv with "[$H_ops1]"). do 2 rewrite length_take. word. }
+        iFrame. destruct (drop (uint.nat index) ops1) as [ | hd tl] eqn: H_obs.
+        * iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%H_obs'".
+          do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
+        * iPoseProof (big_sepL2_cons_inv_l with "[$H_suffix]") as "(%hd' & %tl' & %H_obs' & H1 & H2)".
+          do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
+    - iPureIntro. rewrite length_app. rewrite length_take. rewrite length_drop. word.
   Qed.
 
   Lemma wp_getDataFromOperationLog (s: Slice.t) (l: list Operation.t) (n: nat) :

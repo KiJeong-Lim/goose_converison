@@ -119,7 +119,7 @@ Section heap.
             iIntros "H1_8". wp_pures. wp_load. wp_pures. wp_apply (wp_maxTS with "[$H4 $H2_op2]"). { eauto. }
             iIntros "%s2 (H_s2 & H4 & H2_ops')". wp_apply (wp_storeField_struct with "[$H_server]"). { repeat econstructor; eauto. }
             iIntros "H_server". wp_pures. wp_load. wp_load. wp_pures. wp_apply (wp_deleteAtIndexOperation with "[$H1_8 $H2_8 $H3_8]"). { iPureIntro. word. }
-            iIntros "%ns2 H_ns2". wp_apply (wp_storeField_struct with "[$H_server]"). { repeat econstructor; eauto. }
+            iIntros "%ns2 [H_ns2 %LEN_ns2]". wp_apply (wp_storeField_struct with "[$H_server]"). { repeat econstructor; eauto. }
             iIntros "H_server". simpl in *. wp_pures. iModIntro. iApply "HΦ".
             iExists (prevs ++ [cur]). iExists nexts. iExists index. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _.
             iDestruct "H_ns2" as "(%ops & H_ops & H_ns2)".

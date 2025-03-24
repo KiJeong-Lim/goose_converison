@@ -640,7 +640,7 @@ Module SessionPrelude.
 
     Context {A : Type} {well_formed : A -> Prop}.
 
-    #[local] Hint Resolve (@Forall_well_formed_elim A well_formed) : core.
+    #[local] Hint Resolve ( @Forall_well_formed_elim A well_formed) : core.
 
     Context {hsEq : hsEq A (well_formed := well_formed)}.
 
@@ -775,7 +775,7 @@ Module SessionPrelude.
     Next Obligation with eauto 2.
       simpl in *. destruct x_wf as [x_wf x_len], y_wf as [y_wf y_len].
       rewrite vectorEq_implies_not_vectorGt...
-      change vectorEq with (@eqb (list A) _ (hsEq_vector len)).
+      change vectorEq with ( @eqb (list A) _ (hsEq_vector len)).
       rewrite eqb_comm... rewrite eqb_eq...
     Qed.
     Next Obligation with eauto 2.

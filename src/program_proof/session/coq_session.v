@@ -444,9 +444,9 @@ Section heap.
         iIntros "%i %l_i %ops_i [%H_l_i %H_ops_i]". iApply "H". instantiate (1 := S i). done.
   Qed.
 
-  Lemma big_sepL2_middle_split {A: Type} {B: Type} {Φ: A -> B -> iProp Σ} {xs: list A} {ys: list B} (i: nat) (x0: A)
+  Lemma big_sepL2_middle_split {A: Type} {B: Type} {Φ: A -> B -> iProp Σ} {xs: list A} {i: nat} {x0: A} (ys: list B)
     (LOOKUP: xs !! i = Some x0)
-    : ([∗ list] x;y ∈ xs;ys, Φ x y)%I ⊢@{iProp Σ} (∃ y0, ∃ ys1, ∃ ys2, ⌜ys = (ys1 ++ y0 :: ys2)%list /\ ys !! i = Some y0⌝ ∗ Φ x0 y0 ∗ ([∗ list] x;y ∈ take i xs;ys1, Φ x y) ∗ ([∗ list] x;y ∈ drop (i + 1)%nat xs;ys2, Φ x y))%I.
+    : ([∗ list] x;y ∈ xs;ys, Φ x y)%I ⊢@{iProp Σ} (∃ y0, ∃ ys1, ∃ ys2, ⌜ys = (ys1 ++ y0 :: ys2)%list /\ length ys1 = i⌝ ∗ Φ x0 y0 ∗ ([∗ list] x;y ∈ take i xs;ys1, Φ x y) ∗ ([∗ list] x;y ∈ drop (i + 1)%nat xs;ys2, Φ x y))%I.
   Proof.
     pose proof (take_drop_middle xs i x0 LOOKUP) as claim1.
     assert (i < length xs)%nat as claim2.
@@ -462,7 +462,7 @@ Section heap.
     iExists y0. iExists (take i ys). iExists (drop (S i) ys).
     pose proof (take_drop_middle ys i y0 H_y0) as claim3.
     iSplitL "".
-    { iPureIntro; split; [rewrite claim3; eapply take_drop | rewrite take_drop; trivial]. }
+    { iPureIntro; split; [rewrite claim3; eapply take_drop | rewrite length_take; word]. }
     rewrite <- take_drop with (l := ys) (i := i) in claim3 at -1.
     apply SessionPrelude.app_cancel_l in claim3; rewrite take_drop in claim3.
     rewrite <- claim3.

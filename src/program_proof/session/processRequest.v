@@ -13,13 +13,13 @@ Section heap.
     }}}
       processClientRequest (server_val sv) (message_val msgv)
     {{{
-        (b: bool) ns nm, RET (#b, server_val ns, message_val nm);
+        b ns nm, RET (#b, server_val ns, message_val nm);
         ⌜b = (coq_processClientRequest s msg).1.1⌝ ∗
         is_server ns (coq_processClientRequest s msg).1.2 n m m m len_po len_ga OWN_UnsatisfiedRequests ∗
         is_message nm (coq_processClientRequest s msg).2 n 0%nat (if b then m else 0%nat) ∗
         is_message msgv msg n m len_s2c ∗
         ⌜SERVER_INVARIANT (coq_processClientRequest s msg).1.2⌝ ∗
-        ⌜s.(Server.UnsatisfiedRequests) = (coq_processClientRequest s msg).1.2.(Server.UnsatisfiedRequests)⌝
+        ⌜s.(Server.UnsatisfiedRequests) = (coq_processClientRequest s msg).1.2.(Server.UnsatisfiedRequests) /\ sv!(2) = ns!(2)⌝
     }}}.
   Proof.
     rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_precondition) HΦ". destruct H_precondition as [? ? ? ?].
@@ -146,7 +146,7 @@ Section heap.
         { iFrame. done. }
         apply list_lookup_total_correct in H_x. subst x. unfold lookup_total in *.
         replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.nat (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) in * by word.
-        iPureIntro. split; simpl; trivial. split; simpl; trivial. rewrite length_insert; word.
+        iPureIntro. split; simpl; try tauto. split; simpl; trivial. rewrite length_insert; word.
   Qed.
 
   Lemma wp_processRequest sv s msgv msg (n: nat) len_ga len_s2c :
@@ -175,7 +175,7 @@ Section heap.
     { wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%succeeded H_succeeded".
       wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%reply H_reply".
       wp_pures. wp_load. replace (processClientRequest (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #()))))))))%V (#msg .(Message.MessageType), (#msg .(Message.C2S_Client_Id), (#msg .(Message.C2S_Server_Id), (#msg .(Message.C2S_Client_OperationType), (#msg .(Message.C2S_Client_Data), (t7, (#msg .(Message.S2S_Gossip_Sending_ServerId), (#msg .(Message.S2S_Gossip_Receiving_ServerId), (t6, (#msg .(Message.S2S_Gossip_Index), (#msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Index), (#msg .(Message.S2C_Client_OperationType), (#msg .(Message.S2C_Client_Data), (t5, (#msg .(Message.S2C_Server_Id), (#msg .(Message.S2C_Client_Number), #()))))))))))))))))))%V) with (processClientRequest (server_val (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)) (message_val (msg .(Message.MessageType), msg .(Message.C2S_Client_Id), msg .(Message.C2S_Server_Id), msg .(Message.C2S_Client_OperationType), msg .(Message.C2S_Client_Data), t7, msg .(Message.S2S_Gossip_Sending_ServerId), msg .(Message.S2S_Gossip_Receiving_ServerId), t6, msg .(Message.S2S_Gossip_Index), msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), msg .(Message.S2S_Acknowledge_Gossip_Index), msg .(Message.S2C_Client_OperationType), msg .(Message.S2C_Client_Data), t5, msg .(Message.S2C_Server_Id), msg .(Message.S2C_Client_Number)))) by f_equal.
-      wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := true) with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame. simplNotation; subst. done. } iIntros "%b %ns %nm (-> & H_server' & H_message' & H_message & %H1_postcondition & %H2_postcondition)".
+      wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := true) with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame. simplNotation; subst. done. } iIntros "%b %ns %nm (-> & H_server' & H_message' & H_message & %H1_postcondition & [%H2_postcondition %H3_postcondition])".
       wp_store. wp_store. wp_pures; lazymatch goal with [ |- envs_entails _ (wp ?s ?E (App ?k ?e)%E ?Q) ] => eapply (tac_wp_store_ty _ _ _ _ _ _ [AppRCtx k]%list); [repeat econstructor; eauto | tc_solve | let l := reply in iAssumptionCore | reflexivity | simpl] end.
       wp_pures. wp_load. wp_if_destruct.
       - wp_load. wp_load. replace message_val with (message_into_val .(to_val)) by reflexivity. wp_apply (wp_SliceAppend with "[$H_s1]"). iIntros "%s2 H_s2".
@@ -247,7 +247,7 @@ Section heap.
           destruct nexts as [ | cur nexts].
           { simpl in NE_NIL. word. }
           clear NE_NIL H_continue.
-          iPoseProof (big_sepL2_middle_split _ _ H_e with "[$H3_UnsatisfiedRequests]") as "(%cur' & %prevs' & %nexts' & [%EQ %H_cur'] & [%len_s2c is_message_cur'] & message_slice_prevs' & message_slice_nexts')".
+          iPoseProof (big_sepL2_middle_split _ H_e with "[$H3_UnsatisfiedRequests]") as "(%cur' & %prevs' & %nexts' & [%EQ %H_cur'] & [%len_s2c' is_message_cur'] & message_slice_prevs' & message_slice_nexts')".
           wp_apply (wp_SliceGet with "[$H1_UnsatisfiedRequests]"). { iPureIntro. exact H_e. } iIntros "H1_UnsatisfiedRequests".
           wp_load. wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := false) with "[H_VectorClock H_OperationsPerformed H_MyOperations H_PendingOperations H_GossipAcknowledgements is_message_cur']").
           { iSplitR "is_message_cur'".
@@ -256,8 +256,42 @@ Section heap.
               + iExact "is_message_cur'".
               + iPureIntro; done.
           }
-          { admit.
-          }
+          iIntros "%r %ns %nm (-> & is_server_ns & is_message_nm & is_message_cur' & %H1_invariant & [%H2_invariant %H3_invariant])". wp_store. wp_store. wp_pures; lazymatch goal with [ |- envs_entails _ (wp ?s ?E (App ?k ?e)%E ?Q) ] => eapply (tac_wp_store_ty _ _ _ _ _ _ [AppRCtx k]%list); [repeat econstructor; eauto | tc_solve | let l := reply in iAssumptionCore | reflexivity | simpl] end. wp_load. wp_if_destruct.
+          + wp_load. wp_load. iDestruct "H_out_going_requests" as "(%ops1 & H_out_going_requests & H_ops1)". replace (message_val nm) with (message_into_val.(to_val) nm) by reflexivity. wp_apply (wp_SliceAppend with "[$H_out_going_requests]"). iIntros "%out_going_requests' H_out_goint_requests'".
+            wp_store. wp_load. wp_load. wp_pures. TypeVector.des ns; simplNotation; subst t13. wp_apply (wp_deleteAtIndexMessage with "[$H1_UnsatisfiedRequests $H2_UnsatisfiedRequests message_slice_prevs' message_slice_nexts' is_message_cur']").
+            { instantiate (1 := (prevs' ++ cur' :: nexts')%list). iSplitR "".
+              - iApply (big_sepL2_middle_merge with "[is_message_cur' $message_slice_prevs' $message_slice_nexts']"); eauto.
+              - iPureIntro; rewrite length_app; simpl; word.
+            }
+            iIntros "%ns2 [message_slice_ns2 %LEN_ns2]". wp_apply (wp_storeField_struct with "[H_server]"). { repeat econstructor; eauto. } { iExact "H_server". } iIntros "H_server". wp_pures. iModIntro. iApply "HΦ". simpl in *.
+            assert (length prevs' = index) as claim8 by word.
+            assert (cur = cur' /\ nexts = nexts') as [<- <-].
+            { enough (cur :: nexts = cur' :: nexts') by now split; congruence.
+              rewrite <- claim2. rewrite EQ. rewrite drop_app.
+              replace (drop index prevs') with ( @nil Message.t) by now symmetry; eapply nil_length_inv; rewrite length_drop; word.
+              replace (index - length prevs')%nat with 0%nat by word.
+              reflexivity.
+            }
+            iAssert ⌜(length (coq_deleteAtIndexMessage s .(Server.UnsatisfiedRequests) (uint.nat (W64 index))) = uint.nat ns2 .(Slice.sz))%nat⌝%I as "%ns2_SZ".
+            { iDestruct "message_slice_ns2" as "(%ops2 & message_slice_ns2 & H_ops2)".
+              iPoseProof (big_sepL2_length with "[$H_ops2]") as "%LEN1".
+              iPoseProof (own_slice_sz with "[$message_slice_ns2]") as "%LEN2".
+              rewrite <- EQ in LEN1. rewrite <- LEN2. iPureIntro. symmetry. done.
+            }
+            iExists (prevs ++ [cur]). iExists nexts. iExists (let s : Server.t := (coq_processClientRequest s cur).1.2 in Server.mk s.(Server.Id) s.(Server.NumberOfServers) (coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) index) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements)). iExists (msgs ++ [(coq_processClientRequest s cur).2])%list. iExists _. iExists index. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iFrame.
+            iSplitL "". { rewrite <- app_assoc. done. }
+            iSplitL "". { iPureIntro. rewrite fold_left_app. simpl. rewrite <- LOOP. simpl. destruct (coq_processClientRequest s cur) as [[b' s'] reply']; simpl in *. subst b'; reflexivity. }
+            iSplitL "message_slice_ns2". { simpl. rewrite <- EQ. replace (uint.nat (W64 index)) with index by word. rewrite <- H2_invariant. iExact "message_slice_ns2". }
+            simpl in *. iDestruct "is_server_ns" as "(%H1'' & %H2'' & H3'' & H4'' & %H5'' & H6'' & H7'' & H8'' & H9'' & %H10'')". iFrame. iPureIntro.
+            simplNotation; subst; simpl; split. { destruct H1_invariant. split; simpl; trivial. } rewrite <- EQ in LEN_ns2. replace (uint.nat (W64 (length prevs'))) with (length prevs') in LEN_ns2, ns2_SZ by word. repeat (split; try done).
+            * rewrite <- H2_invariant. word.
+            * unfold coq_deleteAtIndexMessage. rewrite <- H2_invariant. rewrite <- drop_drop. rewrite -> claim2. simpl. replace (drop 0 nexts) with nexts by reflexivity. rewrite drop_app.
+              replace (drop (length prevs') (take (length prevs') s .(Server.UnsatisfiedRequests))) with ( @nil Message.t) by now symmetry; eapply nil_length_inv; rewrite length_drop; rewrite length_take; word.
+              replace (length prevs' - length (take (length prevs') s .(Server.UnsatisfiedRequests)))%nat with 0%nat by now rewrite length_take; word.
+              reflexivity.
+            * word.
+            * rewrite <- H2_invariant. word.
+          + admit.
         - admit.
       }
       { admit. }
