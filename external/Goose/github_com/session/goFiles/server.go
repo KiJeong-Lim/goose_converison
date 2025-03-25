@@ -335,7 +335,7 @@ func processRequest(server Server, request Message) (Server, []Message) {
 							S2S_Gossip_Sending_ServerId:   s.Id,
 							S2S_Gossip_Receiving_ServerId: index,
 							S2S_Gossip_Operations:         operations,
-							S2S_Gossip_Index:              uint64(len(s.MyOperations) - 1),
+							S2S_Gossip_Index:              uint64(len(s.MyOperations)),
 						})
 				}
 			}
