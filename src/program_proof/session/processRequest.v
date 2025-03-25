@@ -371,7 +371,25 @@ Section heap.
       - iPureIntro; unfold coq_acknowledgeGossip. destruct (uint.Z msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId) >=? length s .(Server.GossipAcknowledgements)) as [ | ] eqn: H_OBS; split; trivial.
     }
     wp_if_destruct.
-    { admit.
+    { wp_apply (wp_ref_to); auto. iIntros "%i H_i". wp_pures.
+      set (loop_init := @nil Message.t).
+      set (loop_step := λ acc : list Message.t, λ index : nat,
+        if (negb (index =? (uint.nat s.(Server.Id)))) && (negb (length (coq_getGossipOperations s index) =? 0)) then
+          let S2S_Gossip_Sending_ServerId := s.(Server.Id) in
+          let S2S_Gossip_Receiving_ServerId := index in
+          let S2S_Gossip_Operations := coq_getGossipOperations s index in
+          let S2S_Gossip_Index := (length (s.(Server.MyOperations)) - 1)%nat in
+          let message := Message.mk 1 0 0 0 0 [] S2S_Gossip_Sending_ServerId S2S_Gossip_Receiving_ServerId S2S_Gossip_Operations S2S_Gossip_Index 0 0 0 0 0 [] 0 0 in
+          acc ++ [message]
+        else
+          acc
+      ).
+      (* wp_apply (wp_forBreak_cond
+        ( λ continue, ∃ N : nat, ∃ msgs : list Message.t,
+          ⌜msgs = fold_left loop_step (seq 0%nat N) loop_init⌝
+        )%I
+      with "[] [H_outGoingRequests H_server H3 H4 H6 H7 H8 H9 H_message H_s2 H_i H_reply H_succeeded]"). *)
+      admit.
     }
     { set (ns := (s.(Server.Id), s.(Server.NumberOfServers), t4, t3, t2, t1, t0, t)). replace (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #()))))))))%V with (server_val ns) by reflexivity.
       wp_load. wp_load. wp_pures. iModIntro.

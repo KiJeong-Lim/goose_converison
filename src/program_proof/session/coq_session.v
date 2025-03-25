@@ -186,7 +186,7 @@ Module CoqSession.
         []
       in
       let loop_step (acc: list Message.t) (index: nat) : list Message.t :=
-        if (negb (index =? (uint.nat server.(Server.Id)))) then
+        if (negb (index =? (uint.nat server.(Server.Id)))) && (negb (length (coq_getGossipOperations server index) =? 0)) then
           let S2S_Gossip_Sending_ServerId := server.(Server.Id) in
           let S2S_Gossip_Receiving_ServerId := index in
           let S2S_Gossip_Operations := coq_getGossipOperations server index in
