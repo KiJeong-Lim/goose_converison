@@ -386,7 +386,6 @@ Section heap.
       ).
       iAssert ⌜uint.nat t1.(Slice.sz) = length s .(Server.MyOperations)⌝%I as "%t1_SZ".
       { iDestruct "H7" as "(%ops1 & H7 & H_ops1)". iPoseProof (big_sepL2_length with "[$H_ops1]") as "%LEN1". iPoseProof (own_slice_sz with "[$H7]") as "%LEN2". word. }
-      
       wp_apply (wp_forBreak_cond
         ( λ continue, ∃ index : nat, ∃ msgs : list Message.t, ∃ out_going_requests : Slice.t,
           ⌜msgs = fold_left loop_step (seq 0%nat index) loop_init⌝ ∗
