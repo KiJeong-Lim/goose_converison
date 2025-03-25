@@ -190,7 +190,7 @@ Module CoqSession.
           let S2S_Gossip_Sending_ServerId := server.(Server.Id) in
           let S2S_Gossip_Receiving_ServerId := index in
           let S2S_Gossip_Operations := coq_getGossipOperations server index in
-          let S2S_Gossip_Index := (length (server.(Server.MyOperations)) - 1)%nat in
+          let S2S_Gossip_Index := length (server.(Server.MyOperations)) - 1 in
           let message := Message.mk 1 0 0 0 0 [] S2S_Gossip_Sending_ServerId S2S_Gossip_Receiving_ServerId S2S_Gossip_Operations S2S_Gossip_Index 0 0 0 0 0 [] 0 0 in
           acc ++ [message]
         else
