@@ -19,7 +19,7 @@ Section heap.
         is_message nm (coq_processClientRequest s msg).2 n 0%nat (if b then m else 0%nat) ∗
         is_message msgv msg n m len_s2c ∗
         ⌜SERVER_INVARIANT (coq_processClientRequest s msg).1.2⌝ ∗
-        ⌜s.(Server.UnsatisfiedRequests) = (coq_processClientRequest s msg).1.2.(Server.UnsatisfiedRequests) /\ sv!(2) = ns!(2)⌝
+        ⌜s.(Server.UnsatisfiedRequests) = (coq_processClientRequest s msg).1.2.(Server.UnsatisfiedRequests) /\ sv!(2) = ns!(2) /\ s.(Server.GossipAcknowledgements) = (coq_processClientRequest s msg).1.2.(Server.GossipAcknowledgements)⌝
     }}}.
   Proof.
     rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_precondition) HΦ". destruct H_precondition as [? ? ? ?].
@@ -175,7 +175,7 @@ Section heap.
     { wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%succeeded H_succeeded".
       wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%reply H_reply".
       wp_pures. wp_load. replace (processClientRequest (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #()))))))))%V (#msg .(Message.MessageType), (#msg .(Message.C2S_Client_Id), (#msg .(Message.C2S_Server_Id), (#msg .(Message.C2S_Client_OperationType), (#msg .(Message.C2S_Client_Data), (t7, (#msg .(Message.S2S_Gossip_Sending_ServerId), (#msg .(Message.S2S_Gossip_Receiving_ServerId), (t6, (#msg .(Message.S2S_Gossip_Index), (#msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Index), (#msg .(Message.S2C_Client_OperationType), (#msg .(Message.S2C_Client_Data), (t5, (#msg .(Message.S2C_Server_Id), (#msg .(Message.S2C_Client_Number), #()))))))))))))))))))%V) with (processClientRequest (server_val (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)) (message_val (msg .(Message.MessageType), msg .(Message.C2S_Client_Id), msg .(Message.C2S_Server_Id), msg .(Message.C2S_Client_OperationType), msg .(Message.C2S_Client_Data), t7, msg .(Message.S2S_Gossip_Sending_ServerId), msg .(Message.S2S_Gossip_Receiving_ServerId), t6, msg .(Message.S2S_Gossip_Index), msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), msg .(Message.S2S_Acknowledge_Gossip_Index), msg .(Message.S2C_Client_OperationType), msg .(Message.S2C_Client_Data), t5, msg .(Message.S2C_Server_Id), msg .(Message.S2C_Client_Number)))) by f_equal.
-      wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := true) with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame. simplNotation; subst. done. } iIntros "%b %ns %nm (-> & H_server' & H_message' & H_message & %H1_postcondition & [%H2_postcondition %H3_postcondition])".
+      wp_apply (wp_processClientRequest (OWN_UnsatisfiedRequests := true) with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame. simplNotation; subst. done. } iIntros "%b %ns %nm (-> & H_server' & H_message' & H_message & %H1_postcondition & %H2_postcondition & %H3_postcondition & %H4_postcondition)".
       wp_store. wp_store. wp_pures; lazymatch goal with [ |- envs_entails _ (wp ?s ?E (App ?k ?e)%E ?Q) ] => eapply (tac_wp_store_ty _ _ _ _ _ _ [AppRCtx k]%list); [repeat econstructor; eauto | tc_solve | let l := reply in iAssumptionCore | reflexivity | simpl] end.
       wp_pures. wp_load. wp_if_destruct.
       - wp_load. wp_load. replace message_val with (message_into_val .(to_val)) by reflexivity. wp_apply (wp_SliceAppend with "[$H_s1]"). iIntros "%s2 H_s2".
@@ -191,12 +191,12 @@ Section heap.
     }
     wp_if_destruct.
     { wp_load. replace (receiveGossip (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #()))))))))%V (#msg .(Message.MessageType), (#msg .(Message.C2S_Client_Id), (#msg .(Message.C2S_Server_Id), (#msg .(Message.C2S_Client_OperationType), (#msg .(Message.C2S_Client_Data), (t7, (#msg .(Message.S2S_Gossip_Sending_ServerId), (#msg .(Message.S2S_Gossip_Receiving_ServerId), (t6, (#msg .(Message.S2S_Gossip_Index), (#msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Index), (#msg .(Message.S2C_Client_OperationType), (#msg .(Message.S2C_Client_Data), (t5, (#msg .(Message.S2C_Server_Id), (#msg .(Message.S2C_Client_Number), #()))))))))))))))))))%V) with (receiveGossip (server_val (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)) (message_val( msg .(Message.MessageType), msg .(Message.C2S_Client_Id), msg .(Message.C2S_Server_Id), msg .(Message.C2S_Client_OperationType), msg .(Message.C2S_Client_Data), t7, msg .(Message.S2S_Gossip_Sending_ServerId), msg .(Message.S2S_Gossip_Receiving_ServerId), t6, msg .(Message.S2S_Gossip_Index), msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), msg .(Message.S2S_Acknowledge_Gossip_Index), msg .(Message.S2C_Client_OperationType), msg .(Message.S2C_Client_Data), t5, msg .(Message.S2C_Server_Id), msg .(Message.S2C_Client_Number)))) by f_equal.
-      wp_apply (wp_receiveGossip with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame. simplNotation; subst. done. } iIntros "%r (Hr & H_message & %H1_sorted & %H2_sorted)".
+      wp_apply (wp_receiveGossip with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame. simplNotation; subst. done. } iIntros "%r (Hr & H_message & [%H1_sorted %H2_sorted] & [%H_ServerMyOperations %H_ServerId])".
       wp_store. wp_load. wp_load. TypeVector.des r. replace (#(W64 2), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (#r, (#msg .(Message.S2S_Gossip_Sending_ServerId), (#msg .(Message.S2S_Gossip_Index), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V with (message_into_val .(to_val) (W64 2, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, r, msg .(Message.S2S_Gossip_Sending_ServerId), msg .(Message.S2S_Gossip_Index), W64 0, W64 0, Slice.nil, W64 0, W64 0)) by reflexivity.
       wp_apply (wp_SliceAppend with "[$H_s1]"). iIntros "%s2 H_s2". wp_store. wp_pures. wp_apply (wp_ref_to); auto. iIntros "%i H_i". wp_apply (wp_ref_to). { repeat econstructor; eauto. } iIntros "%reply H_reply". wp_pures. wp_apply (wp_ref_to); auto. iIntros "%succeeded H_succeeded". wp_pures. simpl in *.
       rename r into Id, w into NumberOfServers, t13 into UnsatisfiedRequests, t12 into VectorClock, t11 into OperationsPerformed, t10 into MyOperations, t9 into PendingOperations, t8 into GossipAcknowledgements.
       set (focus := (coq_receiveGossip s msg).(Server.UnsatisfiedRequests)).
-      set (loop_init := (0%nat, (s, [Message.mk 0 0 0 0 0 [] 0 0 [] 0 (s.(Server.Id)) (msg.(Message.S2S_Gossip_Sending_ServerId)) (msg.(Message.S2S_Gossip_Index)) 0 0 [] 0 0]))).
+      set (loop_init := (0%nat, (coq_receiveGossip s msg, [Message.mk 2 0 0 0 0 [] 0 0 [] 0 ((coq_receiveGossip s msg).(Server.Id)) (msg.(Message.S2S_Gossip_Sending_ServerId)) (msg.(Message.S2S_Gossip_Index)) 0 0 [] 0 0]))).
       set (loop_step := λ acc : nat * (Server.t * list Message.t), λ element : Message.t,
         let '(i, (s, outGoingRequests)) := acc in
         let '(succeeded, s, reply) := coq_processClientRequest s element in
@@ -231,11 +231,12 @@ Section heap.
           ⌜length s.(Server.UnsatisfiedRequests) = uint.nat UnsatisfiedRequests.(Slice.sz)⌝ ∗
           ⌜Id = s.(Server.Id)⌝ ∗
           ⌜NumberOfServers = s.(Server.NumberOfServers)⌝ ∗
+          ⌜length (coq_receiveGossip s0 msg).(Server.GossipAcknowledgements) = length s.(Server.GossipAcknowledgements)⌝ ∗
           ⌜continue = false -> nexts = []⌝
         )%I
       with "[] [H_outGoingRequests H_server H3 H4 H6 H7 H8 H9 H_message H_s2 H_i H_reply H_succeeded]").
       { subst Id NumberOfServers. clear Φ UnsatisfiedRequests VectorClock OperationsPerformed MyOperations PendingOperations GossipAcknowledgements.
-        iIntros "%Φ". iModIntro. iIntros "(%prevs & %nexts & %s & %msgs & %out_going_requests & %index & %msgv & %b & %Id & %NumberOfServers & %UnsatisfiedRequests & %VectorClock & %OperationPerformed & %MyOperations & %PendingOperations & %GossipAcknowledgements & %FOCUS & %LOOP & H_outGoingRequests & H_i & H_reply & H_succeeded & H_server & H_UnsatisfiedRequests & H_VectorClock & H_OperationsPerformed & H_MyOperations & H_PendingOperations & H_GossipAcknowledgements & H_out_going_requests & %H_server_invariant & %claim1 & %claim2 & %claim3 & %claim4 & %claim5 & %claim6 & %claim7 & %H_continue) HΦ". iDestruct "H_UnsatisfiedRequests" as "(%msgv1 & [H1_UnsatisfiedRequests H2_UnsatisfiedRequests] & H3_UnsatisfiedRequests)".
+        iIntros "%Φ". iModIntro. iIntros "(%prevs & %nexts & %s & %msgs & %out_going_requests & %index & %msgv & %b & %Id & %NumberOfServers & %UnsatisfiedRequests & %VectorClock & %OperationsPerformed & %MyOperations & %PendingOperations & %GossipAcknowledgements & %FOCUS & %LOOP & H_outGoingRequests & H_i & H_reply & H_succeeded & H_server & H_UnsatisfiedRequests & H_VectorClock & H_OperationsPerformed & H_MyOperations & H_PendingOperations & H_GossipAcknowledgements & H_out_going_requests & %H_server_invariant & %claim1 & %claim2 & %claim3 & %claim4 & %claim5 & %claim6 & %claim7 & %LENGTH_GossipAcknowledgements & %H_continue) HΦ". iDestruct "H_UnsatisfiedRequests" as "(%msgv1 & [H1_UnsatisfiedRequests H2_UnsatisfiedRequests] & H3_UnsatisfiedRequests)".
         wp_load. wp_load. wp_apply (wp_slice_len). wp_if_destruct.
         - wp_pures. wp_load. wp_pures. wp_load. wp_pures.
           iPoseProof (big_sepL2_length with "[$H3_UnsatisfiedRequests]") as "%YES1".
@@ -256,7 +257,7 @@ Section heap.
               + iExact "is_message_cur'".
               + iPureIntro; done.
           }
-          iIntros "%r %ns %nm (-> & is_server_ns & is_message_nm & is_message_cur' & %H1_invariant & [%H2_invariant %H3_invariant])". wp_store. wp_store. wp_pures; lazymatch goal with [ |- envs_entails _ (wp ?s ?E (App ?k ?e)%E ?Q) ] => eapply (tac_wp_store_ty _ _ _ _ _ _ [AppRCtx k]%list); [repeat econstructor; eauto | tc_solve | let l := reply in iAssumptionCore | reflexivity | simpl] end. wp_load. wp_if_destruct.
+          iIntros "%r %ns %nm (-> & is_server_ns & is_message_nm & is_message_cur' & %H1_invariant & %H2_invariant & %H3_invariant & %H4_invariant)". wp_store. wp_store. wp_pures; lazymatch goal with [ |- envs_entails _ (wp ?s ?E (App ?k ?e)%E ?Q) ] => eapply (tac_wp_store_ty _ _ _ _ _ _ [AppRCtx k]%list); [repeat econstructor; eauto | tc_solve | let l := reply in iAssumptionCore | reflexivity | simpl] end. wp_load. wp_if_destruct.
           + wp_load. wp_load. iDestruct "H_out_going_requests" as "(%ops1 & H_out_going_requests & H_ops1)". replace (message_val nm) with (message_into_val.(to_val) nm) by reflexivity. wp_apply (wp_SliceAppend with "[$H_out_going_requests]"). iIntros "%out_going_requests' H_out_goint_requests'".
             wp_store. wp_load. wp_load. wp_pures. TypeVector.des ns; simplNotation; subst t13. wp_apply (wp_deleteAtIndexMessage with "[$H1_UnsatisfiedRequests $H2_UnsatisfiedRequests message_slice_prevs' message_slice_nexts' is_message_cur']").
             { instantiate (1 := (prevs' ++ cur' :: nexts')%list). iSplitR "".
@@ -291,17 +292,94 @@ Section heap.
               reflexivity.
             * word.
             * rewrite <- H2_invariant. word.
-          + admit.
-        - admit.
+          + TypeVector.des ns; simplNotation; subst t13.
+            assert (length prevs' = index) as claim8 by word.
+            assert (cur = cur' /\ nexts = nexts') as [<- <-].
+            { enough (cur :: nexts = cur' :: nexts') by now split; congruence.
+              rewrite <- claim2. rewrite EQ. rewrite drop_app.
+              replace (drop index prevs') with ( @nil Message.t) by now symmetry; eapply nil_length_inv; rewrite length_drop; word.
+              replace (index - length prevs')%nat with 0%nat by word.
+              reflexivity.
+            }
+            wp_load. wp_store. iModIntro. iApply "HΦ".
+            iExists (prevs ++ [cur])%list. iExists nexts. iExists ((coq_processClientRequest s cur).1.2). iExists msgs. iExists _. iExists (index + 1)%nat. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. replace (w64_word_instance .(word.add) (W64 index) (W64 1)) with (W64 (index + 1)%nat) by word. iFrame.
+            iSplitL "". { rewrite <- app_assoc. done. }
+            iSplitL "". { iPureIntro. rewrite fold_left_app. simpl. rewrite <- LOOP. simpl. destruct (coq_processClientRequest s cur) as [[b' s'] reply']; simpl in *. subst b'; reflexivity. }
+            iSplitL "message_slice_prevs' message_slice_nexts' is_message_cur'". { replace (uint.nat (W64 index)) with index in H_e |- * by word. rewrite <- H2_invariant, -> EQ. iApply (big_sepL2_middle_merge with "[is_message_cur' $message_slice_prevs' $message_slice_nexts']"); eauto. }
+            simpl in *. iDestruct "is_server_ns" as "(%H1'' & %H2'' & H3'' & H4'' & %H5'' & H6'' & H7'' & H8'' & H9'' & %H10'')". iFrame. iPureIntro.
+            simplNotation; subst; simpl; split. { destruct H1_invariant. split; simpl; trivial. } repeat (split; try done).
+            * rewrite <- H2_invariant. apply f_equal with (f := length) in EQ. rewrite length_app in EQ. simpl in *. word.
+            * rewrite <- drop_drop. rewrite <- H2_invariant. rewrite -> claim2. simpl. replace (drop 0 nexts) with nexts by reflexivity. reflexivity.
+            * word.
+            * rewrite <- H2_invariant. word.
+        - iModIntro. iApply "HΦ".
+          iExists prevs. iExists nexts. iExists s. iExists msgs. iExists _. iExists index. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iFrame. iPureIntro.
+          simplNotation; subst; simpl; split. { trivial. } repeat (split; try done). intros _.
+          eapply nil_length_inv. word.
       }
-      { admit. }
-      { admit. }
+      { iAssert ⌜length (coq_receiveGossip s0 msg) .(Server.UnsatisfiedRequests) = uint.nat UnsatisfiedRequests .(Slice.sz)⌝%I as "%UnsatisfiedRequests_SZ".
+        { iDestruct "H3" as "(%ops1 & H3 & Hops1)". iPoseProof (big_sepL2_length with "[$Hops1]") as "%LEN1". iPoseProof (own_slice_sz with "[$H3]") as "%LEN2". word. }
+        iExists []. iExists focus. iExists (coq_receiveGossip s0 msg). iExists [Message.mk 2 0 0 0 0 [] 0 0 [] 0 ((coq_receiveGossip s0 msg).(Server.Id)) (msg.(Message.S2S_Gossip_Sending_ServerId)) (msg.(Message.S2S_Gossip_Index)) 0 0 [] 0 0]. iExists s2. iExists 0%nat. iExists (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0). iExists false. iExists Id. iExists NumberOfServers. iExists UnsatisfiedRequests. iExists VectorClock. iExists OperationsPerformed. iExists MyOperations. iExists PendingOperations. iExists GossipAcknowledgements. iFrame.
+        iSplitL "". { done. }
+        iSplitL "". { simpl. done. }
+        iSplitL "".
+        { simpl. iSplitR ""; eauto. iExists 0%nat. repeat (iSplit; try done); simplNotation.
+          iSplitL "". { iApply own_slice_small_nil; eauto. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iExists []; iSplit; simpl; try done; iApply own_slice_nil; eauto. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iApply own_slice_small_nil; eauto. }
+          done.
+        }
+        iPureIntro. split.
+        { split; trivial.
+          - rewrite <- H_ServerMyOperations; trivial.
+          - rewrite <- H_ServerId; word.
+        }
+        split. { unfold focus. word. }
+        split. { unfold focus. reflexivity. }
+        split. { word. }
+        split. { word. }
+        split. { eauto. }
+        split. { word. }
+        split. { word. }
+        split. { word. }
+        congruence.
+      }
+      { subst. clear UnsatisfiedRequests VectorClock OperationsPerformed MyOperations PendingOperations GossipAcknowledgements. iIntros "(%prevs & %nexts & %s & %msgs & %out_going_requests & %index & %msgv & %b & %Id & %NumberOfServers & %UnsatisfiedRequests & %VectorClock & %OperationsPerformed & %MyOperations & %PendingOperations & %GossipAcknowledgements & %FOCUS & %LOOP & H_outGoingRequests & H_i & H_reply & H_succeeded & H_server & H_UnsatisfiedRequests & H_VectorClock & H_OperationsPerformed & H_MyOperations & H_PendingOperations & H_GossipAcknowledgements & H_out_going_requests & %H_server_invariant & %claim1 & %claim2 & %claim3 & %claim4 & %claim5 & %claim6 & %claim7 & %LENGTH_GossipAcknowledgements & %H_continue)". iDestruct "H_UnsatisfiedRequests" as "(%msgv1 & [H1_UnsatisfiedRequests H2_UnsatisfiedRequests] & H3_UnsatisfiedRequests)".
+        specialize (H_continue eq_refl). subst nexts. rewrite H_continue in FOCUS. rewrite app_nil_r in FOCUS. subst prevs.
+        wp_load. wp_load. wp_pures. iModIntro. iApply "HΦ".
+        iSplitL "H1_UnsatisfiedRequests H2_UnsatisfiedRequests H3_UnsatisfiedRequests H_VectorClock H_OperationsPerformed H_MyOperations H_PendingOperations H_GossipAcknowledgements".
+        { iFrame; simplNotation; subst; iFrame. unfold coq_processRequest; rewrite Heqb0; replace (uint.nat (W64 1)) with 1%nat by word; simpl; fold loop_step; fold loop_init; fold focus; rewrite <- LOOP; simpl; iFrame.
+          iPureIntro; repeat (split; try done). rewrite H10; trivial.
+        } 
+        unfold coq_processRequest; rewrite Heqb0; replace (uint.nat (W64 1)) with 1%nat by word; simpl; fold loop_step; fold loop_init; fold focus; rewrite <- LOOP; simpl; iFrame. done.
+      }
     }
     wp_if_destruct.
-    { admit. }
+    { wp_load. replace (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #()))))))))%V with (server_val (s.(Server.Id), s.(Server.NumberOfServers), t4, t3, t2, t1, t0, t)) by reflexivity. replace (#msg .(Message.MessageType), (#msg .(Message.C2S_Client_Id), (#msg .(Message.C2S_Server_Id), (#msg .(Message.C2S_Client_OperationType), (#msg .(Message.C2S_Client_Data), (t7, (#msg .(Message.S2S_Gossip_Sending_ServerId), (#msg .(Message.S2S_Gossip_Receiving_ServerId), (t6, (#msg .(Message.S2S_Gossip_Index), (#msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), (#msg .(Message.S2S_Acknowledge_Gossip_Index), (#msg .(Message.S2C_Client_OperationType), (#msg .(Message.S2C_Client_Data), (t5, (#msg .(Message.S2C_Server_Id), (#msg .(Message.S2C_Client_Number), #()))))))))))))))))))%V with (message_val (msg.(Message.MessageType), msg.(Message.C2S_Client_Id), msg.(Message.C2S_Server_Id), msg.(Message.C2S_Client_OperationType), msg.(Message.C2S_Client_Data), t7, msg.(Message.S2S_Gossip_Sending_ServerId), msg.(Message.S2S_Gossip_Receiving_ServerId), t6, msg.(Message.S2S_Gossip_Index), msg.(Message.S2S_Acknowledge_Gossip_Sending_ServerId), msg.(Message.S2S_Acknowledge_Gossip_Receiving_ServerId), msg.(Message.S2S_Acknowledge_Gossip_Index), msg.(Message.S2C_Client_OperationType), msg.(Message.S2C_Client_Data), t5, msg.(Message.S2C_Server_Id), msg.(Message.S2C_Client_Number))) by reflexivity.
+      wp_apply (wp_acknowledgeGossip (OWN_UnsatisfiedRequests := true) with "[H3 H4 H6 H7 H8 H9 H16 H20 H27]"). { iFrame; simplNotation; simpl. done. } iIntros "[H_is_server H_is_message]". wp_store. wp_load. wp_load. wp_pures.
+      iModIntro. iApply "HΦ". unfold coq_processRequest; rewrite Heqb1; replace (uint.nat (W64 2)) with 2%nat by word; simpl; iFrame. iSplitR "".
+      - simpl; done.
+      - iPureIntro; unfold coq_acknowledgeGossip. destruct (uint.Z msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId) >=? length s .(Server.GossipAcknowledgements)) as [ | ] eqn: H_OBS; split; trivial.
+    }
     wp_if_destruct.
-    { admit. }
-    { admit. }
+    { admit.
+    }
+    { set (ns := (s.(Server.Id), s.(Server.NumberOfServers), t4, t3, t2, t1, t0, t)). replace (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #()))))))))%V with (server_val ns) by reflexivity.
+      wp_load. wp_load. wp_pures. iModIntro.
+      iApply "HΦ". unfold coq_processRequest. destruct (uint.nat msg .(Message.MessageType)) as [ | [ | [ | [ | n]]]] eqn: H_OBS; try word. iFrame; simplNotation; simpl; iPureIntro.
+      split; trivial.
+      - split; try done.
+      - split; trivial. split; trivial.
+    }
   Admitted.
 
 End heap.

@@ -11,14 +11,15 @@ Section heap.
     {{{
         is_server sv s n n n len_mo n len_ga true ∗ 
         is_message msgv msg n len_c2s len_s2c ∗
-        ⌜is_sorted s .(Server.PendingOperations) /\ is_sorted s .(Server.OperationsPerformed)⌝
+        ⌜is_sorted s.(Server.PendingOperations) /\ is_sorted s.(Server.OperationsPerformed)⌝
     }}}
       receiveGossip (server_val sv) (message_val msgv)
     {{{
-        r, RET server_val r;
+        r, RET (server_val r);
         is_server r (coq_receiveGossip s msg) n n n len_mo n len_ga true ∗
         is_message msgv msg n len_c2s len_s2c ∗
-        ⌜is_sorted (coq_receiveGossip s msg) .(Server.PendingOperations) /\ is_sorted (coq_receiveGossip s msg) .(Server.OperationsPerformed)⌝
+        ⌜is_sorted (coq_receiveGossip s msg).(Server.PendingOperations) /\ is_sorted (coq_receiveGossip s msg).(Server.OperationsPerformed)⌝ ∗
+        ⌜s.(Server.MyOperations) = (coq_receiveGossip s msg).(Server.MyOperations) /\ s.(Server.Id) = (coq_receiveGossip s msg).(Server.Id)⌝
     }}}.
   Proof.
     rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv.
@@ -55,8 +56,7 @@ Section heap.
       ).
       set (n := length s .(Server.VectorClock)). rename s into s0.
       wp_apply (wp_forBreak_cond
-        ( λ continue, ∃ prevs : list Operation.t, ∃ nexts : list Operation.t, ∃ index : nat, ∃ s : Server.t,
-          ∃ UnsatisfiedRequests : Slice.t, ∃ VectorClock : Slice.t, ∃ OperationsPerformed : Slice.t, ∃ PendingOperations : Slice.t, ∃ GossipAcknowledgements : Slice.t,
+        ( λ continue, ∃ prevs : list Operation.t, ∃ nexts : list Operation.t, ∃ index : nat, ∃ s : Server.t, ∃ UnsatisfiedRequests : Slice.t, ∃ VectorClock : Slice.t, ∃ OperationsPerformed : Slice.t, ∃ PendingOperations : Slice.t, ∃ GossipAcknowledgements : Slice.t,
           ⌜focus = prevs ++ nexts⌝ ∗
           ⌜(index, s) = fold_left loop_step prevs loop_init⌝ ∗
           i ↦[uint64T] #index ∗
@@ -77,11 +77,12 @@ Section heap.
           ⌜length s .(Server.GossipAcknowledgements) = length s0 .(Server.GossipAcknowledgements)⌝ ∗
           ⌜(index <= uint.nat PendingOperations .(Slice.sz))%nat⌝ ∗
           ⌜length s .(Server.PendingOperations) = uint.nat PendingOperations .(Slice.sz)⌝ ∗
+          ⌜s .(Server.MyOperations) = s0 .(Server.MyOperations) /\ s .(Server.Id) = s0 .(Server.Id)⌝ ∗
           ⌜continue = false -> nexts = []⌝
         )%I
       with "[] [H_i H_server H3 H4 H6 H7 H8 H9 H16 H20 H27 H31]").
       { clear Φ UnsatisfiedRequests VectorClock OperationsPerformed PendingOperations GossipAcknowledgements.
-        iIntros "%Φ". iModIntro. iIntros "(%prevs & %nexts & %index & %s & %UnsatisfiedRequests & %VectorClock & %OperationsPerformed & %PendingOperations & %GossipAcknowledgements & %H_split_focus & %H_loop & H_i & H_server & H3 & H4 & H6 & H7 & H8 & H20 & H9 & H16 & H27 & %H_length & %H_nexts & %H1_invariant & [%H2_invariant %H2_invariant'] & %H_index & %H3_invariant & %H4_invariant & %H_continue) HΦ".
+        iIntros "%Φ". iModIntro. iIntros "(%prevs & %nexts & %index & %s & %UnsatisfiedRequests & %VectorClock & %OperationsPerformed & %PendingOperations & %GossipAcknowledgements & %H_split_focus & %H_loop & H_i & H_server & H3 & H4 & H6 & H7 & H8 & H20 & H9 & H16 & H27 & %H_length & %H_nexts & %H1_invariant & [%H2_invariant %H2_invariant'] & %H_index & %H3_invariant & %H4_invariant & [%H5_invariant %H6_invariant] & %H_continue) HΦ".
         wp_pures. wp_load. wp_load. wp_pures. wp_apply wp_slice_len. wp_if_destruct.
         - wp_pures. wp_load. wp_pures. wp_load. wp_pures. iDestruct "H8" as "(%ops1 & [H1_8 H2_8] & H3_8)".
           iPoseProof (big_sepL2_length with "[$H3_8]") as "%YES1".
@@ -212,7 +213,7 @@ Section heap.
         - word.
         - congruence.
       }
-      { iIntros "(%prevs & %nexts & %index & %s & %UnsatisfiedRequests' & %VectorClock' & %OperationsPerformed' & %PendingOperations' & %GossipAcknowledgements' & %H_split_focus & %H_loop & H_i & H_server & H3 & H4 & H6 & H7 & H8 & H20 & H9 & H16 & H27 & %H_length & %H_nexts & %H1_invariant & [%H2_invariant %H2_invariant'] & %H_index & %H3_invariant & %H4_invariant & %H_continue)".
+      { iIntros "(%prevs & %nexts & %index & %s & %UnsatisfiedRequests' & %VectorClock' & %OperationsPerformed' & %PendingOperations' & %GossipAcknowledgements' & %H_split_focus & %H_loop & H_i & H_server & H3 & H4 & H6 & H7 & H8 & H20 & H9 & H16 & H27 & %H_length & %H_nexts & %H1_invariant & [%H2_invariant %H2_invariant'] & %H_index & %H3_invariant & %H4_invariant & [%H5_invariant %H6_invariant] & %H_continue)".
         wp_pures. wp_load. iModIntro.
         set (r := (s .(Server.Id), s .(Server.NumberOfServers), UnsatisfiedRequests', VectorClock', OperationsPerformed', MyOperations, PendingOperations', GossipAcknowledgements')).
         replace (Φ (#s .(Server.Id), (#s .(Server.NumberOfServers), (UnsatisfiedRequests', (VectorClock', (OperationsPerformed', (MyOperations, (PendingOperations', (GossipAcknowledgements', #()))))))))%V) with (Φ (#r.1.1.1.1.1.1.1, (#r.1.1.1.1.1.1.2, (r.1.1.1.1.1.2, (r.1.1.1.1.2, (r.1.1.1.2, (r.1.1.2, (r.1.2, (r.2, #()))))))))%V) by f_equal.
@@ -227,12 +228,15 @@ Section heap.
           + word.
           + word.
           + rewrite take_drop in H2_invariant. done.
+          + done.
+          + done.
       }
   Qed.
 
-  Lemma wp_acknowledgeGossip (sv: tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
-    (msgv: tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t)
-    (n: nat) len_c2s len_s2c len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests :
+  Lemma wp_acknowledgeGossip {OWN_UnsatisfiedRequests: bool}
+    (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
+    (msgv: tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t)
+    (n: nat) len_c2s len_s2c len_vc len_op len_mo len_po len_ga :
     {{{
         is_server sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗ 
         is_message msgv msg n len_c2s len_s2c
@@ -281,8 +285,9 @@ Section heap.
       + iPureIntro. done.
   Qed.
 
-  Lemma wp_getGossipOperations (sv: tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
-    (serverId: w64) (n: nat) len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests :
+  Lemma wp_getGossipOperations {OWN_UnsatisfiedRequests: bool}
+    (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
+    (serverId: w64) (n: nat) len_vc len_op len_mo len_po len_ga :
     {{{
         is_server sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}
