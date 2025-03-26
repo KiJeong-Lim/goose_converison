@@ -337,7 +337,7 @@ Definition processRequest: val :=
                     "S2S_Gossip_Sending_ServerId" ::= struct.get Server "Id" (![struct.t Server] "s");
                     "S2S_Gossip_Receiving_ServerId" ::= "index";
                     "S2S_Gossip_Operations" ::= "operations";
-                    "S2S_Gossip_Index" ::= (slice.len (struct.get Server "MyOperations" (![struct.t Server] "s"))) - #1
+                    "S2S_Gossip_Index" ::= slice.len (struct.get Server "MyOperations" (![struct.t Server] "s"))
                   ]))
                 else #())
               else #());;
