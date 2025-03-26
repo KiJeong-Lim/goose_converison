@@ -90,7 +90,7 @@ Section heap.
     }}}
       deleteAtIndexMessage s #index
     {{{
-        (ns: Slice.t), RET slice_val (ns);
+        ns, RET (slice_val ns);
         message_slice ns (coq_deleteAtIndexMessage l (uint.nat index)) n len_c2s ∗
         ⌜(length (coq_deleteAtIndexMessage l (uint.nat index)) + 1 = length l)%nat⌝
     }}}.
@@ -238,7 +238,7 @@ Section heap.
     }}}
       mergeOperations s1 s2 
     {{{
-        ns, RET slice_val (ns);
+        ns, RET (slice_val ns);
         ∃ nxs, operation_slice ns nxs n ∗
         ⌜nxs = coq_mergeOperations l1 l2⌝ ∗
         operation_slice s1 l1 n ∗

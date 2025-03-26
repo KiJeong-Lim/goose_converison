@@ -2,6 +2,8 @@ From Goose.github_com.session Require Export server.
 From Goose.github_com.session Require Export client.
 From Perennial.program_proof Require Export std_proof grove_prelude.
 
+#[local] Obligation Tactic := intros.
+
 Create HintDb session_hints.
 
 Module SessionPrelude.
@@ -56,13 +58,12 @@ Module SessionPrelude.
       (EQ : prefix1 ++ suffix = prefix2 ++ suffix)
       : prefix1 = prefix2.
     Proof.
-      revert prefix1 prefix2 EQ. induction suffix as [suffix] using rev_dual. induction prefix1 as [prefix1] using rev_dual. induction prefix2 as [prefix2] using rev_dual.
+      revert prefix1 prefix2 EQ. induction suffix as [suffix] using rev_dual.
+      induction prefix1 as [prefix1] using rev_dual. induction prefix2 as [prefix2] using rev_dual.
       do 2 rewrite <- rev_app. intros EQ. apply rev_inj in EQ. apply app_cancel_l in EQ. congruence.
     Qed.
 
   End MORE_LIST_LEMMAS.
-
-  #[local] Obligation Tactic := intros.
 
   Class hsEq (A : Type) {well_formed : A -> Prop} : Type :=
     { eqProp (x : A) (y : A) : Prop
@@ -123,10 +124,10 @@ Module SessionPrelude.
 
   #[global, program]
   Instance hsEq_preimage {A : Type} {B : Type}
-    {B_well_formed : B -> Prop}
-    {hsEq : hsEq B (well_formed := B_well_formed)}
+    {well_formed : B -> Prop}
+    {hsEq : SessionPrelude.hsEq B (well_formed := well_formed)}
     (f : A -> B)
-    : SessionPrelude.hsEq A (well_formed := fun x : A => B_well_formed (f x)) :=
+    : SessionPrelude.hsEq A (well_formed := fun x : A => well_formed (f x)) :=
       { eqProp x y := eqProp (f x) (f y)
       ; eqb x y := eqb (f x) (f y)
       }.
@@ -307,9 +308,9 @@ Module SessionPrelude.
 
   #[global, program]
   Instance hsOrd_preimage {A : Type} {B : Type}
-    {B_well_formed : B -> Prop}
-    {hsEq : hsEq B (well_formed := B_well_formed)}
-    {hsOrd : hsOrd B (hsEq := hsEq)}
+    {well_formed : B -> Prop}
+    {hsEq : SessionPrelude.hsEq B (well_formed := well_formed)}
+    {hsOrd : SessionPrelude.hsOrd B (hsEq := hsEq)}
     (f : A -> B)
     : SessionPrelude.hsOrd A (hsEq := hsEq_preimage f):=
       { ltProp x y := ltProp (f x) (f y)
@@ -920,24 +921,24 @@ Module TypeVector.
     : forall Ts: TypeVector.t (S n), tuple_of n Ts -> nthType i Ts.
   Proof.
     destruct n as [ | n']; simpl.
-    - induction Ts as [T' has_value_of Ts'] using caseS.
-      induction Ts' as [] using case0.
+    - induction Ts as [T' has_value_of Ts'] using TypeVector.caseS.
+      induction Ts' as [] using TypeVector.case0.
       destruct i as [ | i']; simpl.
-      + intros x. exact x.
-      + intros x. exact tt.
-    - induction Ts as [T' has_value_of Ts'] using caseS.
+      + intros tuple. exact tuple.
+      + intros tuple. exact tt.
+    - induction Ts as [T' has_value_of Ts'] using TypeVector.caseS.
       destruct i as [ | i']; simpl.
-      + intros x. exact (snd x).
-      + intros x. exact (nth n' i' Ts' (fst x)).
+      + intros tuple. exact (snd tuple).
+      + intros tuple. exact (nth n' i' Ts' (fst tuple)).
   Defined.
 
-  Definition lookup {n} {Ts} (tuple: tuple_of n Ts) i : nthType (n - i) Ts :=
-    nth n (n - i) Ts tuple.
+  Definition lookup {n} {Ts} (tuple: tuple_of n Ts) i : nthType (n - i)%nat Ts :=
+    nth n (n - i)%nat Ts tuple.
 
   Fixpoint magic (n: nat) {struct n} : forall Ts: TypeVector.t (S n), val -> tuple_of n Ts -> val :=
     match n with
-    | O => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => (SessionPrelude.value_of x, v)%V)
-    | S n => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => magic n Ts (SessionPrelude.value_of (snd x), v)%V (fst x))
+    | O => TypeVector.caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun tuple => (SessionPrelude.value_of tuple, v)%V)
+    | S n => TypeVector.caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun tuple => magic n Ts (SessionPrelude.value_of (snd tuple), v)%V (fst tuple))
     end.
 
   Ltac des H :=

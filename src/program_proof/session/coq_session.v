@@ -157,29 +157,29 @@ Module CoqSession.
   Definition coq_processRequest (server: Server.t) (request: Message.t) : Server.t * list Message.t :=
     match uint.nat request.(Message.MessageType) with
     | 0%nat =>
-        let '(succeeded, server, reply) := coq_processClientRequest server request in
-        if succeeded then
-          (server, [reply])
-        else
-          let UnsatisfiedRequests := server.(Server.UnsatisfiedRequests) ++ [request] in 
-          let server := Server.mk server.(Server.Id) server.(Server.NumberOfServers) UnsatisfiedRequests server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements) in
-          (server, [])
+      let '(succeeded, server, reply) := coq_processClientRequest server request in
+      if succeeded then
+        (server, [reply])
+      else
+        let UnsatisfiedRequests := server.(Server.UnsatisfiedRequests) ++ [request] in 
+        let server := Server.mk server.(Server.Id) server.(Server.NumberOfServers) UnsatisfiedRequests server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements) in
+        (server, [])
     | 1%nat =>
-        let server := coq_receiveGossip server request in
-        let focus := server.(Server.UnsatisfiedRequests) in
-        let loop_init : nat * (Server.t * list Message.t) :=
-          (0%nat, (server, [Message.mk 2 0 0 0 0 [] 0 0 [] 0 (server.(Server.Id)) (request.(Message.S2S_Gossip_Sending_ServerId)) (request.(Message.S2S_Gossip_Index)) 0 0 [] 0 0]))
-        in
-        let loop_step (acc: nat * (Server.t * list Message.t)) (element: Message.t) : nat * (Server.t * list Message.t) :=
-          let '(i, (s, outGoingRequests)) := acc in
-          let '(succeeded, s, reply) := coq_processClientRequest s element in
-          if succeeded then
-            let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
-            (i, (Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply]))
-          else
-            ((i + 1)%nat, (s, outGoingRequests))
-        in
-        snd (fold_left loop_step focus loop_init)
+      let server := coq_receiveGossip server request in
+      let focus := server.(Server.UnsatisfiedRequests) in
+      let loop_init : nat * (Server.t * list Message.t) :=
+        (0%nat, (server, [Message.mk 2 0 0 0 0 [] 0 0 [] 0 (server.(Server.Id)) (request.(Message.S2S_Gossip_Sending_ServerId)) (request.(Message.S2S_Gossip_Index)) 0 0 [] 0 0]))
+      in
+      let loop_step (acc: nat * (Server.t * list Message.t)) (element: Message.t) : nat * (Server.t * list Message.t) :=
+        let '(i, (s, outGoingRequests)) := acc in
+        let '(succeeded, s, reply) := coq_processClientRequest s element in
+        if succeeded then
+          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
+          (i, (Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply]))
+        else
+          ((i + 1)%nat, (s, outGoingRequests))
+      in
+      snd (fold_left loop_step focus loop_init)
     | 2%nat => (coq_acknowledgeGossip server request, [])
     | 3%nat =>
       let loop_init : list Message.t :=
@@ -386,27 +386,27 @@ Section heap.
       + exact YES1.
   Qed.
 
-  Lemma pers_big_sepL2_is_operation l ops (n: nat)
-    : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (<pers> ([∗ list] opv;o ∈ ops;l, is_operation opv o n))%I.
-  Proof.
-    iIntros "H_big_sepL2". iApply (big_sepL2_persistently). iApply (big_sepL2_mono (λ k, λ y1, λ y2, is_operation y1 y2 n)%I).
-    - intros. iIntros "#H". iApply intuitionistically_into_persistently_1. iModIntro. done.
-    - done.
-  Qed.
-
   Lemma pers_is_operation opv o (n: nat)
     : (is_operation opv o n)%I ⊢@{iProp Σ} (<pers> (is_operation opv o n))%I.
   Proof.
     iIntros "#H". done.
   Qed.
 
+  Lemma pers_big_sepL2_is_operation l ops (n: nat)
+    : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (<pers> ([∗ list] opv;o ∈ ops;l, is_operation opv o n))%I.
+  Proof.
+    iIntros "H_big_sepL2". iApply (big_sepL2_persistently).
+    iApply (big_sepL2_mono (λ k, λ y1, λ y2, is_operation y1 y2 n)%I with "[$H_big_sepL2]").
+    intros. iIntros "#H". done.
+  Qed.
+
   Lemma pers_emp
-    : emp ⊢@{iProp Σ} <pers> emp.
+    : (emp)%I ⊢@{iProp Σ} (<pers> emp)%I.
   Proof.
     iIntros "#H". done.
   Qed.
 
-  Lemma big_sepL2_is_operation_elim l ops (n: nat) (i: nat) l_i ops_i
+  Lemma big_sepL2_is_operation_elim (l: list Operation.t) (ops: list (Slice.t * w64)) (n: nat) (i: nat) l_i ops_i
     (H_l_i: l !! i = Some l_i)
     (H_ops_i: ops !! i = Some ops_i)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (is_operation ops_i l_i n)%I.
