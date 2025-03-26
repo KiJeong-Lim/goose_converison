@@ -5,18 +5,18 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
-  Lemma wp_receiveGossip (sv: tuple_of[u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
-    (msgv: tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t)
+  Lemma wp_receiveGossip (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
+    (msgv: tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t)
     (n: nat) len_c2s len_s2c len_mo len_ga :
     {{{
-        is_server sv s n n n len_mo n len_ga true ∗ 
+        is_server' sv s n n n len_mo n len_ga true ∗ 
         is_message msgv msg n len_c2s len_s2c ∗
         ⌜is_sorted s.(Server.PendingOperations) /\ is_sorted s.(Server.OperationsPerformed)⌝
     }}}
       receiveGossip (server_val sv) (message_val msgv)
     {{{
         r, RET (server_val r);
-        is_server r (coq_receiveGossip s msg) n n n len_mo n len_ga true ∗
+        is_server' r (coq_receiveGossip s msg) n n n len_mo n len_ga true ∗
         is_message msgv msg n len_c2s len_s2c ∗
         ⌜is_sorted (coq_receiveGossip s msg).(Server.PendingOperations) /\ is_sorted (coq_receiveGossip s msg).(Server.OperationsPerformed)⌝ ∗
         ⌜s.(Server.MyOperations) = (coq_receiveGossip s msg).(Server.MyOperations) /\ s.(Server.Id) = (coq_receiveGossip s msg).(Server.Id)⌝
@@ -238,13 +238,13 @@ Section heap.
     (msgv: tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t)
     (n: nat) len_c2s len_s2c len_vc len_op len_mo len_po len_ga :
     {{{
-        is_server sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗ 
+        is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗ 
         is_message msgv msg n len_c2s len_s2c
     }}}
       acknowledgeGossip (server_val sv) (message_val msgv)
     {{{
         RET (server_val sv);
-        is_server sv (coq_acknowledgeGossip s msg) n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗
+        is_server' sv (coq_acknowledgeGossip s msg) n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗
         is_message msgv msg n len_c2s len_s2c
     }}}.
   Proof.
@@ -272,7 +272,7 @@ Section heap.
           rewrite list_lookup_fmap. rewrite H_x. done.
       }
       iIntros "H9". wp_pures. iModIntro. iApply "HΦ". iFrame. iSplitR "".
-      + unfold is_server. simplNotation. unfold coq_acknowledgeGossip.
+      + unfold is_server'. simplNotation. unfold coq_acknowledgeGossip.
         destruct (uint.Z msg .(Message.S2S_Acknowledge_Gossip_Sending_ServerId) >=? length s .(Server.GossipAcknowledgements)) as [ | ] eqn: H_OBS.
         * rewrite Z.geb_ge in H_OBS. word.
         * rewrite H_x. simpl. iFrame.
@@ -289,13 +289,13 @@ Section heap.
     (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
     (serverId: w64) (n: nat) len_vc len_op len_mo len_po len_ga :
     {{{
-        is_server sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
+        is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}
       getGossipOperations (server_val sv) (#serverId)
     {{{
         ns, RET (slice_val ns);
         operation_slice ns (coq_getGossipOperations s serverId) len_mo ∗
-        is_server sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
+        is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}.
   Proof.
     TypeVector.des sv.

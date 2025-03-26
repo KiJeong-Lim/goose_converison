@@ -311,7 +311,7 @@ Section heap.
   #[global] Instance server_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (struct.t server.Server).
   Proof. constructor; auto. simpl. repeat split; auto. Qed.
 
-  Definition is_server (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
+  Definition is_server' (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
     (n: nat) (len_vc: nat) (len_op: nat) (len_mo: nat) (len_po: nat) (len_ga: nat) (OWN_UnsatisfiedRequests: bool) : iProp Σ :=
     ⌜sv!(0) = s.(Server.Id)⌝ ∗
     ⌜sv!(1) = s.(Server.NumberOfServers)⌝ ∗
@@ -324,6 +324,10 @@ Section heap.
     own_slice_small sv!(7) uint64T (DfracOwn 1) s.(Server.GossipAcknowledgements) ∗
     ⌜len_ga = length s.(Server.GossipAcknowledgements)⌝.
 
+
+  Definition is_server sv s n len_vc len_op len_mo len_po len_ga : iProp Σ :=
+    is_server' sv s n len_vc len_op len_mo len_po len_ga true.
+
   Definition client_val (c:u64*u64*Slice.t*Slice.t*u64) : val :=
     (#c.1.1.1.1,
        (#c.1.1.1.2,
@@ -333,7 +337,7 @@ Section heap.
                    #())))))%V.
 
   Lemma redefine_client_val
-    : client_val = @SessionPrelude.value_of (tuple_of[u64,u64,Slice.t,Slice.t,u64]) _.
+    : client_val = @SessionPrelude.value_of (tuple_of [u64,u64,Slice.t,Slice.t,u64]) _.
   Proof.
     reflexivity.
   Defined.
@@ -380,7 +384,7 @@ Section heap.
   #[global] Instance client_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*u64) (struct.t client.Client).
   Proof. constructor; auto. cbn. split; auto. Qed.
 
-  Definition is_client (cv:tuple_of[u64,u64,Slice.t,Slice.t,u64])
+  Definition is_client (cv: tuple_of [u64,u64,Slice.t,Slice.t,u64])
     (c: Client.t) (n: nat) : iProp Σ :=
     ⌜cv!(0) = c.(Client.Id)⌝ ∗
     ⌜cv!(1) = c.(Client.NumberOfServers)⌝ ∗
