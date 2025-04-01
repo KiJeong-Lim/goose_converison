@@ -1,5 +1,4 @@
 From Perennial.program_proof.session Require Export session_prelude.
-From Goose.github_com.session Require Export client. (* NOTE: I've included this in session_prelude however I'm not sure why it doesn't work without this line *)
 
 Module Operation.
 
@@ -72,7 +71,6 @@ Module Client.
       }.
   
 End Client.
-       
 
 Section heap.
   Context `{hG: !heapGS Σ}.
@@ -323,7 +321,6 @@ Section heap.
     operation_slice sv!(6) s.(Server.PendingOperations) len_po ∗
     own_slice_small sv!(7) uint64T (DfracOwn 1) s.(Server.GossipAcknowledgements) ∗
     ⌜len_ga = length s.(Server.GossipAcknowledgements)⌝.
-
 
   Definition is_server sv s n len_vc len_op len_mo len_po len_ga : iProp Σ :=
     is_server' sv s n len_vc len_op len_mo len_po len_ga true.

@@ -1,7 +1,9 @@
 From Perennial.program_proof.session Require Export session_prelude.
 From Perennial.program_proof.session Require Export definitions.
 
-Module CoqSession.
+Module CoqSessionServer.
+
+  Include Goose.github_com.session.server.
 
   Fixpoint coq_compareVersionVector (v1: list u64) (v2: list u64) : bool :=
     match v1 with
@@ -200,9 +202,9 @@ Module CoqSession.
     | _ => (server, [])
     end.
 
-End CoqSession.
+End CoqSessionServer.
 
-Export CoqSession.
+Export CoqSessionServer.
 
 Section properties.
 
