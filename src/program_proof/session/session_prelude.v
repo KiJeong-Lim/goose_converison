@@ -2,23 +2,68 @@ From Goose.github_com.session Require Export server.
 From Goose.github_com.session Require Export client.
 From Perennial.program_proof Require Export std_proof grove_prelude.
 
+#[local] Obligation Tactic := intros.
+
 Create HintDb session_hints.
 
 Module SessionPrelude.
 
-  #[local] Obligation Tactic := intros.
+  Section MORE_LIST_LEMMAS.
 
-  Lemma list_ext {A : Type} (xs : list A) (ys : list A)
-    (LENGTH: length xs = length ys)
-    (LOOKUP: ∀ i : nat, ∀ x : A, ∀ y : A, (xs !! i = Some x /\ ys !! i = Some y) -> x = y)
-    : xs = ys.
-  Proof.
-    generalize dependent ys. induction xs as [ | x xs IH], ys as [ | y ys]; simpl; intros; try congruence.
-    f_equal.
-    - eapply LOOKUP with (i := 0%nat); simpl; tauto.
-    - eapply IH. { word. }
-      intros i x1 y1 [H_x1 H_y1]. eapply LOOKUP with (i := S i); simpl; tauto.
-  Qed.
+    Context {A : Type}.
+
+    Lemma list_ext (xs : list A) (ys : list A)
+      (LENGTH : length xs = length ys)
+      (LOOKUP : ∀ i : nat, ∀ x : A, ∀ y : A, (xs !! i = Some x /\ ys !! i = Some y) -> x = y)
+      : xs = ys.
+    Proof.
+      generalize dependent ys. induction xs as [ | x xs IH], ys as [ | y ys]; simpl; intros; try congruence. f_equal.
+      - eapply LOOKUP with (i := 0%nat); simpl; tauto.
+      - eapply IH. { word. }
+        intros i x1 y1 [H_x1 H_y1]. eapply LOOKUP with (i := S i); simpl; tauto.
+    Qed.
+
+    Lemma rev_app (l1 : list A) (l2 : list A)
+      : rev (l1 ++ l2) = (rev l2 ++ rev l1).
+    Proof.
+      induction l1 as [ | x1 l1 IH]; simpl.
+      - rewrite app_nil_r. reflexivity.
+      - rewrite IH. now rewrite <- app_assoc.
+    Qed.
+
+    Lemma rev_dual (P : list A -> Prop)
+      (DUAL : ∀ l : list A, P (rev l))
+      : ∀ l : list A, P l.
+    Proof.
+      induction l as [ | x l _] using rev_ind.
+      - eapply DUAL with (l := []).
+      - rewrite <- rev_involutive with (l := l). eapply DUAL with (l := (x :: rev l)).
+    Qed.
+
+    Lemma rev_inj (l1 : list A) (l2 : list A)
+      (EQ : rev l1 = rev l2)
+      : l1 = l2.
+    Proof.
+      rewrite <- rev_involutive with (l := l1). rewrite <- rev_involutive with (l := l2). congruence.
+    Qed.
+
+    Lemma app_cancel_l (prefix : list A) (suffix1 : list A) (suffix2 : list A)
+      (EQ : prefix ++ suffix1 = prefix ++ suffix2)
+      : suffix1 = suffix2.
+    Proof.
+      revert suffix1 suffix2 EQ; induction prefix as [ | x xs IH]; simpl; intros; eauto. eapply IH; congruence.
+    Qed.
+
+    Lemma app_cancel_r (prefix1 : list A) (prefix2 : list A) (suffix : list A)
+      (EQ : prefix1 ++ suffix = prefix2 ++ suffix)
+      : prefix1 = prefix2.
+    Proof.
+      revert prefix1 prefix2 EQ. induction suffix as [suffix] using rev_dual.
+      induction prefix1 as [prefix1] using rev_dual. induction prefix2 as [prefix2] using rev_dual.
+      do 2 rewrite <- rev_app. intros EQ. apply rev_inj in EQ. apply app_cancel_l in EQ. congruence.
+    Qed.
+
+  End MORE_LIST_LEMMAS.
 
   Class hsEq (A : Type) {well_formed : A -> Prop} : Type :=
     { eqProp (x : A) (y : A) : Prop
@@ -79,10 +124,10 @@ Module SessionPrelude.
 
   #[global, program]
   Instance hsEq_preimage {A : Type} {B : Type}
-    {B_well_formed : B -> Prop}
-    {hsEq : hsEq B (well_formed := B_well_formed)}
+    {well_formed : B -> Prop}
+    {hsEq : SessionPrelude.hsEq B (well_formed := well_formed)}
     (f : A -> B)
-    : SessionPrelude.hsEq A (well_formed := fun x : A => B_well_formed (f x)) :=
+    : SessionPrelude.hsEq A (well_formed := fun x : A => well_formed (f x)) :=
       { eqProp x y := eqProp (f x) (f y)
       ; eqb x y := eqb (f x) (f y)
       }.
@@ -263,9 +308,9 @@ Module SessionPrelude.
 
   #[global, program]
   Instance hsOrd_preimage {A : Type} {B : Type}
-    {B_well_formed : B -> Prop}
-    {hsEq : hsEq B (well_formed := B_well_formed)}
-    {hsOrd : hsOrd B (hsEq := hsEq)}
+    {well_formed : B -> Prop}
+    {hsEq : SessionPrelude.hsEq B (well_formed := well_formed)}
+    {hsOrd : SessionPrelude.hsOrd B (hsEq := hsEq)}
     (f : A -> B)
     : SessionPrelude.hsOrd A (hsEq := hsEq_preimage f):=
       { ltProp x y := ltProp (f x) (f y)
@@ -596,7 +641,7 @@ Module SessionPrelude.
 
     Context {A : Type} {well_formed : A -> Prop}.
 
-    #[local] Hint Resolve (@Forall_well_formed_elim A well_formed) : core.
+    #[local] Hint Resolve ( @Forall_well_formed_elim A well_formed) : core.
 
     Context {hsEq : hsEq A (well_formed := well_formed)}.
 
@@ -731,7 +776,7 @@ Module SessionPrelude.
     Next Obligation with eauto 2.
       simpl in *. destruct x_wf as [x_wf x_len], y_wf as [y_wf y_len].
       rewrite vectorEq_implies_not_vectorGt...
-      change vectorEq with (@eqb (list A) _ (hsEq_vector len)).
+      change vectorEq with ( @eqb (list A) _ (hsEq_vector len)).
       rewrite eqb_comm... rewrite eqb_eq...
     Qed.
     Next Obligation with eauto 2.
@@ -876,24 +921,24 @@ Module TypeVector.
     : forall Ts: TypeVector.t (S n), tuple_of n Ts -> nthType i Ts.
   Proof.
     destruct n as [ | n']; simpl.
-    - induction Ts as [T' has_value_of Ts'] using caseS.
-      induction Ts' as [] using case0.
+    - induction Ts as [T' has_value_of Ts'] using TypeVector.caseS.
+      induction Ts' as [] using TypeVector.case0.
       destruct i as [ | i']; simpl.
-      + intros x. exact x.
-      + intros x. exact tt.
-    - induction Ts as [T' has_value_of Ts'] using caseS.
+      + intros tuple. exact tuple.
+      + intros tuple. exact tt.
+    - induction Ts as [T' has_value_of Ts'] using TypeVector.caseS.
       destruct i as [ | i']; simpl.
-      + intros x. exact (snd x).
-      + intros x. exact (nth n' i' Ts' (fst x)).
+      + intros tuple. exact (snd tuple).
+      + intros tuple. exact (nth n' i' Ts' (fst tuple)).
   Defined.
 
-  Definition lookup {n} {Ts} (tuple: tuple_of n Ts) i : nthType (n - i) Ts :=
-    nth n (n - i) Ts tuple.
+  Definition lookup {n} {Ts} (tuple: tuple_of n Ts) i : nthType (n - i)%nat Ts :=
+    nth n (n - i)%nat Ts tuple.
 
   Fixpoint magic (n: nat) {struct n} : forall Ts: TypeVector.t (S n), val -> tuple_of n Ts -> val :=
     match n with
-    | O => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => (SessionPrelude.value_of x, v)%V)
-    | S n => caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun x => magic n Ts (SessionPrelude.value_of (snd x), v)%V (fst x))
+    | O => TypeVector.caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun tuple => (SessionPrelude.value_of tuple, v)%V)
+    | S n => TypeVector.caseS _ (fun T => fun has_value_of => fun Ts => fun v => fun tuple => magic n Ts (SessionPrelude.value_of (snd tuple), v)%V (fst tuple))
     end.
 
   Ltac des H :=
