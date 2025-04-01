@@ -76,7 +76,7 @@ Definition read: val :=
         struct.storeF Message "C2S_Client_OperationType" "reply" #0;;
         struct.storeF Message "C2S_Client_Data" "reply" #0;;
         struct.storeF Message "C2S_Server_Id" "reply" "serverId";;
-        struct.storeF Message "C2S_Client_VersionVector" "reply" (struct.get Client "ReadVersionVector" "client")
+        struct.storeF Message "C2S_Client_VersionVector" "reply" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Client "ReadVersionVector" "client"))
       else
         (if: (struct.get Client "SessionSemantic" "client") = #4
         then
@@ -85,7 +85,7 @@ Definition read: val :=
           struct.storeF Message "C2S_Client_OperationType" "reply" #0;;
           struct.storeF Message "C2S_Client_Data" "reply" #0;;
           struct.storeF Message "C2S_Server_Id" "reply" "serverId";;
-          struct.storeF Message "C2S_Client_VersionVector" "reply" (struct.get Client "WriteVersionVector" "client")
+          struct.storeF Message "C2S_Client_VersionVector" "reply" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Client "WriteVersionVector" "client"))
         else
           (if: (struct.get Client "SessionSemantic" "client") = #5
           then
@@ -118,7 +118,7 @@ Definition write: val :=
         struct.storeF Message "C2S_Client_OperationType" "reply" #1;;
         struct.storeF Message "C2S_Client_Data" "reply" "value";;
         struct.storeF Message "C2S_Server_Id" "reply" "serverId";;
-        struct.storeF Message "C2S_Client_VersionVector" "reply" (struct.get Client "ReadVersionVector" "client")
+        struct.storeF Message "C2S_Client_VersionVector" "reply" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Client "ReadVersionVector" "client"))
       else
         (if: (struct.get Client "SessionSemantic" "client") = #2
         then
@@ -127,7 +127,7 @@ Definition write: val :=
           struct.storeF Message "C2S_Client_OperationType" "reply" #1;;
           struct.storeF Message "C2S_Client_Data" "reply" "value";;
           struct.storeF Message "C2S_Server_Id" "reply" "serverId";;
-          struct.storeF Message "C2S_Client_VersionVector" "reply" (struct.get Client "WriteVersionVector" "client")
+          struct.storeF Message "C2S_Client_VersionVector" "reply" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Client "WriteVersionVector" "client"))
         else
           (if: (struct.get Client "SessionSemantic" "client") = #5
           then
@@ -153,10 +153,10 @@ Definition processRequest: val :=
         (if: "requestType" = #2
         then
           (if: (struct.get Message "S2C_Client_OperationType" "ackMessage") = #0
-          then struct.storeF Client "ReadVersionVector" "client" (struct.get Message "S2C_Client_VersionVector" "ackMessage")
+          then struct.storeF Client "ReadVersionVector" "client" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Message "S2C_Client_VersionVector" "ackMessage"))
           else #());;
           (if: (struct.get Message "S2C_Client_OperationType" "ackMessage") = #1
-          then struct.storeF Client "WriteVersionVector" "client" (struct.get Message "S2C_Client_VersionVector" "ackMessage")
+          then struct.storeF Client "WriteVersionVector" "client" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Message "S2C_Client_VersionVector" "ackMessage"))
           else #())
         else #())));;
     ("client", ![struct.t Message] "msg").
