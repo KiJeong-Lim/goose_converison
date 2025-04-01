@@ -236,7 +236,7 @@ Section heap.
     {{{
         cv' msgv', RET (client_val cv', message_val msgv');
         is_client cv' (coq_processRequest c requestType serverId value ackMessage).1 n ∗
-        ∃ n', is_message msgv' (coq_processRequest c requestType serverId value ackMessage).2 n n' 0%nat ∗
+        is_message msgv' (coq_processRequest c requestType serverId value ackMessage).2 n (if (uint.Z requestType =? 0) || (uint.Z requestType =? 1) then n else 0%nat) 0%nat ∗
         is_message msgv ackMessage n n n ∗
         ⌜n = uint.nat (coq_processRequest c requestType serverId value ackMessage).1.(Client.NumberOfServers)⌝
     }}}.
