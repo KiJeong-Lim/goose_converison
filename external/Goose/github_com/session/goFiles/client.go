@@ -128,19 +128,24 @@ func write(client Client, serverId uint64, value uint64) Message {
 }
 
 func processRequest(client Client, requestType uint64, serverId uint64, value uint64, ackMessage Message) (Client, Message) {
-     	var msg = Message{}		   
+	var nc Client = Client{Id: client.Id,
+		NumberOfServers:    client.NumberOfServers,
+		WriteVersionVector: client.WriteVersionVector,
+		ReadVersionVector:  client.ReadVersionVector,
+		SessionSemantic:    client.SessionSemantic}
+	var msg = Message{}
 	if requestType == 0 {
-	        msg = read(client, serverId)
+		msg = read(client, serverId)
 	} else if requestType == 1 {
-	        msg = write(client, serverId, value)
+		msg = write(client, serverId, value)
 	} else if requestType == 2 {
 		if ackMessage.S2C_Client_OperationType == 0 {
-			client.ReadVersionVector = append(make([]uint64, 0), ackMessage.S2C_Client_VersionVector...)
+			nc.ReadVersionVector = append(make([]uint64, 0), ackMessage.S2C_Client_VersionVector...)
 		}
 		if ackMessage.S2C_Client_OperationType == 1 {
-			client.WriteVersionVector = append(make([]uint64, 0), ackMessage.S2C_Client_VersionVector...) 
+			nc.WriteVersionVector = append(make([]uint64, 0), ackMessage.S2C_Client_VersionVector...)
 		}
 	}
 
-	return client, msg
+	return nc, msg
 }

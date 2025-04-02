@@ -142,6 +142,13 @@ Definition write: val :=
 
 Definition processRequest: val :=
   rec: "processRequest" "client" "requestType" "serverId" "value" "ackMessage" :=
+    let: "nc" := ref_to (struct.t Client) (struct.mk Client [
+      "Id" ::= struct.get Client "Id" "client";
+      "NumberOfServers" ::= struct.get Client "NumberOfServers" "client";
+      "WriteVersionVector" ::= struct.get Client "WriteVersionVector" "client";
+      "ReadVersionVector" ::= struct.get Client "ReadVersionVector" "client";
+      "SessionSemantic" ::= struct.get Client "SessionSemantic" "client"
+    ]) in
     let: "msg" := ref_to (struct.t Message) (struct.mk Message [
     ]) in
     (if: "requestType" = #0
@@ -153,12 +160,12 @@ Definition processRequest: val :=
         (if: "requestType" = #2
         then
           (if: (struct.get Message "S2C_Client_OperationType" "ackMessage") = #0
-          then struct.storeF Client "ReadVersionVector" "client" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Message "S2C_Client_VersionVector" "ackMessage"))
+          then struct.storeF Client "ReadVersionVector" "nc" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Message "S2C_Client_VersionVector" "ackMessage"))
           else #());;
           (if: (struct.get Message "S2C_Client_OperationType" "ackMessage") = #1
-          then struct.storeF Client "WriteVersionVector" "client" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Message "S2C_Client_VersionVector" "ackMessage"))
+          then struct.storeF Client "WriteVersionVector" "nc" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Message "S2C_Client_VersionVector" "ackMessage"))
           else #())
         else #())));;
-    ("client", ![struct.t Message] "msg").
+    (![struct.t Client] "nc", ![struct.t Message] "msg").
 
 End code.
