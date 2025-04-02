@@ -324,18 +324,19 @@ Section heap.
         iSplitL "". { iPureIntro. word. }
         done.
     }
-    wp_pures. wp_load. replace (Φ (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V) with (Φ (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0))) by reflexivity.
-    iModIntro. iApply "HΦ".
-    iSplitL "H3 H5".
-    - iFrame. simplNotation; simpl; done.
-    - rewrite -> bool_decide_eq_false in Heqb, Heqb0, Heqb1, Heqb2, Heqb3, Heqb4.
-      assert (c.(Client.SessionSemantic) ≠ (W64 0)) as NE0 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 1)) as NE1 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 2)) as NE2 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 3)) as NE3 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 4)) as NE4 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 5)) as NE5 by congruence.
-      unfold coq_read. destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]] eqn: H_n; try word.
+    { wp_pures. wp_load. replace (Φ (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V) with (Φ (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0))) by reflexivity.
+      iModIntro. iApply "HΦ".
+      iSplitL "H3 H5".
+      - iFrame. simplNotation; simpl; done.
+      - rewrite -> bool_decide_eq_false in Heqb, Heqb0, Heqb1, Heqb2, Heqb3, Heqb4.
+        assert (c.(Client.SessionSemantic) ≠ (W64 0)) as NE0 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 1)) as NE1 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 2)) as NE2 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 3)) as NE3 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 4)) as NE4 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 5)) as NE5 by congruence.
+        unfold coq_read. destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]] eqn: H_n; try word.
+    }
   Qed.
 
   Lemma wp_write (c: Client.t) (serverId: u64) (value: u64) (n: nat) cv :
@@ -583,18 +584,19 @@ Section heap.
         iSplitL "". { iPureIntro. word. }
         done.
     }
-    wp_pures. wp_load. replace (Φ (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V) with (Φ (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0))) by reflexivity.
-    iModIntro. iApply "HΦ".
-    iSplitL "H3 H5".
-    - iFrame. simplNotation; simpl; done.
-    - rewrite -> bool_decide_eq_false in Heqb, Heqb0, Heqb1, Heqb2, Heqb3, Heqb4.
-      assert (c.(Client.SessionSemantic) ≠ (W64 0)) as NE0 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 1)) as NE1 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 2)) as NE2 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 3)) as NE3 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 4)) as NE4 by congruence.
-      assert (c.(Client.SessionSemantic) ≠ (W64 5)) as NE5 by congruence.
-      unfold coq_read. destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]] eqn: H_n; try word.
+    { wp_pures. wp_load. replace (Φ (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V) with (Φ (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0))) by reflexivity.
+      iModIntro. iApply "HΦ".
+      iSplitL "H3 H5".
+      - iFrame. simplNotation; simpl; done.
+      - rewrite -> bool_decide_eq_false in Heqb, Heqb0, Heqb1, Heqb2, Heqb3, Heqb4.
+        assert (c.(Client.SessionSemantic) ≠ (W64 0)) as NE0 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 1)) as NE1 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 2)) as NE2 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 3)) as NE3 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 4)) as NE4 by congruence.
+        assert (c.(Client.SessionSemantic) ≠ (W64 5)) as NE5 by congruence.
+        unfold coq_read. destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]] eqn: H_n; try word.
+    }
   Qed.
 
   Lemma wp_processRequest (c: Client.t) (requestType: u64) (serverId: u64) (value: u64) (ackMessage: Message.t) (n: nat) cv msgv :
@@ -617,12 +619,15 @@ Section heap.
     simplNotation; simpl; subst; rewrite /CoqSessionClient.processRequest.
     iPoseProof (own_slice_small_sz with "[$H3]") as "%LENGTH1".
     iPoseProof (own_slice_small_sz with "[$H5]") as "%LENGTH2".
+    wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%nc H_nc".
     wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%msg H_msg".
     wp_pures. wp_if_destruct.
     { wp_apply (wp_read c serverId (uint.nat c.(Client.NumberOfServers)) with "[H3 H5]"). { iFrame. simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
       replace (message_val msgv) with (message_into_val.(to_val) msgv) by reflexivity.
       wp_pures; eapply (tac_wp_store_ty _ _ _ _ _ _ []%list); [repeat econstructor; eauto | tc_solve | let l := msg in iAssumptionCore | reflexivity | simpl].
       wp_pures. wp_load.
+      wp_pures. wp_load.
+      replace (#c .(Client.Id), (#c .(Client.NumberOfServers), (t0, (t, (#c .(Client.SessionSemantic), #())))))%V with (client_val (c.(Client.Id), c.(Client.NumberOfServers), t0, t, c.(Client.SessionSemantic))) by reflexivity.
       wp_pures. iModIntro. iApply "HΦ".
       replace (uint.Z (W64 0) =? 0)%Z with true by reflexivity. rewrite orb_true_l.
       iFrame; simplNotation; simpl. iPureIntro; tauto.
@@ -632,6 +637,8 @@ Section heap.
       replace (message_val msgv) with (message_into_val.(to_val) msgv) by reflexivity.
       wp_pures; eapply (tac_wp_store_ty _ _ _ _ _ _ []%list); [repeat econstructor; eauto | tc_solve | let l := msg in iAssumptionCore | reflexivity | simpl].
       wp_pures. wp_load.
+      wp_pures. wp_load.
+      replace (#c .(Client.Id), (#c .(Client.NumberOfServers), (t0, (t, (#c .(Client.SessionSemantic), #())))))%V with (client_val (c.(Client.Id), c.(Client.NumberOfServers), t0, t, c.(Client.SessionSemantic))) by reflexivity.
       wp_pures. iModIntro. iApply "HΦ".
       replace (uint.Z (W64 1) =? 1)%Z with true by reflexivity. rewrite orb_true_r.
       iFrame; simplNotation; simpl. iPureIntro; tauto.
@@ -639,18 +646,134 @@ Section heap.
     wp_pures. wp_if_destruct.
     { wp_pures. wp_if_destruct.
       { wp_apply wp_NewSlice. iIntros "%s1 H_s1". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with ( @nil w64) by reflexivity.
-        admit.
+        wp_pures. wp_apply (wp_SliceAppendSlice with "[H_s1 H27]"). { repeat econstructor; eauto. } { iFrame. } simpl. clear s1. iIntros "%s1 [H_s1 H27]".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_nc]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_nc".
+        wp_pures. rewrite Heqb1. wp_pures.
+        wp_pures. wp_load.
+        wp_pures. wp_load.
+        replace (#c .(Client.Id), (#c .(Client.NumberOfServers), (t0, (s1, (#c .(Client.SessionSemantic), #())))))%V with (client_val (c.(Client.Id), c.(Client.NumberOfServers), t0, s1, c.(Client.SessionSemantic))) by reflexivity.
+        replace (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V with (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)) by reflexivity.
+        wp_pures. iModIntro. iApply "HΦ".
+        replace ((uint.Z (W64 2) =? 0) || (uint.Z (W64 2) =? 1)) with false by reflexivity.
+        unfold coq_processRequest.
+        replace (uint.nat (W64 2)) with 2%nat by reflexivity.
+        replace (uint.nat ackMessage .(Message.S2C_Client_OperationType)) with 0%nat by word.
+        simpl.
+        iPoseProof (own_slice_to_small with "[$H_s1]") as "H_s1".
+        iFrame; simplNotation; simpl.
+        iSplitL "". { iPureIntro; tauto. }
+        iSplitR "".
+        { unfold is_message; iFrame; simplNotation; simpl.
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iApply (own_slice_small_nil); eauto. }
+          iSplitL "". { iPureIntro. word. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iExists []. simpl; iSplitR ""; try done. iApply (own_slice_nil); eauto. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iApply own_slice_small_nil; eauto. }
+          iSplitL "". { iPureIntro. word. }
+          done.
+        }
+        iSplitL "". { iPureIntro; repeat (split; trivial). word. }
+        iPureIntro. destruct H_invariant as [? ?]; split; trivial.
       }
       wp_pures. wp_if_destruct.
       { wp_apply wp_NewSlice. iIntros "%s1 H_s1". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with ( @nil w64) by reflexivity.
-        admit.
+        wp_pures. wp_apply (wp_SliceAppendSlice with "[H_s1 H27]"). { repeat econstructor; eauto. } { iFrame. } simpl. clear s1. iIntros "%s1 [H_s1 H27]".
+        wp_pures. wp_apply (wp_storeField_struct with "[H_nc]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_nc".
+        wp_pures. wp_load.
+        wp_pures. wp_load.
+        replace (#c .(Client.Id), (#c .(Client.NumberOfServers), (s1, (t, (#c .(Client.SessionSemantic), #())))))%V with (client_val (c.(Client.Id), c.(Client.NumberOfServers), s1, t, c.(Client.SessionSemantic))) by reflexivity.
+        replace (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V with (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)) by reflexivity.
+        wp_pures. iModIntro. iApply "HΦ".
+        replace ((uint.Z (W64 2) =? 0) || (uint.Z (W64 2) =? 1)) with false by reflexivity.
+        unfold coq_processRequest.
+        replace (uint.nat (W64 2)) with 2%nat by reflexivity.
+        replace (uint.nat ackMessage .(Message.S2C_Client_OperationType)) with 1%nat by word.
+        simpl.
+        iPoseProof (own_slice_to_small with "[$H_s1]") as "H_s1".
+        iFrame; simplNotation; simpl.
+        iSplitL "". { iPureIntro; tauto. }
+        iSplitR "".
+        { unfold is_message; iFrame; simplNotation; simpl.
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iApply (own_slice_small_nil); eauto. }
+          iSplitL "". { iPureIntro. word. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iExists []. simpl; iSplitR ""; try done. iApply (own_slice_nil); eauto. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iApply own_slice_small_nil; eauto. }
+          iSplitL "". { iPureIntro. word. }
+          done.
+        }
+        iSplitL "". { iPureIntro; repeat (split; trivial). }
+        iPureIntro. destruct H_invariant as [? ?]; split; trivial.
       }
+      { wp_pures. wp_load.
+        wp_pures. wp_load.
+        wp_pures.
+        replace (#c .(Client.Id), (#c .(Client.NumberOfServers), (t0, (t, (#c .(Client.SessionSemantic), #())))))%V with (client_val (c.(Client.Id), c.(Client.NumberOfServers), t0, t, c.(Client.SessionSemantic))) by reflexivity.
+        replace (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V with (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)) by reflexivity.
+        iModIntro. iApply "HΦ".
+        replace (uint.Z (W64 2) =? 0)%Z with false by reflexivity. replace (uint.Z (W64 2) =? 1)%Z with false by reflexivity. simpl.
+        unfold coq_processRequest. replace (uint.nat (W64 2)) with 2%nat by word.
+        destruct (uint.nat ackMessage .(Message.S2C_Client_OperationType)) as [ | [ | n]] eqn: H_OBS; try word.
+        iFrame. simplNotation; simpl.
+        iSplitL "". { iPureIntro. tauto. }
+        iSplitR "".
+        { unfold is_message; iFrame; simplNotation; simpl.
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iApply (own_slice_small_nil); eauto. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iExists []. simpl; iSplitR ""; try done. iApply (own_slice_nil); eauto. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { done. }
+          iSplitL "". { iApply own_slice_small_nil; eauto. }
+          iSplitL "". { iPureIntro. word. }
+          done.
+        }
+        iPureIntro; tauto.
+      }
+    }
+    { wp_pures. wp_load.
       wp_pures. wp_load.
-      wp_pures. replace (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V with (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)) by reflexivity.
+      wp_pures.
+      replace (#c .(Client.Id), (#c .(Client.NumberOfServers), (t0, (t, (#c .(Client.SessionSemantic), #())))))%V with (client_val (c.(Client.Id), c.(Client.NumberOfServers), t0, t, c.(Client.SessionSemantic))) by reflexivity.
+      replace (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V with (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)) by reflexivity.
       iModIntro. iApply "HΦ".
       replace (uint.Z (W64 2) =? 0)%Z with false by reflexivity. replace (uint.Z (W64 2) =? 1)%Z with false by reflexivity. simpl.
-      unfold coq_processRequest. replace (uint.nat (W64 2)) with 2%nat by word.
-      destruct (uint.nat ackMessage .(Message.S2C_Client_OperationType)) as [ | [ | n]] eqn: H_OBS; try word.
+      unfold coq_processRequest. destruct (uint.nat requestType) as [ | [ | [ | n]]] eqn: H_OBS; try word; simpl.
+      replace (uint.Z requestType =? 0)%Z with false by word. replace (uint.Z requestType =? 1)%Z with false by word. simpl.
       iFrame. simplNotation; simpl.
       iSplitL "". { iPureIntro. tauto. }
       iSplitR "".
@@ -677,37 +800,6 @@ Section heap.
       }
       iPureIntro; tauto.
     }
-    wp_pures. wp_load.
-    wp_pures. replace (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V with (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)) by reflexivity.
-    iModIntro. iApply "HΦ".
-    replace (uint.Z (W64 2) =? 0)%Z with false by reflexivity. replace (uint.Z (W64 2) =? 1)%Z with false by reflexivity. simpl.
-    unfold coq_processRequest. destruct (uint.nat requestType) as [ | [ | [ | n]]] eqn: H_OBS; try word; simpl.
-    replace (uint.Z requestType =? 0)%Z with false by word. replace (uint.Z requestType =? 1)%Z with false by word. simpl.
-    iFrame. simplNotation; simpl.
-    iSplitL "". { iPureIntro. tauto. }
-    iSplitR "".
-    { unfold is_message; iFrame; simplNotation; simpl.
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { iApply (own_slice_small_nil); eauto. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { iExists []. simpl; iSplitR ""; try done. iApply (own_slice_nil); eauto. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { done. }
-      iSplitL "". { iApply own_slice_small_nil; eauto. }
-      iSplitL "". { iPureIntro. word. }
-      done.
-    }
-    iPureIntro; tauto.
-  Admitted.
+  Qed.
 
 End heap.
