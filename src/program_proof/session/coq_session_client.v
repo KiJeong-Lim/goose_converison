@@ -619,24 +619,22 @@ Section heap.
     iPoseProof (own_slice_small_sz with "[$H5]") as "%LENGTH2".
     wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%msg H_msg".
     wp_pures. wp_if_destruct.
-    { wp_apply (wp_read c with "[H3 H5]"). { iFrame. instantiate (1 := uint.nat c.(Client.NumberOfServers)). simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
+    { wp_apply (wp_read c serverId (uint.nat c.(Client.NumberOfServers)) with "[H3 H5]"). { iFrame. simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
       replace (message_val msgv) with (message_into_val.(to_val) msgv) by reflexivity.
       wp_pures; eapply (tac_wp_store_ty _ _ _ _ _ _ []%list); [repeat econstructor; eauto | tc_solve | let l := msg in iAssumptionCore | reflexivity | simpl].
       wp_pures. wp_load.
       wp_pures. iModIntro. iApply "HΦ".
       replace (uint.Z (W64 0) =? 0)%Z with true by reflexivity. rewrite orb_true_l.
-      iFrame; simplNotation; simpl. iPureIntro.
-      repeat (split; trivial).
+      iFrame; simplNotation; simpl. iPureIntro; tauto.
     }
     wp_pures. wp_if_destruct.
-    { wp_apply (wp_write c with "[H3 H5]"). { iFrame. instantiate (1 := uint.nat c.(Client.NumberOfServers)). simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
+    { wp_apply (wp_write c serverId value (uint.nat c.(Client.NumberOfServers)) with "[H3 H5]"). { iFrame. simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
       replace (message_val msgv) with (message_into_val.(to_val) msgv) by reflexivity.
       wp_pures; eapply (tac_wp_store_ty _ _ _ _ _ _ []%list); [repeat econstructor; eauto | tc_solve | let l := msg in iAssumptionCore | reflexivity | simpl].
       wp_pures. wp_load.
       wp_pures. iModIntro. iApply "HΦ".
       replace (uint.Z (W64 1) =? 1)%Z with true by reflexivity. rewrite orb_true_r.
-      iFrame; simplNotation; simpl. iPureIntro.
-      repeat (split; trivial).
+      iFrame; simplNotation; simpl. iPureIntro; tauto.
     }
     wp_pures. wp_if_destruct.
     { wp_pures. wp_if_destruct.
