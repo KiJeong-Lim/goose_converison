@@ -10,7 +10,7 @@ Section heap.
           own_slice_small y uint64T d ys ∗
           ⌜length xs = length ys⌝ 
     }}}
-      compareVersionVector x y 
+      CoqSessionServer.compareVersionVector x y 
       {{{
             r , RET #r;
             ⌜r = coq_compareVersionVector xs ys⌝ ∗
@@ -423,7 +423,7 @@ Section heap.
     {{{
           True
     }}}
-      maxTwoInts #x #y 
+      CoqSessionServer.maxTwoInts #x #y 
       {{{
             r , RET #r;
             ⌜r = coq_maxTwoInts x y⌝
@@ -449,7 +449,7 @@ Section heap.
             own_slice_small y uint64T d' ys ∗
             ⌜length xs = length ys⌝
     }}}
-      maxTS x y 
+      CoqSessionServer.maxTS x y 
       {{{
             (s': Slice.t), RET slice_val s'; 
             own_slice s' uint64T (DfracOwn 1) (coq_maxTS xs ys) ∗ 
@@ -642,7 +642,7 @@ Section heap.
             own_slice_small y uint64T d ys ∗
             ⌜length xs = length ys⌝ 
       }}}
-        equalSlices x y 
+        CoqSessionServer.equalSlices x y 
         {{{
               r , RET #r;
               ⌜r = coq_equalSlices xs ys⌝ ∗ 
@@ -857,7 +857,7 @@ Section heap.
           own_slice_small y uint64T dq_y ys ∗
           ⌜length xs = length ys⌝
     }}}
-      oneOffVersionVector x y
+      CoqSessionServer.oneOffVersionVector x y
       {{{ (b: bool) , RET #b ;
           ⌜b = coq_oneOffVersionVector xs ys⌝ ∗
           own_slice_small x uint64T dq_x xs ∗

@@ -132,7 +132,7 @@ Section heap.
           is_operation opv needle n ∗
           ⌜is_sorted l⌝
     }}}
-      binarySearch s (operation_val opv)
+      CoqSessionServer.binarySearch s (operation_val opv)
       {{{ (i: u64) , RET #i ;
           operation_slice s l n ∗
           is_operation opv needle n ∗
@@ -383,7 +383,7 @@ Section heap.
           is_operation opv v n ∗
           ⌜is_sorted l⌝ 
     }}}
-      sortedInsert s (operation_val opv)
+      CoqSessionServer.sortedInsert s (operation_val opv)
       {{{ (ns: Slice.t), RET slice_val (ns);
           ∃ nxs, operation_slice ns nxs n %I ∗
                  ⌜nxs = coq_sortedInsert l v⌝
@@ -726,7 +726,7 @@ Section heap.
         is_operation o v n ∗
         ⌜is_sorted l⌝ 
     }}}
-      sortedInsert (slice_val s) (operation_val o)
+      CoqSessionServer.sortedInsert (slice_val s) (operation_val o)
     {{{
         ns, RET (slice_val ns);
         operation_slice ns (coq_sortedInsert l v) n ∗

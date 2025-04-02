@@ -10,7 +10,7 @@ Section heap.
         operation_slice s l n ∗
         ⌜(uint.nat index < length l)%nat⌝
     }}}
-      deleteAtIndexOperation s #index
+      CoqSessionServer.deleteAtIndexOperation s #index
     {{{
         ns, RET (slice_val ns);
         operation_slice ns (coq_deleteAtIndexOperation l (uint.nat index)) n ∗
@@ -88,7 +88,7 @@ Section heap.
         message_slice s l n len_c2s ∗
         ⌜(uint.nat index < length l)%nat⌝
     }}}
-      deleteAtIndexMessage s #index
+      CoqSessionServer.deleteAtIndexMessage s #index
     {{{
         ns, RET (slice_val ns);
         message_slice ns (coq_deleteAtIndexMessage l (uint.nat index)) n len_c2s ∗
@@ -146,7 +146,7 @@ Section heap.
     {{{
         operation_slice s l n
     }}}
-      getDataFromOperationLog s
+      CoqSessionServer.getDataFromOperationLog s
     {{{
         r, RET #r;
         ⌜r = coq_getDataFromOperationLog l⌝ ∗
@@ -205,7 +205,7 @@ Section heap.
         is_operation opv1 o1 n ∗
         is_operation opv2 o2 n
     }}}
-      equalOperations (operation_val opv1) (operation_val opv2)
+      CoqSessionServer.equalOperations (operation_val opv1) (operation_val opv2)
     {{{
         r, RET #r;
         ⌜r = coq_equalOperations o1 o2⌝ ∗
@@ -236,7 +236,7 @@ Section heap.
         operation_slice s2 l2 n ∗
         ⌜is_sorted l1⌝
     }}}
-      mergeOperations s1 s2 
+      CoqSessionServer.mergeOperations s1 s2 
     {{{
         ns, RET (slice_val ns);
         ∃ nxs, operation_slice ns nxs n ∗

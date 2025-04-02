@@ -241,7 +241,7 @@ Section heap.
         is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗ 
         is_message msgv msg n len_c2s len_s2c
     }}}
-      acknowledgeGossip (server_val sv) (message_val msgv)
+      CoqSessionServer.acknowledgeGossip (server_val sv) (message_val msgv)
     {{{
         RET (server_val sv);
         is_server' sv (coq_acknowledgeGossip s msg) n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗
@@ -291,7 +291,7 @@ Section heap.
     {{{
         is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}
-      getGossipOperations (server_val sv) (#serverId)
+      CoqSessionServer.getGossipOperations (server_val sv) (#serverId)
     {{{
         ns, RET (slice_val ns);
         operation_slice ns (coq_getGossipOperations s serverId) len_mo ∗
