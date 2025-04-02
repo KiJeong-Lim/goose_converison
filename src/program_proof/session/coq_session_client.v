@@ -13,35 +13,35 @@ Module CoqSessionClient.
   Include Goose.github_com.session.client.
 
   Definition coq_read (c: Client.t) (serverId: u64) : Message.t :=
-    match uint.Z c.(Client.SessionSemantic) with
-    | 0 => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 1 => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 2 => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 3 => Message.mk 0 (c.(Client.Id)) serverId 0 0 (c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 4 => Message.mk 0 (c.(Client.Id)) serverId 0 0 (c.(Client.WriteVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 5 => Message.mk 0 (c.(Client.Id)) serverId 0 0 (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    match uint.nat c.(Client.SessionSemantic) with
+    | 0%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 1%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 2%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 3%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 4%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (c.(Client.WriteVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 5%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | _ => Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
     end.
 
   Definition coq_write (c: Client.t) (serverId: u64) (value: u64) : Message.t :=
-    match uint.Z c.(Client.SessionSemantic) with
-    | 0 => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 1 => Message.mk 0 (c.(Client.Id)) serverId 1 value (c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 2 => Message.mk 0 (c.(Client.Id)) serverId 1 value (c.(Client.WriteVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 3 => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 4 => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 5 => Message.mk 0 (c.(Client.Id)) serverId 1 value (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    match uint.nat c.(Client.SessionSemantic) with
+    | 0%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 1%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 2%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (c.(Client.WriteVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 3%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 4%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 5%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | _ => Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
     end.
 
   Definition coq_processRequest (c: Client.t) (requestType: u64) (serverId: u64) (value: u64) (ackMessage: Message.t) : Client.t * Message.t :=
-    match uint.Z requestType with
-    | 0 => (c, coq_read c serverId)
-    | 1 => (c, coq_write c serverId value)
-    | 2 =>
-      match uint.Z ackMessage.(Message.S2C_Client_OperationType) with
-      | 0 => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) c.(Client.WriteVersionVector) ackMessage.(Message.S2C_Client_VersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
-      | 1 => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) (ackMessage.(Message.S2C_Client_VersionVector)) c.(Client.ReadVersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
+    match uint.nat requestType with
+    | 0%nat => (c, coq_read c serverId)
+    | 1%nat => (c, coq_write c serverId value)
+    | 2%nat =>
+      match uint.nat ackMessage.(Message.S2C_Client_OperationType) with
+      | 0%nat => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) c.(Client.WriteVersionVector) ackMessage.(Message.S2C_Client_VersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
+      | 1%nat => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) (ackMessage.(Message.S2C_Client_VersionVector)) c.(Client.ReadVersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
       | _ => (c, Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
       end
     | _ => (c, Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
@@ -55,30 +55,34 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
-  Lemma wp_maxTS (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :
+  Lemma wp_maxTS (n: nat) (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :
     {{{
         own_slice_small x uint64T dx xs ∗
         own_slice_small y uint64T dy ys ∗
-        ⌜length xs = length ys⌝
+        ⌜n = length xs /\ n = length ys⌝
     }}}
       CoqSessionClient.maxTS (slice_val x) (slice_val y)
     {{{
         ns, RET (slice_val ns);
         own_slice_small x uint64T dx xs ∗
         own_slice_small y uint64T dy ys ∗
-        own_slice ns uint64T (DfracOwn 1) (coq_maxTS xs ys)
+        own_slice ns uint64T (DfracOwn 1) (coq_maxTS xs ys) ∗
+        ⌜n = length (coq_maxTS xs ys)⌝
     }}}.
   Proof.
     replace (maxTS x y) with (CoqSessionServer.maxTS (slice_val x) (slice_val y)) by reflexivity.
-    iIntros "%Φ H_precondition HΦ".
-    wp_apply (versionVector.wp_maxTS with "[$H_precondition]").
+    iIntros "%Φ (H_xs & H_ys & [%LEN_xs %LEN_ys]) HΦ".
+    wp_apply (versionVector.wp_maxTS with "[$H_xs $H_ys]"). { iPureIntro. word. }
     iIntros "%ns (H_ns & H_xs & H_ys)". iApply "HΦ". iFrame.
+    iPureIntro. revert n xs ys LEN_xs LEN_ys; clear.
+    induction n as [ | n IH], xs as [ | x xs], ys as [ | y ys]; simpl; intros; try congruence.
+    f_equal; eapply IH; word.
   Qed.
 
-  Lemma wp_read (c: Client.t) (serverId: u64) (n: nat) cv :
+  (*Lemma wp_read (c: Client.t) (serverId: u64) (n: nat) cv :
     {{{
         is_client cv c n ∗
-        ⌜n = uint.nat c.(Client.NumberOfServers)⌝
+        ⌜CLIENT_INVARIANT c⌝
     }}}
       CoqSessionClient.read (client_val cv) (#serverId)
     {{{
@@ -86,7 +90,7 @@ Section heap.
         is_client cv c n ∗
         is_message msgv (coq_read c serverId) n n 0%nat
     }}}.
-  Proof. (**
+  Proof.
     rewrite redefine_client_val redefine_message_val. TypeVector.des cv. iIntros "%Φ (H_is_client & ->) HΦ".
     iDestruct "H_is_client" as "(%H1 & %H2 & H3 & %H4 & H5 & %H6 & %H7)".
     simplNotation; simpl; subst; rewrite /CoqSessionClient.read.
@@ -109,7 +113,7 @@ Section heap.
       iModIntro. simpl. iApply "HΦ".
       iSplitL "H3 H5".
       - iFrame. simplNotation; simpl; done.
-      - unfold coq_read. rewrite -> EQ. replace (uint.Z (W64 0)) with 0%Z by word.
+      - unfold coq_read. rewrite -> EQ. replace (uint.nat (W64 0)) with 0%nat by word.
         unfold is_message; iFrame; simplNotation; simpl.
         iSplitL "". { done. }
         iSplitL "". { done. }
@@ -147,7 +151,7 @@ Section heap.
       iModIntro. simpl. iApply "HΦ".
       iSplitL "H3 H5".
       - iFrame. simplNotation; simpl; done.
-      - unfold coq_read. rewrite -> EQ. replace (uint.Z (W64 1)) with 1%Z by word.
+      - unfold coq_read. rewrite -> EQ. replace (uint.nat (W64 1)) with 1%nat by word.
         unfold is_message; iFrame; simplNotation; simpl.
         iSplitL "". { done. }
         iSplitL "". { done. }
@@ -185,7 +189,7 @@ Section heap.
       iModIntro. simpl. iApply "HΦ".
       iSplitL "H3 H5".
       - iFrame. simplNotation; simpl; done.
-      - unfold coq_read. rewrite -> EQ. replace (uint.Z (W64 2)) with 2%Z by word.
+      - unfold coq_read. rewrite -> EQ. replace (uint.nat (W64 2)) with 2%nat by word.
         unfold is_message; iFrame; simplNotation; simpl.
         iSplitL "". { done. }
         iSplitL "". { done. }
@@ -208,14 +212,157 @@ Section heap.
         done.
     }
     wp_pures. destruct (bool_decide (#c .(Client.SessionSemantic) = #(W64 3))) as [ | ] eqn: Heqb2.
-    { admit. }
-    admit.
-  Qed. *) Admitted.
+    { wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_NewSlice). iIntros "%s1 H_s1". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with ( @nil w64) by reflexivity.
+      wp_pures. wp_apply (wp_SliceAppendSlice with "[H5 H_s1]"). { repeat econstructor; eauto. } { iFrame. } clear s1. iIntros "%s1 [H_s1 H5]".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_load.
+      apply bool_decide_eq_true in Heqb2.
+      assert (c .(Client.SessionSemantic) = W64 3) as EQ by congruence.
+      replace (Φ (#(W64 0), (#c .(Client.Id), (#serverId, (#(W64 0), (#(W64 0), (s1, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V) with (Φ (message_val (W64 0, c.(Client.Id), serverId, W64 0, W64 0, s1, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)%core)) by reflexivity.
+      iModIntro. simpl. iApply "HΦ".
+      iSplitL "H3 H5".
+      - iFrame. simplNotation; simpl; done.
+      - unfold coq_read. rewrite -> EQ. replace (uint.nat (W64 3)) with 3%nat by word.
+        unfold is_message; iFrame; simplNotation; simpl.
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "H_s1". { iApply (own_slice_to_small with "[$H_s1]"). }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { iExists []. simpl; iSplitR ""; try done. iApply (own_slice_nil); eauto. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { iApply own_slice_small_nil; eauto. }
+        iSplitL "". { iPureIntro. word. }
+        done.
+    }
+    wp_pures. destruct (bool_decide (#c .(Client.SessionSemantic) = #(W64 4))) as [ | ] eqn: Heqb3.
+    { wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_NewSlice). iIntros "%s1 H_s1". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with ( @nil w64) by reflexivity.
+      wp_pures. wp_apply (wp_SliceAppendSlice with "[H3 H_s1]"). { repeat econstructor; eauto. } { iFrame. } clear s1. iIntros "%s1 [H_s1 H3]".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_load.
+      apply bool_decide_eq_true in Heqb3.
+      assert (c .(Client.SessionSemantic) = W64 4) as EQ by congruence.
+      replace (Φ (#(W64 0), (#c .(Client.Id), (#serverId, (#(W64 0), (#(W64 0), (s1, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V) with (Φ (message_val (W64 0, c.(Client.Id), serverId, W64 0, W64 0, s1, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)%core)) by reflexivity.
+      iModIntro. simpl. iApply "HΦ".
+      iSplitL "H3 H5".
+      - iFrame. simplNotation; simpl; done.
+      - unfold coq_read. rewrite -> EQ. replace (uint.nat (W64 4)) with 4%nat by word.
+        unfold is_message; iFrame; simplNotation; simpl.
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "H_s1". { iApply (own_slice_to_small with "[$H_s1]"). }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { iExists []. simpl; iSplitR ""; try done. iApply (own_slice_nil); eauto. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { iApply own_slice_small_nil; eauto. }
+        iSplitL "". { iPureIntro. word. }
+        done.
+    }
+    wp_pures. destruct (bool_decide (#c .(Client.SessionSemantic) = #(W64 5))) as [ | ] eqn: Heqb4.
+    { wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_apply (wp_maxTS (uint.nat (c.(Client.NumberOfServers))) with "[$H3 $H5]"). { iPureIntro. word. } iIntros "%s1 (H3 & H5 & [H_s1 %LEN])".
+      wp_pures. wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iFrame. } iIntros "H_reply".
+      wp_pures. wp_load.
+      apply bool_decide_eq_true in Heqb4.
+      assert (c .(Client.SessionSemantic) = W64 5) as EQ by congruence.
+      replace (Φ (#(W64 0), (#c .(Client.Id), (#serverId, (#(W64 0), (#(W64 0), (s1, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V) with (Φ (message_val (W64 0, c.(Client.Id), serverId, W64 0, W64 0, s1, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)%core)) by reflexivity.
+      iModIntro. simpl. iApply "HΦ".
+      iSplitL "H3 H5".
+      - iFrame. simplNotation; simpl; done.
+      - unfold coq_read. rewrite -> EQ. replace (uint.nat (W64 5)) with 5%nat by word.
+        unfold is_message; iFrame; simplNotation; simpl.
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "H_s1". { iApply (own_slice_to_small with "[$H_s1]"). }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { iExists []. simpl; iSplitR ""; try done. iApply (own_slice_nil); eauto. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { done. }
+        iSplitL "". { iApply own_slice_small_nil; eauto. }
+        iSplitL "". { iPureIntro. word. }
+        done.
+    }
+    wp_pures. wp_load. replace (Φ (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V) with (Φ (message_val (W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0, Slice.nil, W64 0, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0))) by reflexivity.
+    iModIntro. iApply "HΦ".
+    iSplitL "H3 H5".
+    - iFrame. simplNotation; simpl; done.
+    - rewrite -> bool_decide_eq_false in Heqb, Heqb0, Heqb1, Heqb2, Heqb3, Heqb4.
+      assert (c.(Client.SessionSemantic) ≠ (W64 0)) as NE0 by congruence.
+      assert (c.(Client.SessionSemantic) ≠ (W64 1)) as NE1 by congruence.
+      assert (c.(Client.SessionSemantic) ≠ (W64 2)) as NE2 by congruence.
+      assert (c.(Client.SessionSemantic) ≠ (W64 3)) as NE3 by congruence.
+      assert (c.(Client.SessionSemantic) ≠ (W64 4)) as NE4 by congruence.
+      assert (c.(Client.SessionSemantic) ≠ (W64 5)) as NE5 by congruence.
+      unfold coq_read. destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]] eqn: H_n; try word.
+      unfold is_message; iFrame; simplNotation; simpl.
+      unfold is_message; iFrame; simplNotation; simpl.
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { iApply (own_slice_small_nil); eauto. }
+      iSplitL "". { rewrite length_replicate. done. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { iExists []. simpl; iSplitR ""; try done. iApply (own_slice_nil); eauto. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { done. }
+      iSplitL "". { iApply own_slice_small_nil; eauto. }
+      iSplitL "". { iPureIntro. word. }
+      done.
+  Qed.
 
   Lemma wp_write (c: Client.t) (serverId: u64) (value: u64) (n: nat) cv :
     {{{
         is_client cv c n ∗
-        ⌜n = uint.nat c.(Client.NumberOfServers)⌝
+        ⌜CLIENT_INVARIANT c⌝
     }}}
       CoqSessionClient.write (client_val cv) (#serverId) (#value)
     {{{
@@ -236,11 +383,11 @@ Section heap.
     {{{
         cv' msgv', RET (client_val cv', message_val msgv');
         is_client cv' (coq_processRequest c requestType serverId value ackMessage).1 n ∗
-        is_message msgv' (coq_processRequest c requestType serverId value ackMessage).2 n (if (uint.Z requestType =? 0) || (uint.Z requestType =? 1) then n else 0%nat) 0%nat ∗
+        is_message msgv' (coq_processRequest c requestType serverId value ackMessage).2 n (if (uint.Z requestType =? 0)%Z || (uint.Z requestType =? 1)%Z then n else 0%nat) 0%nat ∗
         is_message msgv ackMessage n n n ∗
-        ⌜n = uint.nat (coq_processRequest c requestType serverId value ackMessage).1.(Client.NumberOfServers)⌝
+        ⌜CLIENT_INVARIANT c⌝
     }}}.
   Proof.
-  Admitted.
+  Admitted. *)
 
 End heap.

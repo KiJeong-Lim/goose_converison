@@ -381,10 +381,10 @@ Section heap.
   #[global] Instance client_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*u64) (struct.t client.Client).
   Proof. constructor; auto. cbn. split; auto. Qed.
 
-  Definition is_client (cv: tuple_of [u64,u64,Slice.t,Slice.t,u64])
-    (c: Client.t) (n: nat) : iProp Σ :=
+  Definition is_client (cv: tuple_of [u64,u64,Slice.t,Slice.t,u64]) (c: Client.t) (n: nat) : iProp Σ :=
     ⌜cv!(0) = c.(Client.Id)⌝ ∗
     ⌜cv!(1) = c.(Client.NumberOfServers)⌝ ∗
+    ⌜n = uint.nat c.(Client.NumberOfServers)⌝ ∗
     own_slice_small cv!(2) uint64T (DfracOwn 1) c.(Client.WriteVersionVector) ∗
     ⌜n = length c.(Client.WriteVersionVector)⌝ ∗
     own_slice_small cv!(3) uint64T (DfracOwn 1) c.(Client.ReadVersionVector) ∗

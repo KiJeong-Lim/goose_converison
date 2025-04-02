@@ -364,9 +364,16 @@ Module INVARIANT.
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
     }.
 
+  Record CLIENT (c: Client.t) : Prop :=
+    CLIENT_INVARIANT_INTRO
+    { SessionSemantic_ge_0: (uint.Z c.(Client.SessionSemantic) >= 0)%Z
+    ; SessionSemantic_le_5: (uint.Z c.(Client.SessionSemantic) <= 5)%Z
+    }.
+
 End INVARIANT.
 
 Notation SERVER_INVARIANT := INVARIANT.SERVER.
+Notation CLIENT_INVARIANT := INVARIANT.CLIENT.
 
 Section heap.
 
