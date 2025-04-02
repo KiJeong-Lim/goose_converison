@@ -72,14 +72,14 @@ func read(client Client, serverId uint64) Message {
 		reply.C2S_Client_OperationType = 0
 		reply.C2S_Client_Data = 0
 		reply.C2S_Server_Id = serverId
-		reply.C2S_Client_VersionVector = client.ReadVersionVector
+		reply.C2S_Client_VersionVector = append(make([]uint64, 0), client.ReadVersionVector...)
 	} else if client.SessionSemantic == 4 { // RYW
 		reply.MessageType = 0
 		reply.C2S_Client_Id = client.Id
 		reply.C2S_Client_OperationType = 0
 		reply.C2S_Client_Data = 0
 		reply.C2S_Server_Id = serverId
-		reply.C2S_Client_VersionVector = client.WriteVersionVector
+		reply.C2S_Client_VersionVector = append(make([]uint64, 0), client.WriteVersionVector...)
 	} else if client.SessionSemantic == 5 { // Causal
 		reply.MessageType = 0
 		reply.C2S_Client_Id = client.Id
@@ -107,14 +107,14 @@ func write(client Client, serverId uint64, value uint64) Message {
 		reply.C2S_Client_OperationType = 1
 		reply.C2S_Client_Data = value
 		reply.C2S_Server_Id = serverId
-		reply.C2S_Client_VersionVector = client.ReadVersionVector
+		reply.C2S_Client_VersionVector = append(make([]uint64, 0), client.ReadVersionVector...)
 	} else if client.SessionSemantic == 2 { // MW
 		reply.MessageType = 0
 		reply.C2S_Client_Id = client.Id
 		reply.C2S_Client_OperationType = 1
 		reply.C2S_Client_Data = value
 		reply.C2S_Server_Id = serverId
-		reply.C2S_Client_VersionVector = client.WriteVersionVector
+		reply.C2S_Client_VersionVector =  append(make([]uint64, 0), client.WriteVersionVector...)
 	} else if client.SessionSemantic == 5 { // Causal
 		reply.MessageType = 0
 		reply.C2S_Client_Id = client.Id
@@ -135,10 +135,10 @@ func processRequest(client Client, requestType uint64, serverId uint64, value ui
 	        msg = write(client, serverId, value)
 	} else if requestType == 2 {
 		if ackMessage.S2C_Client_OperationType == 0 {
-			client.ReadVersionVector = ackMessage.S2C_Client_VersionVector
+			client.ReadVersionVector = append(make([]uint64, 0), ackMessage.S2C_Client_VersionVector...)
 		}
 		if ackMessage.S2C_Client_OperationType == 1 {
-			client.WriteVersionVector = ackMessage.S2C_Client_VersionVector
+			client.WriteVersionVector = append(make([]uint64, 0), ackMessage.S2C_Client_VersionVector...) 
 		}
 	}
 
