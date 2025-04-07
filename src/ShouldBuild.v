@@ -127,3 +127,4 @@ From Perennial.program_proof.session Require processClientRequest.
 From Perennial.program_proof.session Require processRequest.
 From Perennial.program_proof.session Require gossip.
 From Perennial.program_proof.session Require coq_session_client.
+From Perennial.program_proof.session Require nat_equivalence.
