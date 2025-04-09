@@ -21,4 +21,4 @@ Instance Similarity_list_list {A : Type} {B : Type} (SIM : Similarity A B) : Sim
 
 #[global]
 Instance Similarity_u64_nat : Similarity u64 nat :=
-  fun ux => fun nx => (nx = uint.nat ux)%nat /\ (uint.Z ux >= 0 /\ uint.Z ux < 2^32)%Z.
+  fun x => fun y => (y = uint.nat x)%nat /\ (uint.Z x >= 0 /\ uint.Z x < 2 ^ 64)%Z.
