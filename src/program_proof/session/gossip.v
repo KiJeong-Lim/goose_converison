@@ -135,7 +135,8 @@ Section heap.
             iPureIntro.
             { unfold coq_deleteAtIndexOperation. split.
               - rewrite length_app length_take length_drop. word.
-              - rewrite drop_app. replace (drop index (take index s .(Server.PendingOperations))) with ( @nil Operation.t); cycle 1.
+              - replace (uint.nat (W64 index)) with index by word.
+                rewrite drop_app. replace (drop index (take index s .(Server.PendingOperations))) with ( @nil Operation.t); cycle 1.
                 { symmetry. eapply nil_length_inv. rewrite length_drop length_take. word. }
                 simpl. rewrite length_take.
                 assert (index < length s .(Server.PendingOperations))%nat as YES4.

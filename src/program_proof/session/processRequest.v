@@ -273,7 +273,7 @@ Section heap.
               replace (index - length prevs')%nat with 0%nat by word.
               reflexivity.
             }
-            iAssert ⌜(length (coq_deleteAtIndexMessage s .(Server.UnsatisfiedRequests) (uint.nat (W64 index))) = uint.nat ns2 .(Slice.sz))%nat⌝%I as "%ns2_SZ".
+            iAssert ⌜(length (coq_deleteAtIndexMessage s .(Server.UnsatisfiedRequests) index) = uint.nat ns2 .(Slice.sz))%nat⌝%I as "%ns2_SZ".
             { iDestruct "message_slice_ns2" as "(%ops2 & message_slice_ns2 & H_ops2)".
               iPoseProof (big_sepL2_length with "[$H_ops2]") as "%LEN1".
               iPoseProof (own_slice_sz with "[$message_slice_ns2]") as "%LEN2".
@@ -284,9 +284,9 @@ Section heap.
             iSplitL "". { iPureIntro. rewrite fold_left_app. simpl. rewrite <- LOOP. simpl. destruct (coq_processClientRequest s cur) as [[b' s'] reply']; simpl in *. subst b'; reflexivity. }
             iSplitL "message_slice_ns2". { simpl. rewrite <- EQ. replace (uint.nat (W64 index)) with index by word. rewrite <- H2_invariant. iExact "message_slice_ns2". }
             simpl in *. iDestruct "is_server_ns" as "(%H1'' & %H2'' & H3'' & H4'' & %H5'' & H6'' & H7'' & H8'' & H9'' & %H10'')". iFrame. iPureIntro.
-            simplNotation; subst; simpl; split. { destruct H1_invariant. split; simpl; trivial. } rewrite <- EQ in LEN_ns2. replace (uint.nat (W64 (length prevs'))) with (length prevs') in LEN_ns2, ns2_SZ by word. repeat (split; try done).
+            simplNotation; subst; simpl; split. { destruct H1_invariant. split; simpl; trivial. } rewrite <- EQ in LEN_ns2. replace (uint.nat (W64 (length prevs'))) with (length prevs') in * by word. repeat (split; try done).
             * rewrite <- H2_invariant. word.
-            * unfold coq_deleteAtIndexMessage. rewrite <- H2_invariant. rewrite <- drop_drop. rewrite -> claim2. simpl. replace (drop 0 nexts) with nexts by reflexivity. rewrite drop_app.
+            * unfold coq_deleteAtIndexMessage. rewrite <- H2_invariant. rewrite <- drop_drop. replace (uint.nat (W64 (length prevs'))) with (length prevs') in * by word. rewrite -> claim2. simpl. replace (drop 0 nexts) with nexts by reflexivity. rewrite drop_app.
               replace (drop (length prevs') (take (length prevs') s .(Server.UnsatisfiedRequests))) with ( @nil Message.t) by now symmetry; eapply nil_length_inv; rewrite length_drop; rewrite length_take; word.
               replace (length prevs' - length (take (length prevs') s .(Server.UnsatisfiedRequests)))%nat with 0%nat by now rewrite length_take; word.
               reflexivity.

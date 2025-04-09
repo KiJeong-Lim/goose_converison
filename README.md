@@ -24,11 +24,9 @@ To compile dependencies for proofs do (`make src/program_proof/session/versionVe
 16. receiveGossip
 17. processClientRequest
 18. server.processRequest
-
-## Functions left to complete:
-1. write (easy)
-2. read (easy)
-3. client.processRequest (easy) 
+19. write
+20. read
+21. client.processRequest
 
 ## Other Proofs:
 1. Equivalence of u64 and nat of implementations

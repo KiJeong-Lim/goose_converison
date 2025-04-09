@@ -85,14 +85,14 @@ Module CoqSessionServer.
                         end)
           output (0%nat, [])).
 
-  Definition coq_deleteAtIndexOperation (o: list Operation.t) (index: nat) : list Operation.t :=
-    (take index o) ++ (drop (index + 1) o).
+  Definition coq_deleteAtIndexOperation (o: list Operation.t) (index: u64) : list Operation.t :=
+    (take (uint.nat index) o) ++ (drop (uint.nat index + 1) o).
 
-  Definition coq_deleteAtIndexMessage (m: list Message.t) (index: nat) : list Message.t :=
-    (take index m) ++ (drop (index + 1) m).
+  Definition coq_deleteAtIndexMessage (m: list Message.t) (index: u64) : list Message.t :=
+    (take (uint.nat index) m) ++ (drop (uint.nat index + 1) m).
 
   Definition coq_getDataFromOperationLog (l: list Operation.t) : u64 :=
-    match list_lookup (uint.nat ((length l) - 1)) l with
+    match list_lookup (uint.nat ((length l) - 1)%nat) l with
     | Some v => v.(Operation.Data)
     | None => 0
     end.
