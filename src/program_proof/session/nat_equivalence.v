@@ -8,6 +8,10 @@ Class Similarity (A : Type) (B : Type) : Type :=
 Infix "=~=" := is_similar_to.
 
 #[global]
+Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type} (D_SIM : Similarity D D') (C_SIM : Similarity C C') : Similarity (D -> C) (D' -> C') :=
+  fun f : D -> C => fun f' : D' -> C' => forall x, forall x', x =~= x' -> f x =~= f' x'.
+
+#[global]
 Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type} (SIM1 : Similarity A A') (SIM2 : Similarity B B') : Similarity (A * B) (A' * B') :=
   fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p'.
 
@@ -30,6 +34,16 @@ Proof.
   induction H_sim as [ | ? ? ? ? ? ? IH]; simpl; congruence.
 Qed.
 
+Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
+  (f_corres : f =~= f')
+  (xs_corres : xs =~= xs')
+  (z_corres : z =~= z')
+  : fold_left f xs z =~= fold_left f' xs' z'.
+Proof.
+  revert z z' z_corres. induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; eauto.
+  intros ? ? ?; eapply IH. eapply f_corres; [exact z_corres | exact head_corres].
+Qed.
+
 Definition UPPER_BOUND : Z :=
   2 ^ 64.
 
@@ -42,20 +56,6 @@ Lemma Similarity_u64_range (u : u64) (n : nat)
   : (uint.Z u >= 0 /\ uint.Z u < UPPER_BOUND)%Z.
 Proof.
   do 2 red in H_sim. word.
-Qed.
-
-#[global]
-Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type} (D_SIM : Similarity D D') (C_SIM : Similarity C C') : Similarity (D -> C) (D' -> C') :=
-  fun f : D -> C => fun f' : D' -> C' => forall x, forall x', x =~= x' -> f x =~= f' x'.
-
-Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
-  (f_corres : f =~= f')
-  (xs_corres : xs =~= xs')
-  (z_corres : z =~= z')
-  : fold_left f xs z =~= fold_left f' xs' z'.
-Proof.
-  revert z z' z_corres. induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; eauto.
-  intros ? ? ?; eapply IH. eapply f_corres; [exact z_corres | exact head_corres].
 Qed.
 
 #[global]
