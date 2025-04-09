@@ -2,36 +2,36 @@ From Perennial.program_proof.session Require Export coq_session coq_session_clie
 
 Reserved Infix "=~=" (at level 70, no associativity).
 
-Class Similarity (A : Type) (B : Type) : Type :=
-  is_similar_to (x : A) (y : B) : Prop.
+Class Similarity (A : Type) (A' : Type) : Type :=
+  is_similar_to (x : A) (x' : A') : Prop.
 
 Infix "=~=" := is_similar_to.
 
 #[global]
-Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type} (D_SIM : Similarity D D') (C_SIM : Similarity C C') : Similarity (D -> C) (D' -> C') :=
+Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type} (DOM_SIM : Similarity D D') (COD_SIM : Similarity C C') : Similarity (D -> C) (D' -> C') :=
   fun f : D -> C => fun f' : D' -> C' => forall x, forall x', x =~= x' -> f x =~= f' x'.
 
 #[global]
-Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type} (SIM1 : Similarity A A') (SIM2 : Similarity B B') : Similarity (A * B) (A' * B') :=
+Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type} (FST_SIM : Similarity A A') (SND_SIM : Similarity B B') : Similarity (A * B) (A' * B') :=
   fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p'.
 
-Inductive list_corres {A : Type} {B : Type} {SIM : Similarity A B} : Similarity (list A) (list B) :=
+Inductive list_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similarity (list A) (list A') :=
   | nil_corres
     : [] =~= []
-  | cons_corres x y xs ys
-    (head_corres : x =~= y)
-    (tail_corres : xs =~= ys)
-    : x :: xs =~= y :: ys.
+  | cons_corres (x : A) (x' : A') (xs : list A) (xs' : list A')
+    (head_corres : x =~= x')
+    (tail_corres : xs =~= xs')
+    : x :: xs =~= x' :: xs'.
 
 #[global]
-Instance Similarity_list {A : Type} {B : Type} (SIM : Similarity A B) : Similarity (list A) (list B) :=
-  @list_corres A B SIM.
+Instance Similarity_list {A : Type} {A' : Type} (SIM : Similarity A A') : Similarity (list A) (list A') :=
+  @list_corres A A' SIM.
 
-Lemma Similarity_list_length {A : Type} {B : Type} {SIM : Similarity A B} (xs : list A) (ys : list B)
-  (H_sim : xs =~= ys)
-  : length xs = length ys.
+Lemma Similarity_list_length {A : Type} {A' : Type} {SIM : Similarity A A'} (xs : list A) (xs' : list A')
+  (xs_corres : xs =~= xs')
+  : length xs = length xs'.
 Proof.
-  induction H_sim as [ | ? ? ? ? ? ? IH]; simpl; congruence.
+  induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; congruence.
 Qed.
 
 Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
@@ -49,13 +49,13 @@ Definition UPPER_BOUND : Z :=
 
 #[global]
 Instance Similarity_u64 : Similarity u64 nat :=
-  fun u => fun n => (n = uint.nat u)%nat /\ (uint.Z u >= 0 /\ uint.Z u < UPPER_BOUND)%Z.
+  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n < UPPER_BOUND)%Z.
 
-Lemma Similarity_u64_range (u : u64) (n : nat)
-  (H_sim : u =~= n)
-  : (uint.Z u >= 0 /\ uint.Z u < UPPER_BOUND)%Z.
+Lemma Similarity_u64_range (n : u64) (n' : nat)
+  (n_corres : n =~= n')
+  : (uint.Z n >= 0 /\ uint.Z n < UPPER_BOUND)%Z.
 Proof.
-  do 2 red in H_sim. word.
+  do 2 red in n_corres. word.
 Qed.
 
 #[global]
