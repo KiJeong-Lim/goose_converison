@@ -8,8 +8,8 @@ Class Similarity (A : Type) (B : Type) : Type :=
 Infix "=~=" := is_similar_to.
 
 #[global]
-Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type} (A_SIM : Similarity A A') (B_SIM : Similarity B B') : Similarity (A * B) (A' * B') :=
-  fun p : A * B => fun p' : A' * B' => p.1 =~= p'.1 /\ p.2 =~= p'.2.
+Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type} (SIM1 : Similarity A A') (SIM2 : Similarity B B') : Similarity (A * B) (A' * B') :=
+  fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p'.
 
 Inductive list_corres {A : Type} {B : Type} {SIM : Similarity A B} : Similarity (list A) (list B) :=
   | nil_corres
@@ -43,6 +43,24 @@ Lemma Similarity_u64_range (u : u64) (n : nat)
 Proof.
   do 2 red in H_sim. word.
 Qed.
+
+#[global]
+Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type} (D_SIM : Similarity D D') (C_SIM : Similarity C C') : Similarity (D -> C) (D' -> C') :=
+  fun f : D -> C => fun f' : D' -> C' => forall x, forall x', x =~= x' -> f x =~= f' x'.
+
+Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
+  (f_corres : f =~= f')
+  (xs_corres : xs =~= xs')
+  (z_corres : z =~= z')
+  : fold_left f xs z =~= fold_left f' xs' z'.
+Proof.
+  revert z z' z_corres. induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; eauto.
+  intros ? ? ?; eapply IH. eapply f_corres; [exact z_corres | exact head_corres].
+Qed.
+
+#[global]
+Instance Similarity_bool : Similarity bool bool :=
+  @eq bool.
 
 Module Operation'.
 
@@ -216,12 +234,7 @@ Module NatImplServer.
     let loop_step (acc : bool * bool) (element : nat * nat) : bool * bool :=
       let (e1, e2) := element in
       let (output, canApply) := acc in
-      if canApply && (e1 + 1 =? e2)%nat then
-        (output, false)
-      else if (e1 >=? e2)%nat then
-        (output, canApply)
-      else 
-        (false, canApply)
+      if canApply && (e1 + 1 =? e2)%nat then (output, false) else ((e1 >=? e2)%nat && output, canApply)
     in
     let (output, canApply) := fold_left loop_step (zip v1 v2) loop_init in
     output && negb canApply.
@@ -242,10 +255,7 @@ Module NatImplServer.
   Fixpoint coq_sortedInsert (l : list Operation'.t) (i : Operation'.t) : list Operation'.t :=
     match l with
     | [] => [i]
-    | h :: t =>
-      if orb (coq_lexicographicCompare h.(Operation'.VersionVector) i.(Operation'.VersionVector)) (coq_equalSlices h.(Operation'.VersionVector) i.(Operation'.VersionVector))
-      then (i :: h :: t)%list
-      else (h :: coq_sortedInsert t i)%list
+    | h :: t => if coq_lexicographicCompare h.(Operation'.VersionVector) i.(Operation'.VersionVector) || coq_equalSlices h.(Operation'.VersionVector) i.(Operation'.VersionVector) then (i :: h :: t)%list else (h :: coq_sortedInsert t i)%list
     end.
 
   Definition coq_mergeOperations (l1 : list Operation'.t) (l2 : list Operation'.t) : list Operation'.t :=
@@ -255,8 +265,8 @@ Module NatImplServer.
     in
     let loop_step (acc : nat * list Operation'.t) (element : Operation'.t) : nat * list Operation'.t :=
       let (index, acc) := acc in
-      match (output !! (index + 1)%nat) with
-      | Some v => if (coq_equalOperations element v) then ((index + 1)%nat, acc) else ((index + 1)%nat, acc ++ [element])
+      match output !! (index + 1)%nat with
+      | Some v => if coq_equalOperations element v then ((index + 1)%nat, acc) else ((index + 1)%nat, acc ++ [element])
       | None => ((index + 1)%nat, acc ++ [element])
       end
     in
@@ -369,7 +379,7 @@ Module NatImplServer.
         []
       in
       let loop_step (acc : list Message'.t) (index : nat) : list Message'.t :=
-        if negb (index =? (server.(Server'.Id)))%nat && negb (length (coq_getGossipOperations server index) =? 0)%nat then
+        if negb (index =? server.(Server'.Id))%nat && negb (length (coq_getGossipOperations server index) =? 0)%nat then
           let S2S_Gossip_Sending_ServerId := server.(Server'.Id) in
           let S2S_Gossip_Receiving_ServerId := index in
           let S2S_Gossip_Operations := coq_getGossipOperations server index in
@@ -384,14 +394,6 @@ Module NatImplServer.
     end.
 
   Section EQUIVALENCE.
-
-    #[local]
-    Instance Similarity_bool : Similarity bool bool :=
-      @eq bool.
-
-    #[local]
-    Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type} (D_SIM : Similarity D D') (C_SIM : Similarity C C') : Similarity (D -> C) (D' -> C') :=
-      fun f : D -> C => fun f' : D' -> C' => forall x, forall x', x =~= x' -> f x =~= f' x'.
 
     Lemma coq_compareVersionVector_corres
       : CoqSessionServer.coq_compareVersionVector =~= coq_compareVersionVector.
@@ -505,10 +507,6 @@ Module NatImplClient.
     end.
 
   Section EQUIVALENCE.
-
-    #[local] Existing Instance Similarity_bool.
-
-    #[local] Existing Instance Similarity_fun.
 
     Lemma coq_read_corres
       : CoqSessionClient.coq_read =~= coq_read.
