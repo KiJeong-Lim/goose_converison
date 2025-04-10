@@ -8,12 +8,22 @@ Class Similarity (A : Type) (A' : Type) : Type :=
 Infix "=~=" := is_similar_to.
 
 #[global]
-Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type} (DOM_SIM : Similarity D D') (COD_SIM : Similarity C C') : Similarity (D -> C) (D' -> C') :=
-  fun f : D -> C => fun f' : D' -> C' => forall x, forall x', x =~= x' -> f x =~= f' x'.
+Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type}
+  (DOM_SIM : Similarity D D')
+  (COD_SIM : Similarity C C')
+  : Similarity (D -> C) (D' -> C').
+Proof.
+  exact (fun f : D -> C => fun f' : D' -> C' => forall x, forall x', x =~= x' -> f x =~= f' x').
+Defined.
 
 #[global]
-Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type} (FST_SIM : Similarity A A') (SND_SIM : Similarity B B') : Similarity (A * B) (A' * B') :=
-  fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p'.
+Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type}
+  (FST_SIM : Similarity A A')
+  (SND_SIM : Similarity B B')
+  : Similarity (A * B) (A' * B').
+Proof.
+  exact (fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p').
+Defined.
 
 Inductive list_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similarity (list A) (list A') :=
   | nil_corres
@@ -27,9 +37,9 @@ Inductive list_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similarit
 Instance Similarity_list {A : Type} {A' : Type} (SIM : Similarity A A') : Similarity (list A) (list A') :=
   @list_corres A A' SIM.
 
-Lemma Similarity_list_length {A : Type} {A' : Type} {SIM : Similarity A A'} (xs : list A) (xs' : list A')
+Lemma list_corres_length {A : Type} {A' : Type} {SIM : Similarity A A'} (xs : list A) (xs' : list A')
   (xs_corres : xs =~= xs')
-  : length xs = length xs'.
+  : @length A xs = @length A' xs'.
 Proof.
   induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; congruence.
 Qed.
@@ -38,7 +48,7 @@ Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Si
   (f_corres : f =~= f')
   (xs_corres : xs =~= xs')
   (z_corres : z =~= z')
-  : fold_left f xs z =~= fold_left f' xs' z'.
+  : @fold_left A B f xs z =~= @fold_left A' B' f' xs' z'.
 Proof.
   revert z z' z_corres. induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; eauto.
   intros ? ? ?; eapply IH. eapply f_corres; [exact z_corres | exact head_corres].
@@ -389,7 +399,7 @@ Module NatImplServer.
         else
           acc
       in
-      (server, fold_left loop_step (seq 0%nat (uint.nat server.(Server'.NumberOfServers))) loop_init)
+      (server, fold_left loop_step (seq 0%nat server.(Server'.NumberOfServers)) loop_init)
     | _ => (server, [])
     end.
 
