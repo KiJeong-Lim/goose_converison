@@ -167,16 +167,16 @@ Module Server'.
     ; GossipAcknowledgements : list nat
     }.
 
-  Record corres (server : Server.t) (server' : Server'.t) : Prop :=
+  Record corres (s : Server.t) (s' : Server'.t) : Prop :=
     Similarity_Server_INTRO
-    { Id_corres : server.(Server.Id) =~= server'.(Id)
-    ; NumberOfServers_corres : server.(Server.NumberOfServers) =~= server'.(NumberOfServers)
-    ; UnsatisfiedRequests_corres : server.(Server.UnsatisfiedRequests) =~= server'.(UnsatisfiedRequests)
-    ; VectorClock_corres : server.(Server.VectorClock) =~= server'.(VectorClock)
-    ; OperationsPerformed_corres : server.(Server.OperationsPerformed) =~= server'.(OperationsPerformed)
-    ; MyOperations_corres : server.(Server.MyOperations) =~= server'.(MyOperations)
-    ; PendingOperations_corres : server.(Server.PendingOperations) =~= server'.(PendingOperations)
-    ; GossipAcknowledgements_corres : server.(Server.GossipAcknowledgements) =~= server'.(GossipAcknowledgements)
+    { Id_corres : s.(Server.Id) =~= s'.(Id)
+    ; NumberOfServers_corres : s.(Server.NumberOfServers) =~= s'.(NumberOfServers)
+    ; UnsatisfiedRequests_corres : s.(Server.UnsatisfiedRequests) =~= s'.(UnsatisfiedRequests)
+    ; VectorClock_corres : s.(Server.VectorClock) =~= s'.(VectorClock)
+    ; OperationsPerformed_corres : s.(Server.OperationsPerformed) =~= s'.(OperationsPerformed)
+    ; MyOperations_corres : s.(Server.MyOperations) =~= s'.(MyOperations)
+    ; PendingOperations_corres : s.(Server.PendingOperations) =~= s'.(PendingOperations)
+    ; GossipAcknowledgements_corres : s.(Server.GossipAcknowledgements) =~= s'.(GossipAcknowledgements)
     }.
 
 End Server'.
@@ -196,13 +196,13 @@ Module Client'.
     ; SessionSemantic : nat
     }.
 
-  Record corres (client : Client.t) (client' : Client'.t) : Prop :=
+  Record corres (c : Client.t) (c' : Client'.t) : Prop :=
     Similarity_Client_INTRO
-    { Id_corres : client.(Client.Id) =~= client'.(Id)
-    ; NumberOfServers_corres : client.(Client.NumberOfServers) =~= client'.(NumberOfServers)
-    ; WriteVersionVector_corres : client.(Client.WriteVersionVector) =~= client'.(WriteVersionVector)
-    ; ReadVersionVector_corres : client.(Client.ReadVersionVector) =~= client'.(ReadVersionVector)
-    ; SessionSemantic_corres : client.(Client.SessionSemantic) =~= client'.(SessionSemantic)
+    { Id_corres : c.(Client.Id) =~= c'.(Id)
+    ; NumberOfServers_corres : c.(Client.NumberOfServers) =~= c'.(NumberOfServers)
+    ; WriteVersionVector_corres : c.(Client.WriteVersionVector) =~= c'.(WriteVersionVector)
+    ; ReadVersionVector_corres : c.(Client.ReadVersionVector) =~= c'.(ReadVersionVector)
+    ; SessionSemantic_corres : c.(Client.SessionSemantic) =~= c'.(SessionSemantic)
     }.
 
 End Client'.
@@ -298,7 +298,7 @@ Module NatImplServer.
     take index m ++ drop (index + 1)%nat m.
 
   Definition coq_getDataFromOperationLog (l : list Operation'.t) : nat :=
-    match l !! (length l - 1)%nat with
+    match last l with
     | Some v => v.(Operation'.Data)
     | None => 0%nat
     end.
