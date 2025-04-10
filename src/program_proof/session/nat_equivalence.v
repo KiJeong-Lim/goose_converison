@@ -44,6 +44,15 @@ Proof.
   induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; congruence.
 Qed.
 
+Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs1 : list A) (xs1' : list A') (xs2 : list A) (xs2' : list A')
+  (xs1_corres : xs1 =~= xs1')
+  (xs2_corres : xs2 =~= xs2')
+  : xs1 ++ xs2 =~= xs1' ++ xs2'.
+Proof.
+  revert xs2 xs2' xs2_corres. induction xs1_corres as [ | ? ? ? ? ? ? IH]; simpl; eauto.
+  intros ? ? ?; econstructor 2; [exact head_corres | eapply IH; exact xs2_corres].
+Qed.
+
 Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
   (f_corres : f =~= f')
   (xs_corres : xs =~= xs')
@@ -225,7 +234,7 @@ Module NatImplServer.
     end.
 
   Definition coq_maxTwoInts (x : nat) (y : nat) : nat :=
-    if (x >? y)%nat then x else y. 
+    if (x >? y)%nat then x else y.
 
   Fixpoint coq_maxTS (v1 : list nat) (v2 : list nat) : list nat :=
     match v1 with
@@ -283,10 +292,10 @@ Module NatImplServer.
     snd (fold_left loop_step output loop_init).
 
   Definition coq_deleteAtIndexOperation (o : list Operation'.t) (index : nat) : list Operation'.t :=
-    take index o ++ drop (index + 1) o.
+    take index o ++ drop (index + 1)%nat o.
 
   Definition coq_deleteAtIndexMessage (m : list Message'.t) (index : nat) : list Message'.t :=
-    take index m ++ drop (index + 1) m.
+    take index m ++ drop (index + 1)%nat m.
 
   Definition coq_getDataFromOperationLog (l : list Operation'.t) : nat :=
     match l !! (length l - 1)%nat with
@@ -407,70 +416,87 @@ Module NatImplServer.
 
     Lemma coq_compareVersionVector_corres
       : CoqSessionServer.coq_compareVersionVector =~= coq_compareVersionVector.
+    Proof.
     Admitted.
   
     Lemma coq_lexicographicCompare_corres
       : CoqSessionServer.coq_lexicographicCompare =~= coq_lexicographicCompare.
+    Proof.
     Admitted.
   
     Lemma coq_maxTwoInts_corres
       : CoqSessionServer.coq_maxTwoInts =~= coq_maxTwoInts.
+    Proof.
     Admitted.
   
     Lemma coq_maxTS_corres
       : CoqSessionServer.coq_maxTS =~= coq_maxTS.
+    Proof.
     Admitted.
   
     Lemma coq_oneOffVersionVector_corres
       : CoqSessionServer.coq_oneOffVersionVector =~= coq_oneOffVersionVector.
+    Proof.
     Admitted.
   
     Lemma coq_equalSlices_corres
       : CoqSessionServer.coq_equalSlices =~= coq_equalSlices.
+    Proof.
     Admitted.
   
     Lemma coq_equalOperations_corres
       : CoqSessionServer.coq_equalOperations =~= coq_equalOperations.
+    Proof.
     Admitted.
   
     Lemma coq_sortedInsert_corres
       : CoqSessionServer.coq_sortedInsert =~= coq_sortedInsert.
+    Proof.
     Admitted.
   
     Lemma coq_mergeOperations_corres
       : CoqSessionServer.coq_mergeOperations =~= coq_mergeOperations.
+    Proof.
     Admitted.
   
     Lemma coq_deleteAtIndexOperation_corres
       : CoqSessionServer.coq_deleteAtIndexOperation =~= coq_deleteAtIndexOperation.
+    Proof.
     Admitted.
   
     Lemma coq_deleteAtIndexMessage_corres
       : CoqSessionServer.coq_deleteAtIndexMessage =~= coq_deleteAtIndexMessage.
+    Proof.
     Admitted.
   
     Lemma coq_getDataFromOperationLog_corres
       : CoqSessionServer.coq_getDataFromOperationLog =~= coq_getDataFromOperationLog.
+    Proof.
     Admitted.
   
     Lemma coq_receiveGossip_corres
       : CoqSessionServer.coq_receiveGossip =~= coq_receiveGossip.
+    Proof.
     Admitted.
   
     Lemma coq_acknowledgeGossip_corres
       : CoqSessionServer.coq_acknowledgeGossip =~= coq_acknowledgeGossip.
+    Proof.
     Admitted.
 
     Lemma coq_getGossipOperations_corres
       : CoqSessionServer.coq_getGossipOperations =~= coq_getGossipOperations.
+    Proof.
     Admitted.
 
     Lemma coq_processClientRequest_corres
       : CoqSessionServer.coq_processClientRequest =~= coq_processClientRequest.
+    Proof.
     Admitted.
   
     Lemma coq_processRequest_corres
       : CoqSessionServer.coq_processRequest =~= coq_processRequest.
+    Proof.
     Admitted.
 
   End EQUIVALENCE.
@@ -520,14 +546,17 @@ Module NatImplClient.
 
     Lemma coq_read_corres
       : CoqSessionClient.coq_read =~= coq_read.
+    Proof.
     Admitted.
 
     Lemma coq_write_corres
       : CoqSessionClient.coq_write =~= coq_write.
+    Proof.
     Admitted.
   
     Lemma coq_processRequest_corres
       : CoqSessionClient.coq_processRequest =~= coq_processRequest.
+    Proof.
     Admitted.
 
   End EQUIVALENCE.
