@@ -111,7 +111,7 @@ Section heap.
 
   Definition operation_slice' (op_s: Slice.t) (op: list Operation.t) (n: nat) (dq: dfrac) : iProp Σ :=
     ∃ ops, own_slice op_s (struct.t Operation) dq ops ∗
-           [∗ list] opv;o ∈ ops;op, is_operation opv o n.
+            [∗ list] opv;o ∈ ops;op, is_operation opv o n.
 
   Definition operation_slice (s: Slice.t) (l: list Operation.t) (n: nat) : iProp Σ :=
     operation_slice' s l n (DfracOwn 1).
