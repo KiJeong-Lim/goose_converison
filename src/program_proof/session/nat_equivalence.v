@@ -33,6 +33,8 @@ Inductive list_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similarit
     (tail_corres : xs =~= xs')
     : x :: xs =~= x' :: xs'.
 
+#[local] Hint Constructors list_corres : core.
+
 #[global]
 Instance Similarity_list {A : Type} {A' : Type} (SIM : Similarity A A') : Similarity (list A) (list A') :=
   @list_corres A A' SIM.
@@ -41,16 +43,15 @@ Lemma list_corres_length {A : Type} {A' : Type} {SIM : Similarity A A'} (xs : li
   (xs_corres : xs =~= xs')
   : @length A xs = @length A' xs'.
 Proof.
-  induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; congruence.
+  induction xs_corres; simpl; congruence.
 Qed.
 
-Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs1 : list A) (xs1' : list A') (xs2 : list A) (xs2' : list A')
-  (xs1_corres : xs1 =~= xs1')
-  (xs2_corres : xs2 =~= xs2')
-  : xs1 ++ xs2 =~= xs1' ++ xs2'.
+Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (ys : list A) (ys' : list A')
+  (xs_corres : xs =~= xs')
+  (ys_corres : ys =~= ys')
+  : @app A xs ys =~= @app A' xs' ys'.
 Proof.
-  revert xs2 xs2' xs2_corres. induction xs1_corres as [ | ? ? ? ? ? ? IH]; simpl; eauto.
-  intros ? ? ?; econstructor 2; [exact head_corres | eapply IH; exact xs2_corres].
+  revert ys ys' ys_corres. induction xs_corres; simpl; eauto.
 Qed.
 
 Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
@@ -59,8 +60,8 @@ Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Si
   (z_corres : z =~= z')
   : @fold_left A B f xs z =~= @fold_left A' B' f' xs' z'.
 Proof.
-  revert z z' z_corres. induction xs_corres as [ | ? ? ? ? ? ? IH]; simpl; eauto.
-  intros ? ? ?; eapply IH. eapply f_corres; [exact z_corres | exact head_corres].
+  do 4 red in f_corres. revert z z' z_corres.
+  induction xs_corres; simpl; eauto.
 Qed.
 
 Definition UPPER_BOUND : Z :=
@@ -274,7 +275,7 @@ Module NatImplServer.
   Fixpoint coq_sortedInsert (l : list Operation'.t) (i : Operation'.t) : list Operation'.t :=
     match l with
     | [] => [i]
-    | h :: t => if coq_lexicographicCompare h.(Operation'.VersionVector) i.(Operation'.VersionVector) || coq_equalSlices h.(Operation'.VersionVector) i.(Operation'.VersionVector) then (i :: h :: t)%list else (h :: coq_sortedInsert t i)%list
+    | h :: t => if coq_lexicographicCompare h.(Operation'.VersionVector) i.(Operation'.VersionVector) || coq_equalSlices h.(Operation'.VersionVector) i.(Operation'.VersionVector) then i :: h :: t else h :: coq_sortedInsert t i
     end.
 
   Definition coq_mergeOperations (l1 : list Operation'.t) (l2 : list Operation'.t) : list Operation'.t :=
@@ -298,7 +299,7 @@ Module NatImplServer.
     take index m ++ drop (index + 1)%nat m.
 
   Definition coq_getDataFromOperationLog (l : list Operation'.t) : nat :=
-    match last l with
+    match l !! (length l - 1)%nat with
     | Some v => v.(Operation'.Data)
     | None => 0%nat
     end.
