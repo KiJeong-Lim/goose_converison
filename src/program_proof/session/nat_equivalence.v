@@ -354,7 +354,7 @@ Module NatImplServer.
         let S2C_Client_VersionVector := s.(Server'.VectorClock) in
         let S2C_Client_Number := r.(Message'.C2S_Client_Id) in
         let S2C_Server_Id := s.(Server'.Id) in
-        (true, s, (Message'.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 0 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number))
+        (true, s, Message'.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 0 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)
       else
         let v := list_lookup_total s.(Server'.Id) s.(Server'.VectorClock) in
         let VectorClock := <[s.(Server'.Id) := (v + 1)%nat]> s.(Server'.VectorClock) in
@@ -365,7 +365,7 @@ Module NatImplServer.
         let S2C_Client_VersionVector := VectorClock in
         let S2C_Client_Number := r.(Message'.C2S_Client_Id) in
         let S2C_Server_Id := s.(Server'.Id) in
-        (true, Server'.mk s.(Server'.Id) s.(Server'.NumberOfServers) s.(Server'.UnsatisfiedRequests) VectorClock OperationsPerformed MyOperations s.(Server'.PendingOperations) s.(Server'.GossipAcknowledgements), (Message'.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 1 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)).
+        (true, Server'.mk s.(Server'.Id) s.(Server'.NumberOfServers) s.(Server'.UnsatisfiedRequests) VectorClock OperationsPerformed MyOperations s.(Server'.PendingOperations) s.(Server'.GossipAcknowledgements), Message'.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 1 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number).
 
   Definition coq_processRequest (server : Server'.t) (request : Message'.t) : Server'.t * list Message'.t :=
     match request.(Message'.MessageType) with
