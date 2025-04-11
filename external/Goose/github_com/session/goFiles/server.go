@@ -241,7 +241,7 @@ func getGossipOperations(server Server, serverId uint64) []Operation {
 		return ret
 	}
 
-	return append(ret, server.MyOperations[server.GossipAcknowledgements[serverId]:]...)
+	return server.MyOperations[server.GossipAcknowledgements[serverId]:]
 }
 
 func processClientRequest(server Server, request Message) (bool, Server, Message) {
