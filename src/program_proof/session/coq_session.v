@@ -1,7 +1,9 @@
 From Perennial.program_proof.session Require Export session_prelude.
 From Perennial.program_proof.session Require Export definitions.
 
-Module CoqSession.
+Module CoqSessionServer.
+
+  Include Goose.github_com.session.server.
 
   Fixpoint coq_compareVersionVector (v1: list u64) (v2: list u64) : bool :=
     match v1 with
@@ -200,9 +202,9 @@ Module CoqSession.
     | _ => (server, [])
     end.
 
-End CoqSession.
+End CoqSessionServer.
 
-Export CoqSession.
+Export CoqSessionServer.
 
 Section properties.
 
@@ -362,9 +364,16 @@ Module INVARIANT.
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
     }.
 
+  Record CLIENT (c: Client.t) : Prop :=
+    CLIENT_INVARIANT_INTRO
+    { SessionSemantic_ge_0: (uint.Z c.(Client.SessionSemantic) >= 0)%Z
+    ; SessionSemantic_le_5: (uint.Z c.(Client.SessionSemantic) <= 5)%Z
+    }.
+
 End INVARIANT.
 
 Notation SERVER_INVARIANT := INVARIANT.SERVER.
+Notation CLIENT_INVARIANT := INVARIANT.CLIENT.
 
 Section heap.
 

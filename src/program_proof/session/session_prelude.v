@@ -217,36 +217,6 @@ Module SessionPrelude.
     - intros NE. word.
   Qed.
 
-  #[global, program]
-  Instance hsEq_w64 : hsEq w64 (well_formed := fun _ => True) :=
-    { eqProp := @eq w64
-    ; eqb x y := (uint.Z x =? uint.Z y)%Z
-    ; eqProp_reflexivity := _
-    ; eqProp_symmetry := _
-    ; eqProp_transitivity := _
-    ; eqb_eq := _
-    ; eqb_neq := _
-    }.
-  Next Obligation.
-    reflexivity; eauto.
-  Qed.
-  Next Obligation.
-    symmetry; eauto.
-  Qed.
-  Next Obligation.
-    etransitivity; eauto.
-  Qed.
-  Next Obligation.
-    simpl. rewrite Z.eqb_eq. split.
-    - intros EQ. word.
-    - congruence.
-  Qed.
-  Next Obligation.
-    simpl. rewrite Z.eqb_neq. split.
-    - congruence.
-    - intros NE. word.
-  Qed.
-
   (** End basic_instances_of_hsEq. *)
 
   Class hsOrd (A : Type) {well_formed : A -> Prop} {hsEq : hsEq A (well_formed := well_formed)} : Type :=
@@ -386,36 +356,6 @@ Module SessionPrelude.
 
   #[global, program]
   Instance hsOrd_u64 : hsOrd u64 :=
-    { ltProp x y := (uint.Z x < uint.Z y)%Z
-    ; ltb x y := (uint.Z y >? uint.Z x)%Z
-    ; ltProp_irreflexivity := _
-    ; ltProp_transitivity := _
-    ; ltProp_trichotomy := _
-    ; ltb_lt x y := _
-    ; ltb_nlt x y := _
-    }.
-  Next Obligation.
-    simpl. do 2 red in x_eq_y. word.
-  Qed.
-  Next Obligation.
-    simpl in *. word.
-  Qed.
-  Next Obligation.
-    simpl in *.
-    assert (uint.Z x < uint.Z y \/ uint.Z x = uint.Z y \/ uint.Z x > uint.Z y) as [LT | [EQ | GT]] by word.
-    - left. word.
-    - right. left. word. 
-    - right. right. word.
-  Qed.
-  Next Obligation.
-    rewrite Z.gtb_gt. word.
-  Qed.
-  Next Obligation.
-    simpl. rewrite Z.gtb_ltb Z.ltb_ge. word.
-  Qed.
-
-  #[global, program]
-  Instance hsOrd_w64 : hsOrd w64 :=
     { ltProp x y := (uint.Z x < uint.Z y)%Z
     ; ltb x y := (uint.Z y >? uint.Z x)%Z
     ; ltProp_irreflexivity := _

@@ -11,7 +11,7 @@ Section heap.
         is_message msgv msg n m len_s2c ∗
         ⌜SERVER_INVARIANT s⌝
     }}}
-      processClientRequest (server_val sv) (message_val msgv)
+      CoqSessionServer.processClientRequest (server_val sv) (message_val msgv)
     {{{
         b ns nm, RET (#b, server_val ns, message_val nm);
         ⌜b = (coq_processClientRequest s msg).1.1⌝ ∗
@@ -155,7 +155,7 @@ Section heap.
         is_message msgv msg n n len_s2c ∗
         ⌜SERVER_INVARIANT s⌝
     }}}
-      server.processRequest (server_val sv) (message_val msgv)
+      CoqSessionServer.processRequest (server_val sv) (message_val msgv)
     {{{
         ns nms, RET (server_val ns, slice_val nms);
         is_server ns (coq_processRequest s msg).1 n n n n n len_ga ∗
@@ -167,7 +167,7 @@ Section heap.
     unfold is_server. rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_precondition) HΦ".
     iDestruct "H_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)".
     iDestruct "H_message" as "(%H11 & %H12 & %H13 & %H14 & %H15 & H16 & %H17 & %H18 & %H19 & H20 & %H21 & %H22 & %H23 & %H24 & %H25 & %H26 & H27 & %H28 & %H29 & %H30)".
-    destruct H_precondition as [? ? ? ?]; simplNotation; subst; rewrite /server.processRequest.
+    destruct H_precondition as [? ? ? ?]; simplNotation; subst; rewrite /CoqSessionServer.processRequest.
     wp_pure. wp_apply wp_NewSlice. simpl. rewrite rewrite_nil; cycle 1. { word. } iIntros "%s1 H_s1".
     wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%outGoingRequests H_outGoingRequests".
     wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%server H_server".
