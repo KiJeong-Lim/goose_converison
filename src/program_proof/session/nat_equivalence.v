@@ -97,26 +97,6 @@ Proof.
   revert ys ys' ys_corres. induction xs_corres; simpl; eauto.
 Qed.
 
-Lemma app_corres_inv {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (ys : list A) (ys' : list A')
-  (H_corres : xs =~= xs' \/ ys =~= ys')
-  : xs ++ ys =~= xs' ++ ys' <-> (xs =~= xs' /\ ys =~= ys').
-Proof.
-  split.
-  - destruct H_corres as [xs_corres | ys_corres].
-    + enough (xs ++ ys =~= xs' ++ ys' -> ys =~= ys') by tauto.
-      revert ys ys'; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; eauto.
-      intros ? ? H_corres. inv H_corres; eauto.
-    + enough (xs ++ ys =~= xs' ++ ys' -> xs =~= xs') by tauto.
-      intros H_corres. pose proof (list_corres_length _ _ H_corres) as claim1.
-      do 2 rewrite length_app in claim1. pose proof (list_corres_length _ _ ys_corres) as claim2.
-      assert (length xs = length xs') as LENGTH by word.
-      clear claim1 claim2.
-      revert xs xs' LENGTH ys ys' ys_corres H_corres.
-      induction xs as [ | x xs IH], xs' as [ | x' xs']; simpl; intros ? ? ? ? ?; try congruence; eauto.
-      inv H_corres; eauto.
-  - intros [xs_corres ys_corres]; eapply app_corres; eauto.
-Qed.
-
 Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
   (f_corres : f =~= f')
   (xs_corres : xs =~= xs')
@@ -556,7 +536,7 @@ Module NatImplServer.
       : CoqSessionServer.coq_oneOffVersionVector =~= coq_oneOffVersionVector.
     Proof.
       intros xs xs' xs_corres ys ys' ys_corres; unfold CoqSessionServer.coq_oneOffVersionVector, coq_oneOffVersionVector; do 2 red.
-      destruct (fold_left _ _ _) as [output canApply] eqn: H_OBS.
+      destruct (fold_left _ _ _) as [output canApply] eqn: H_OBS in |- *.
       destruct (fold_left _ _ _) as [output' canApply'] eqn: H_OBS' in |- *.
       enough (want : (output, canApply) =~= (output', canApply')).
       { do 2 red in want. destruct want as [output_corres canApply_corres]; do 2 red in output_corres, canApply_corres; simpl in *. congruence. }
@@ -659,27 +639,27 @@ Module NatImplServer.
       : CoqSessionServer.coq_mergeOperations =~= coq_mergeOperations.
     Proof.
     Admitted.
-  
+
     Lemma coq_deleteAtIndexOperation_corres
       : CoqSessionServer.coq_deleteAtIndexOperation =~= coq_deleteAtIndexOperation.
     Proof.
     Admitted.
-  
+
     Lemma coq_deleteAtIndexMessage_corres
       : CoqSessionServer.coq_deleteAtIndexMessage =~= coq_deleteAtIndexMessage.
     Proof.
     Admitted.
-  
+
     Lemma coq_getDataFromOperationLog_corres
       : CoqSessionServer.coq_getDataFromOperationLog =~= coq_getDataFromOperationLog.
     Proof.
     Admitted.
-  
+
     Lemma coq_receiveGossip_corres
       : CoqSessionServer.coq_receiveGossip =~= coq_receiveGossip.
     Proof.
     Admitted.
-  
+
     Lemma coq_acknowledgeGossip_corres
       : CoqSessionServer.coq_acknowledgeGossip =~= coq_acknowledgeGossip.
     Proof.
@@ -694,7 +674,7 @@ Module NatImplServer.
       : CoqSessionServer.coq_processClientRequest =~= coq_processClientRequest.
     Proof.
     Admitted.
-  
+
     Lemma coq_processRequest_corres
       : CoqSessionServer.coq_processRequest =~= coq_processRequest.
     Proof.
@@ -754,7 +734,7 @@ Module NatImplClient.
       : CoqSessionClient.coq_write =~= coq_write.
     Proof.
     Admitted.
-  
+
     Lemma coq_processRequest_corres
       : CoqSessionClient.coq_processRequest =~= coq_processRequest.
     Proof.
