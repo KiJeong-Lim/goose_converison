@@ -58,18 +58,18 @@ Instance Similarity_option {A : Type} {A' : Type} (SIM : Similarity A A') : Simi
 Instance Similarity_bool : Similarity bool bool :=
   @eq bool.
 
-Definition UPPER_BOUND : Z :=
-  2 ^ 64.
+Definition MAX_BOUND : Z :=
+  2 ^ 64 - 2.
 
 #[global]
 Instance Similarity_u64 : Similarity u64 nat :=
-  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n < UPPER_BOUND)%Z.
+  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
 
 (** End Similarity_Instances. *)
 
 Lemma Similarity_u64_range (n : u64) (n' : nat)
   (n_corres : n =~= n')
-  : (uint.Z n >= 0 /\ uint.Z n < UPPER_BOUND)%Z.
+  : (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
 Proof.
   do 2 red in n_corres. word.
 Qed.
@@ -139,6 +139,38 @@ Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A)
   : drop n xs =~= drop n xs'.
 Proof.
   revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
+Qed.
+
+Lemma andb_corres (b1 : bool) (b1' : bool) (b2 : bool) (b2' : bool)
+  (b1_corres : b1 =~= b1')
+  (b2_corres : b2 =~= b2')
+  : b1 && b2 =~= b1' && b2'.
+Proof.
+  do 2 red in b1_corres, b2_corres |- *. congruence.
+Qed.
+
+Lemma orb_corres (b1 : bool) (b1' : bool) (b2 : bool) (b2' : bool)
+  (b1_corres : b1 =~= b1')
+  (b2_corres : b2 =~= b2')
+  : b1 || b2 =~= b1' || b2'.
+Proof.
+  do 2 red in b1_corres, b2_corres |- *. congruence.
+Qed.
+
+Lemma negb_corres (b1 : bool) (b1' : bool)
+  (b1_corres : b1 =~= b1')
+  : negb b1 =~= negb b1'.
+Proof.
+  do 2 red in b1_corres |- *. congruence.
+Qed.
+
+Lemma ite_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (b : bool) (b' : bool) (x : A) (x' : A') (y : A) (y' : A')
+  (b_corres : b =~= b')
+  (x_corres : x =~= x')
+  (y_corres : y =~= y')
+  : (if b then x else y) =~= (if b' then x' else y').
+Proof.
+  do 2 red in b_corres. destruct b as [ | ]; subst b'; simpl; eauto.
 Qed.
 
 Module Operation'.
@@ -294,7 +326,7 @@ Module NatImplServer.
     end.
 
   Definition coq_maxTwoInts (x : nat) (y : nat) : nat :=
-    if (x >? y)%nat then x else y.
+    if (y <? x)%nat then x else y.
 
   Fixpoint coq_maxTS (v1 : list nat) (v2 : list nat) : list nat :=
     match v1 with
@@ -313,7 +345,7 @@ Module NatImplServer.
     let loop_step (acc : bool * bool) (element : nat * nat) : bool * bool :=
       let (e1, e2) := element in
       let (output, canApply) := acc in
-      if canApply && (e1 + 1 =? e2)%nat then (output, false) else ((e1 >=? e2)%nat && output, canApply)
+      if canApply && (e1 + 1 =? e2)%nat then (output, false) else ((e2 <=? e1)%nat && output, canApply)
     in
     let (output, canApply) := fold_left loop_step (zip v1 v2) loop_init in
     output && negb canApply.
@@ -477,43 +509,152 @@ Module NatImplServer.
     Lemma coq_compareVersionVector_corres
       : CoqSessionServer.coq_compareVersionVector =~= coq_compareVersionVector.
     Proof.
-    Admitted.
-  
+      intros xs xs' xs_corres ys ys' ys_corres; revert ys ys' ys_corres.
+      induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl; try now red; reflexivity.
+      do 2 red in x_corres, y_corres. destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]].
+      (destruct (uint.nat x <? uint.nat y)%Z as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_ge in H_OBS]); (destruct (uint.nat x <? uint.nat y)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.ltb_lt in H_OBS' | rewrite Nat.ltb_ge in H_OBS']); simpl in *.
+      - reflexivity.
+      - word.
+      - word.
+      - eapply IH; eauto.
+    Qed.
+
     Lemma coq_lexicographicCompare_corres
       : CoqSessionServer.coq_lexicographicCompare =~= coq_lexicographicCompare.
     Proof.
-    Admitted.
-  
+      intros xs xs' xs_corres ys ys' ys_corres; revert ys ys' ys_corres.
+      induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl; try now red; reflexivity.
+      do 2 red in x_corres, y_corres. destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]].
+      (destruct (uint.Z x =? uint.Z y)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat x =? uint.nat y)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']); simpl in *.
+      - eapply IH; eauto.
+      - word.
+      - word.
+      - do 2 red. word.
+    Qed.
+
     Lemma coq_maxTwoInts_corres
       : CoqSessionServer.coq_maxTwoInts =~= coq_maxTwoInts.
     Proof.
-    Admitted.
-  
+      intros x x' x_corres y y' y_corres.
+      unfold CoqSessionServer.coq_maxTwoInts, coq_maxTwoInts.
+      do 2 red in x_corres, y_corres. destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]].
+      rewrite Z.gtb_ltb.
+      (destruct (uint.Z y <? uint.Z x)%Z as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_ge in H_OBS]); (destruct (uint.nat y <? uint.nat x)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.ltb_lt in H_OBS' | rewrite Nat.ltb_nlt in H_OBS']); (do 2 red; try word).
+    Qed.
+
     Lemma coq_maxTS_corres
       : CoqSessionServer.coq_maxTS =~= coq_maxTS.
     Proof.
-    Admitted.
-  
+      intros xs xs' xs_corres ys ys' ys_corres; revert ys ys' ys_corres.
+      induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl; eauto.
+      econstructor 2.
+      - eapply coq_maxTwoInts_corres; eauto.
+      - eapply IH; eauto.
+    Qed.
+
     Lemma coq_oneOffVersionVector_corres
       : CoqSessionServer.coq_oneOffVersionVector =~= coq_oneOffVersionVector.
     Proof.
-    Admitted.
-  
+      intros xs xs' xs_corres ys ys' ys_corres; unfold CoqSessionServer.coq_oneOffVersionVector, coq_oneOffVersionVector; do 2 red.
+      destruct (fold_left _ _ _) as [output canApply] eqn: H_OBS.
+      destruct (fold_left _ _ _) as [output' canApply'] eqn: H_OBS' in |- *.
+      enough (want : (output, canApply) =~= (output', canApply')).
+      { do 2 red in want. destruct want as [output_corres canApply_corres]; do 2 red in output_corres, canApply_corres; simpl in *. congruence. }
+      rewrite <- H_OBS, <- H_OBS'. eapply fold_left_corres.
+      - clear. intros acc acc' acc_corres element element' element_corres.
+        do 2 red in acc_corres, element_corres. destruct acc as [output canApply], acc' as [output' canApply'].
+        destruct acc_corres as [output_corres canApply_corres]; simpl in *. destruct element as [e1 e2], element' as [e1' e2'].
+        destruct element_corres as [e1_corres e2_corres]; simpl in *. do 2 red in output_corres, canApply_corres, e1_corres, e2_corres.
+        destruct e1_corres as [<- [? ?]], e2_corres as [<- [? ?]].
+        (destruct canApply as [ | ]; subst canApply'; simpl in * ); (destruct output as [ | ]; subst output'; simpl in * ).
+        + (destruct (uint.Z (w64_word_instance .(word.add) e1 (W64 1)) =? uint.Z e2)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat e1 + 1 =? uint.nat e2)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']).
+          { econstructor; reflexivity. }
+          { contradiction H_OBS'.
+            enough (uint.Z e1 + 1 = uint.Z e2)%Z by word.
+            rewrite <- H_OBS. unfold MAX_BOUND in *. word.
+          }
+          { contradiction H_OBS.
+            enough (uint.nat e1 + 1 = uint.nat e2)%nat by word.
+            rewrite <- H_OBS'. unfold MAX_BOUND in *. word.
+          }
+          { rewrite Z.geb_leb; (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.leb_le in H_OBS1 | rewrite Nat.leb_gt in H_OBS1]); (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1'; [rewrite Z.leb_le in H_OBS1' | rewrite Z.leb_gt in H_OBS1']).
+            - econstructor; reflexivity.
+            - word.
+            - word.
+            - econstructor; reflexivity.
+          }
+        + (destruct (uint.Z (w64_word_instance .(word.add) e1 (W64 1)) =? uint.Z e2)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat e1 + 1 =? uint.nat e2)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']).
+          { econstructor; reflexivity. }
+          { contradiction H_OBS'.
+            enough (uint.Z e1 + 1 = uint.Z e2)%Z by word.
+            rewrite <- H_OBS. unfold MAX_BOUND in *. word.
+          }
+          { contradiction H_OBS.
+            enough (uint.nat e1 + 1 = uint.nat e2)%nat by word.
+            rewrite <- H_OBS'. unfold MAX_BOUND in *. word.
+          }
+          { rewrite Z.geb_leb; (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.leb_le in H_OBS1 | rewrite Nat.leb_gt in H_OBS1]); (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1'; [rewrite Z.leb_le in H_OBS1' | rewrite Z.leb_gt in H_OBS1']).
+            - econstructor; reflexivity.
+            - word.
+            - word.
+            - econstructor; reflexivity.
+          }
+        + rewrite Z.geb_leb; (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1; [rewrite Z.leb_le in H_OBS1 | rewrite Z.leb_gt in H_OBS1]); (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1'; [rewrite Nat.leb_le in H_OBS1' | rewrite Nat.leb_gt in H_OBS1']).
+          { econstructor; reflexivity. }
+          { word. }
+          { word. }
+          { econstructor; reflexivity. }
+        + rewrite Z.geb_leb; (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1; [rewrite Z.leb_le in H_OBS1 | rewrite Z.leb_gt in H_OBS1]); (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1'; [rewrite Nat.leb_le in H_OBS1' | rewrite Nat.leb_gt in H_OBS1']).
+          { econstructor; reflexivity. }
+          { word. }
+          { word. }
+          { econstructor; reflexivity. }
+      - clear output output' canApply canApply' H_OBS H_OBS'. revert ys ys' ys_corres.
+        induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl in *; eauto.
+        econstructor 2; eauto. econstructor; eauto.
+      - econstructor; reflexivity.
+    Qed.
+
     Lemma coq_equalSlices_corres
       : CoqSessionServer.coq_equalSlices =~= coq_equalSlices.
     Proof.
-    Admitted.
-  
+      intros xs xs' xs_corres ys ys' ys_corres; revert ys ys' ys_corres.
+      induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl; try reflexivity.
+      destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]]; simpl in *.
+      (destruct (uint.Z x =? uint.Z y)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat x =? uint.nat y)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']); simpl in *.
+      - eapply IH; eauto.
+      - word.
+      - word.
+      - reflexivity.
+    Qed.
+
     Lemma coq_equalOperations_corres
       : CoqSessionServer.coq_equalOperations =~= coq_equalOperations.
     Proof.
-    Admitted.
-  
+      unfold CoqSessionServer.coq_equalOperations, coq_equalOperations.
+      intros o1 o1' o1_corres o2 o2' o2_corres.
+      destruct o1_corres, o2_corres.
+      eapply andb_corres.
+      - eapply coq_equalSlices_corres; eauto.
+      - do 2 red in Data_corres, Data_corres0 |- *.
+        destruct Data_corres as [? [? ?]], Data_corres0 as [? [? ?]].
+        rewrite -> H, -> H2.
+        destruct (o1'.(Operation'.Data) =? o2'.(Operation'.Data))%nat as [ | ] eqn: H_OBS; [rewrite Nat.eqb_eq in H_OBS | rewrite Nat.eqb_neq in H_OBS].
+        + rewrite Z.eqb_eq. word.
+        + rewrite Z.eqb_neq. word.
+    Qed.
+
     Lemma coq_sortedInsert_corres
       : CoqSessionServer.coq_sortedInsert =~= coq_sortedInsert.
     Proof.
-    Admitted.
-  
+      intros xs xs' xs_corres y y' y_corres; revert y y' y_corres.
+      induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros; simpl; eauto.
+      eapply ite_corres; eauto.
+      destruct x_corres, y_corres. eapply orb_corres.
+      - eapply coq_lexicographicCompare_corres; eauto.
+      - eapply coq_equalSlices_corres; eauto.
+    Qed.
+
     Lemma coq_mergeOperations_corres
       : CoqSessionServer.coq_mergeOperations =~= coq_mergeOperations.
     Proof.
