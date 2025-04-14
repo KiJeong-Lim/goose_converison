@@ -171,6 +171,21 @@ Proof.
   destruct p_corres as [? ?]; eauto.
 Qed.
 
+Lemma list_lookup_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat)
+  (xs_corres : xs =~= xs')
+  : xs !! n =~= xs' !! n.
+Proof.
+  revert n; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; destruct n as [ | n']; simpl in *; eauto.
+Qed.
+
+Lemma list_update_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat) (y : A) (y' : A')
+  (xs_corres : xs =~= xs')
+  (y_corres : y =~= y')
+  : <[n:=y]> xs =~= <[n:=y']> xs'.
+Proof.
+  revert n y y' y_corres; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; destruct n as [ | n']; intros; simpl; eauto.
+Qed.
+
 Module Operation'.
 
   Record t : Set :=
@@ -185,9 +200,9 @@ Module Operation'.
     ; Data_corres : op.(Operation.Data) =~= op'.(Data)
     }.
 
-  #[global] Hint Constructors corres : core.
-
 End Operation'.
+
+#[local] Hint Constructors Operation'.corres : core.
 
 #[global]
 Instance Similarity_Operation : Similarity Operation.t Operation'.t :=
@@ -239,9 +254,9 @@ Module Message'.
     ; S2C_Client_Number_corres : msg.(Message.S2C_Client_Number) =~= msg'.(S2C_Client_Number)
     }.
 
-  #[global] Hint Constructors corres : core.
-
 End Message'.
+
+#[local] Hint Constructors Message'.corres : core.
 
 #[global]
 Instance Similarity_Message : Similarity Message.t Message'.t :=
@@ -273,9 +288,9 @@ Module Server'.
     ; GossipAcknowledgements_corres : s.(Server.GossipAcknowledgements) =~= s'.(GossipAcknowledgements)
     }.
 
-  #[global] Hint Constructors corres : core.
-
 End Server'.
+
+#[local] Hint Constructors Server'.corres : core.
 
 #[global]
 Instance Similarity_Server : Similarity Server.t Server'.t :=
@@ -301,9 +316,9 @@ Module Client'.
     ; SessionSemantic_corres : c.(Client.SessionSemantic) =~= c'.(SessionSemantic)
     }.
 
-  #[global] Hint Constructors corres : core.
-
 End Client'.
+
+#[local] Hint Constructors Client'.corres : core.
 
 #[global]
 Instance Similarity_Client : Similarity Client.t Client'.t :=
@@ -317,7 +332,7 @@ Module NatImplServer.
     | h1 :: t1 =>
       match v2 with
       | [] => true
-      | h2 :: t2 => negb (h1 <? h2)%nat && coq_compareVersionVector t1 t2
+      | h2 :: t2 => (h2 <=? h1)%nat && coq_compareVersionVector t1 t2
       end
     end.
 
@@ -327,7 +342,7 @@ Module NatImplServer.
     | h1 :: t1 =>
       match v2 with
       | [] => false 
-      | h2 :: t2 => if (h1 =? h2)%nat then coq_lexicographicCompare t1 t2 else (h1 >? h2)%nat
+      | h2 :: t2 => if (h1 =? h2)%nat then coq_lexicographicCompare t1 t2 else (h2 <? h1)%nat
       end
     end.
 
@@ -423,7 +438,7 @@ Module NatImplServer.
   Definition coq_acknowledgeGossip (s : Server'.t) (r : Message'.t) : Server'.t :=
     let i := r.(Message'.S2S_Acknowledge_Gossip_Sending_ServerId) in
     let l := s.(Server'.GossipAcknowledgements) in
-    if (i >=? length l)%nat then
+    if (length l <=? i)%nat then
       s
     else
       let prevGossipAcknowledgementsValue : nat :=
@@ -518,11 +533,11 @@ Module NatImplServer.
       intros xs xs' xs_corres ys ys' ys_corres; revert ys ys' ys_corres.
       induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl; try now red; reflexivity.
       do 2 red in x_corres, y_corres. destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]].
-      (destruct (uint.nat x <? uint.nat y)%Z as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_ge in H_OBS]); (destruct (uint.nat x <? uint.nat y)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.ltb_lt in H_OBS' | rewrite Nat.ltb_ge in H_OBS']); simpl in *.
+      (destruct (uint.nat x <? uint.nat y)%Z as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_ge in H_OBS]); (destruct (uint.nat y <=? uint.nat x)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.leb_le in H_OBS' | rewrite Nat.leb_gt in H_OBS']); simpl in *.
+      - word.
       - reflexivity.
-      - word.
-      - word.
       - eapply IH; eauto.
+      - word.
     Qed.
 
     Lemma coq_lexicographicCompare_corres
@@ -535,7 +550,9 @@ Module NatImplServer.
       - eapply IH; eauto.
       - word.
       - word.
-      - do 2 red. word.
+      - do 2 red. rewrite Z.gtb_ltb. destruct (uint.nat y <? uint.nat x)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.ltb_lt in H_OBS1 | rewrite Nat.ltb_ge in H_OBS1].
+        + rewrite Z.ltb_lt. word.
+        + rewrite Z.ltb_ge. word.
     Qed.
 
     Lemma coq_maxTwoInts_corres
@@ -544,8 +561,7 @@ Module NatImplServer.
       intros x x' x_corres y y' y_corres.
       unfold CoqSessionServer.coq_maxTwoInts, coq_maxTwoInts.
       do 2 red in x_corres, y_corres. destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]].
-      rewrite Z.gtb_ltb.
-      (destruct (uint.Z y <? uint.Z x)%Z as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_ge in H_OBS]); (destruct (uint.nat y <? uint.nat x)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.ltb_lt in H_OBS' | rewrite Nat.ltb_nlt in H_OBS']); (do 2 red; try word).
+      rewrite Z.gtb_ltb; (destruct (uint.Z y <? uint.Z x)%Z as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_ge in H_OBS]); (destruct (uint.nat y <? uint.nat x)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.ltb_lt in H_OBS' | rewrite Nat.ltb_nlt in H_OBS']); (do 2 red; try word).
     Qed.
 
     Lemma coq_maxTS_corres
