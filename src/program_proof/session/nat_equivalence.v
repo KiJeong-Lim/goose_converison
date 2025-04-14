@@ -7,9 +7,6 @@ Class Similarity (A : Type) (A' : Type) : Type :=
 
 Infix "=~=" := is_similar_to.
 
-Definition MAX_BOUND : Z :=
-  2 ^ 64 - 2.
-
 (** Section BasicInstances_of_Similarity. *)
 
 #[global]
@@ -58,10 +55,6 @@ Instance Similarity_option {A : Type} {A' : Type} (SIM : Similarity A A') : Simi
   @option_corres A A' SIM.
 
 #[global]
-Instance Similarity_u64 : Similarity u64 nat :=
-  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
-
-#[global]
 Instance Similarity_bool : Similarity bool bool :=
   @eq bool.
 
@@ -70,6 +63,13 @@ Instance Similarity_nat : Similarity nat nat :=
   @eq nat.
 
 (** End BasicInstances_of_Similarity. *)
+
+Definition MAX_BOUND : Z :=
+  2 ^ 64 - 2.
+
+#[global]
+Instance Similarity_u64 : Similarity u64 nat :=
+  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
 
 Lemma Similarity_u64_range (n : u64) (n' : nat)
   (n_corres : n =~= n')
