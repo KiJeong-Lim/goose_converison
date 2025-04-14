@@ -7,7 +7,10 @@ Class Similarity (A : Type) (A' : Type) : Type :=
 
 Infix "=~=" := is_similar_to.
 
-(** Section Similarity_Instances. *)
+Definition MAX_BOUND : Z :=
+  2 ^ 64 - 2.
+
+(** Section BasicInstances_of_Similarity. *)
 
 #[global]
 Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type}
@@ -55,17 +58,18 @@ Instance Similarity_option {A : Type} {A' : Type} (SIM : Similarity A A') : Simi
   @option_corres A A' SIM.
 
 #[global]
-Instance Similarity_bool : Similarity bool bool :=
-  @eq bool.
-
-Definition MAX_BOUND : Z :=
-  2 ^ 64 - 2.
-
-#[global]
 Instance Similarity_u64 : Similarity u64 nat :=
   fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
 
-(** End Similarity_Instances. *)
+#[global]
+Instance Similarity_bool : Similarity bool bool :=
+  @eq bool.
+
+#[global]
+Instance Similarity_nat : Similarity nat nat :=
+  @eq nat.
+
+(** End BasicInstances_of_Similarity. *)
 
 Lemma Similarity_u64_range (n : u64) (n' : nat)
   (n_corres : n =~= n')
@@ -109,14 +113,14 @@ Qed.
 
 Lemma take_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat)
   (xs_corres : xs =~= xs')
-  : take n xs =~= take n xs'.
+  : @take A n xs =~= @take A' n xs'.
 Proof.
   revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
 Qed.
 
 Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat)
   (xs_corres : xs =~= xs')
-  : drop n xs =~= drop n xs'.
+  : @drop A n xs =~= @drop A' n xs'.
 Proof.
   revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
 Qed.
@@ -153,6 +157,20 @@ Proof.
   do 2 red in b_corres. destruct b as [ | ]; subst b'; simpl; eauto.
 Qed.
 
+Lemma fst_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (p : A * B) (p' : A' * B')
+  (p_corres : p =~= p')
+  : @fst A B p =~= @fst A' B' p'.
+Proof.
+  destruct p_corres as [? ?]; eauto.
+Qed.
+
+Lemma snd_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (p : A * B) (p' : A' * B')
+  (p_corres : p =~= p')
+  : @snd A B p =~= @snd A' B' p'.
+Proof.
+  destruct p_corres as [? ?]; eauto.
+Qed.
+
 Module Operation'.
 
   Record t : Set :=
@@ -166,6 +184,8 @@ Module Operation'.
     { VersionVector_corres : op.(Operation.VersionVector) =~= op'.(VersionVector)
     ; Data_corres : op.(Operation.Data) =~= op'.(Data)
     }.
+
+  #[global] Hint Constructors corres : core.
 
 End Operation'.
 
@@ -219,6 +239,8 @@ Module Message'.
     ; S2C_Client_Number_corres : msg.(Message.S2C_Client_Number) =~= msg'.(S2C_Client_Number)
     }.
 
+  #[global] Hint Constructors corres : core.
+
 End Message'.
 
 #[global]
@@ -251,6 +273,8 @@ Module Server'.
     ; GossipAcknowledgements_corres : s.(Server.GossipAcknowledgements) =~= s'.(GossipAcknowledgements)
     }.
 
+  #[global] Hint Constructors corres : core.
+
 End Server'.
 
 #[global]
@@ -276,6 +300,8 @@ Module Client'.
     ; ReadVersionVector_corres : c.(Client.ReadVersionVector) =~= c'.(ReadVersionVector)
     ; SessionSemantic_corres : c.(Client.SessionSemantic) =~= c'.(SessionSemantic)
     }.
+
+  #[global] Hint Constructors corres : core.
 
 End Client'.
 
