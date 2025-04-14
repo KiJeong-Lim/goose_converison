@@ -138,7 +138,7 @@ Section heap.
                                                           #()))))))))))))))))))%V.
 
   Lemma redefine_message_val
-    : message_val = @SessionPrelude.value_of (tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) _.
+    : message_val = @SessionPrelude.value_of (tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) _.
   Proof.
     reflexivity.
   Defined.
@@ -213,7 +213,7 @@ Section heap.
   #[global] Instance message_into_val_for_type : IntoValForType (u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64) (struct.t server.Message).
   Proof. constructor; auto. simpl. repeat split; auto. Qed.
 
-  Definition is_message (msgv: tuple_of[u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64])
+  Definition is_message (msgv: tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64])
     (msg: Message.t) (n: nat) (len_c2s: nat) (len_s2c: nat) : iProp Σ :=
     ⌜msgv!(0) = msg.(Message.MessageType)⌝ ∗
     ⌜msgv!(1) = msg.(Message.C2S_Client_Id)⌝ ∗

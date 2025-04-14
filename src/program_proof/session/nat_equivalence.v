@@ -89,8 +89,7 @@ Lemma last_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A)
   (xs_corres : xs =~= xs')
   : @last A xs =~= @last A' xs'.
 Proof.
-  induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; eauto.
-  destruct xs_corres as [ | x1 x1' xs1 xs1' x1_corres xs1_corres]; simpl; eauto.
+  induction xs_corres as [ | ? ? ? ? ? [ | ? ? ? ? ? ?] ?]; simpl; eauto.
 Qed.
 
 Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (ys : list A) (ys' : list A')
@@ -98,7 +97,7 @@ Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) 
   (ys_corres : ys =~= ys')
   : @app A xs ys =~= @app A' xs' ys'.
 Proof.
-  revert ys ys' ys_corres. induction xs_corres; simpl; eauto.
+  revert ys ys' ys_corres; induction xs_corres; simpl; eauto.
 Qed.
 
 Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
@@ -107,22 +106,23 @@ Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Si
   (z_corres : z =~= z')
   : @fold_left A B f xs z =~= @fold_left A' B' f' xs' z'.
 Proof.
-  do 4 red in f_corres. revert z z' z_corres.
-  induction xs_corres; simpl; eauto.
+  do 4 red in f_corres; revert z z' z_corres; induction xs_corres; simpl; eauto.
 Qed.
 
-Lemma take_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat)
+Lemma take_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (xs : list A) (xs' : list A')
+  (n_corres : n =~= n')
   (xs_corres : xs =~= xs')
-  : @take A n xs =~= @take A' n xs'.
+  : @take A n xs =~= @take A' n' xs'.
 Proof.
-  revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
+  do 2 red in n_corres; subst n'; revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
 Qed.
 
-Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat)
+Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (xs : list A) (xs' : list A')
+  (n_corres : n =~= n')
   (xs_corres : xs =~= xs')
-  : @drop A n xs =~= @drop A' n xs'.
+  : @drop A n xs =~= @drop A' n' xs'.
 Proof.
-  revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
+  do 2 red in n_corres; subst n'; revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
 Qed.
 
 Lemma andb_corres (b1 : bool) (b1' : bool) (b2 : bool) (b2' : bool)
@@ -130,7 +130,7 @@ Lemma andb_corres (b1 : bool) (b1' : bool) (b2 : bool) (b2' : bool)
   (b2_corres : b2 =~= b2')
   : b1 && b2 =~= b1' && b2'.
 Proof.
-  do 2 red in b1_corres, b2_corres |- *. congruence.
+  do 2 red in b1_corres, b2_corres |- *; congruence.
 Qed.
 
 Lemma orb_corres (b1 : bool) (b1' : bool) (b2 : bool) (b2' : bool)
@@ -138,14 +138,14 @@ Lemma orb_corres (b1 : bool) (b1' : bool) (b2 : bool) (b2' : bool)
   (b2_corres : b2 =~= b2')
   : b1 || b2 =~= b1' || b2'.
 Proof.
-  do 2 red in b1_corres, b2_corres |- *. congruence.
+  do 2 red in b1_corres, b2_corres |- *; congruence.
 Qed.
 
 Lemma negb_corres (b1 : bool) (b1' : bool)
   (b1_corres : b1 =~= b1')
   : negb b1 =~= negb b1'.
 Proof.
-  do 2 red in b1_corres |- *. congruence.
+  do 2 red in b1_corres |- *; congruence.
 Qed.
 
 Lemma ite_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (b : bool) (b' : bool) (x : A) (x' : A') (y : A) (y' : A')
@@ -154,7 +154,16 @@ Lemma ite_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (b : bool) (b'
   (y_corres : y =~= y')
   : (if b then x else y) =~= (if b' then x' else y').
 Proof.
-  do 2 red in b_corres. destruct b as [ | ]; subst b'; simpl; eauto.
+  do 2 red in b_corres; destruct b as [ | ]; subst b'; simpl; eauto.
+Qed.
+
+Lemma ite_corres_dual {A : Type} {A' : Type} {A_SIM : Similarity A A'} (b : bool) (b' : bool) (x : A) (x' : A') (y : A) (y' : A')
+  (b_corres : negb b =~= b')
+  (x_corres : x =~= x')
+  (y_corres : y =~= y')
+  : (if b then x else y) =~= (if b' then y' else x').
+Proof.
+  do 2 red in b_corres; destruct b as [ | ]; subst b'; simpl in *; eauto.
 Qed.
 
 Lemma fst_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (p : A * B) (p' : A' * B')
@@ -171,19 +180,21 @@ Proof.
   destruct p_corres as [? ?]; eauto.
 Qed.
 
-Lemma list_lookup_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat)
+Lemma list_lookup_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat) (n' : nat)
   (xs_corres : xs =~= xs')
-  : xs !! n =~= xs' !! n.
+  (n_corres : n =~= n')
+  : xs !! n =~= xs' !! n'.
 Proof.
-  revert n; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; destruct n as [ | n']; simpl in *; eauto.
+  do 2 red in n_corres; subst n'; revert n; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; destruct n as [ | n']; simpl in *; eauto.
 Qed.
 
-Lemma list_update_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat) (y : A) (y' : A')
-  (xs_corres : xs =~= xs')
+Lemma list_update_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (y : A) (y' : A') (xs : list A) (xs' : list A')
+  (n_corres : n =~= n')
   (y_corres : y =~= y')
-  : <[n:=y]> xs =~= <[n:=y']> xs'.
+  (xs_corres : xs =~= xs')
+  : <[n:=y]> xs =~= <[n':=y']> xs'.
 Proof.
-  revert n y y' y_corres; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; destruct n as [ | n']; intros; simpl; eauto.
+  do 2 red in n_corres; subst n'; revert n y y' y_corres; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; destruct n as [ | n']; intros; simpl; eauto.
 Qed.
 
 Module Operation'.
@@ -374,7 +385,7 @@ Module NatImplServer.
   Fixpoint coq_equalSlices (s1 : list nat) (s2 : list nat) : bool :=
     match s1 with
     | [] => true
-    | h1 :: t1 => 
+    | h1 :: t1 =>
       match s2 with
       | [] => true
       | h2 :: t2 => (h1 =? h2)%nat && coq_equalSlices t1 t2
@@ -438,9 +449,7 @@ Module NatImplServer.
   Definition coq_acknowledgeGossip (s : Server'.t) (r : Message'.t) : Server'.t :=
     let i := r.(Message'.S2S_Acknowledge_Gossip_Sending_ServerId) in
     let l := s.(Server'.GossipAcknowledgements) in
-    if (length l <=? i)%nat then
-      s
-    else
+    if (i <? length l)%nat then
       let prevGossipAcknowledgementsValue : nat :=
         match s.(Server'.GossipAcknowledgements) !! i with
         | Some x => x
@@ -449,7 +458,9 @@ Module NatImplServer.
       in
       let newGossipAcknowledgements := coq_maxTwoInts prevGossipAcknowledgementsValue r.(Message'.S2S_Acknowledge_Gossip_Index) in
       let gossipAcknowledgements := <[i := newGossipAcknowledgements]> l in
-      Server'.mk s.(Server'.Id) s.(Server'.NumberOfServers) s.(Server'.UnsatisfiedRequests) s.(Server'.VectorClock) s.(Server'.OperationsPerformed) s.(Server'.MyOperations) s.(Server'.PendingOperations) gossipAcknowledgements.
+      Server'.mk s.(Server'.Id) s.(Server'.NumberOfServers) s.(Server'.UnsatisfiedRequests) s.(Server'.VectorClock) s.(Server'.OperationsPerformed) s.(Server'.MyOperations) s.(Server'.PendingOperations) gossipAcknowledgements
+    else
+      s.
 
   Definition coq_getGossipOperations (s : Server'.t) (serverId : nat) : list Operation'.t :=
     match s.(Server'.GossipAcknowledgements) !! serverId with
@@ -468,7 +479,12 @@ Module NatImplServer.
         let S2C_Server_Id := s.(Server'.Id) in
         (true, s, Message'.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 0 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)
       else
-        let v := list_lookup_total s.(Server'.Id) s.(Server'.VectorClock) in
+        let v : nat :=
+          match s.(Server'.VectorClock) !! s.(Server'.Id) with
+          | Some v => v
+          | None => 0%nat
+          end
+        in
         let VectorClock := <[s.(Server'.Id) := (v + 1)%nat]> s.(Server'.VectorClock) in
         let OperationsPerformed := coq_sortedInsert s.(Server'.OperationsPerformed) (Operation'.mk VectorClock r.(Message'.C2S_Client_Data)) in
         let MyOperations := coq_sortedInsert s.(Server'.MyOperations) (Operation'.mk VectorClock r.(Message'.C2S_Client_Data)) in

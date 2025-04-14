@@ -122,18 +122,18 @@ Section heap.
         unfold coq_processClientRequest; rewrite Heqb; simpl.
         assert ((uint.nat msg .(Message.C2S_Client_OperationType) =? 0) = false) as H_OBS1.
         { rewrite Z.eqb_neq. word. }
-        rewrite H_OBS1; simpl. unfold is_message; simplNotation; simpl. rewrite Z.eqb_neq in H_OBS1.
+        rewrite H_OBS1; simpl. rewrite H_x; simpl. replace (replicate (uint.nat (W64 0)) (W64 0)) with ( @nil w64) in * by reflexivity. simpl in *.
+        unfold is_message; simplNotation; simpl. rewrite Z.eqb_neq in H_OBS1.
         iSplitL "". { done. }
         iSplitL "H3 H4 H_s3 H_s5 H8 H9".
         { apply list_lookup_total_correct in H_x. subst x. unfold lookup_total.
-          replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.nat (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) in * by word.
+          replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.Z (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) in * by word.
           iFrame; simpl; simplNotation. repeat rewrite length_insert. repeat (iSplit; try done).
         }
         repeat rewrite length_insert.
         iSplitL "H_s6".
         { apply list_lookup_total_correct in H_x. subst x. unfold lookup_total.
-          replace (replicate (uint.nat (W64 0)) (W64 0)) with ( @nil u64 ) by reflexivity. simpl.
-          replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.nat (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) by word.
+          replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.Z (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) by word.
           repeat (iSplit; try done). iSplitL "". { iApply own_slice_small_nil; eauto. }
           repeat (iSplit; try done). iSplitL "".
           { iExists []. iSplit.
@@ -145,7 +145,7 @@ Section heap.
         iSplitL "H20 H27 H16".
         { iFrame. done. }
         apply list_lookup_total_correct in H_x. subst x. unfold lookup_total in *.
-        replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.nat (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) in * by word.
+        replace (w64_word_instance .(word.add) (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) (W64 1)) with (W64 (uint.Z (list_lookup_total (uint.nat s .(Server.Id)) s .(Server.VectorClock)) + 1)) in * by word.
         iPureIntro. split; simpl; try tauto. split; simpl; trivial. rewrite length_insert; word.
   Qed.
 
