@@ -184,12 +184,11 @@ Section heap.
         induction l as [ | l_last l_init _] using List.rev_ind.
         { simpl in *. word. }
         iPoseProof big_sepL2_snoc as "LEMMA1". iApply "LEMMA1" in "Hl". iClear "LEMMA1".
-        iDestruct "Hl" as "[H_init H_last]". rewrite length_app. rewrite length_app in Hs. simpl in *.
+        iDestruct "Hl" as "[H_init H_last]". rewrite last_app; simpl. rewrite length_app in Hs. simpl in *.
         iPoseProof (big_sepL2_length with "[$H_init]") as "%YES".
         replace (uint.nat (W64 ((length l_init + 1)%nat - 1))) with (length l_init) by (simpl; word).
         replace (uint.nat (W64 (length l_init + 1 - 1)%nat)) with (length l_init) by word.
         change (list_lookup (length l_init) (l_init ++ [l_last])) with ((l_init ++ [l_last]) !! (length l_init)).
-        erewrite lookup_snoc with (l := l_init) (x := l_last).
         replace (uint.nat (w64_word_instance .(word.sub) s .(Slice.sz) (W64 1))) with (length ops_init) in EQ by word.
         rewrite lookup_snoc in EQ. assert (x = ops_last) as -> by congruence. clear EQ.
         iDestruct "H_last" as "[H [-> H1]]". iFrame. iExact "Hl_pers".

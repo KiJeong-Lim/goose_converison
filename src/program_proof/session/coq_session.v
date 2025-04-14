@@ -92,7 +92,7 @@ Module CoqSessionServer.
     (take (uint.nat index) m) ++ (drop (uint.nat index + 1) m).
 
   Definition coq_getDataFromOperationLog (l: list Operation.t) : u64 :=
-    match list_lookup (uint.nat ((length l) - 1)%nat) l with
+    match last l with
     | Some v => v.(Operation.Data)
     | None => 0
     end.

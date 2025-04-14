@@ -288,7 +288,7 @@ Section heap.
 
   Lemma wp_getGossipOperations {OWN_UnsatisfiedRequests: bool}
     (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
-    (serverId: w64) (n: nat) len_vc len_op len_mo len_po len_ga :
+    (serverId: u64) (n: nat) len_vc len_op len_mo len_po len_ga :
     {{{
         is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}
