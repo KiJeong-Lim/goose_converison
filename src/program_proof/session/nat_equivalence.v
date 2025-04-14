@@ -7,6 +7,8 @@ Class Similarity (A : Type) (A' : Type) : Type :=
 
 Infix "=~=" := is_similar_to.
 
+(** Section Similarity_Instances. *)
+
 #[global]
 Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type}
   (DOM_SIM : Similarity D D')
@@ -39,11 +41,52 @@ Inductive list_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similarit
 Instance Similarity_list {A : Type} {A' : Type} (SIM : Similarity A A') : Similarity (list A) (list A') :=
   @list_corres A A' SIM.
 
+Inductive option_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similarity (option A) (option A') :=
+  | None_corres
+    : None =~= None
+  | Some_corres (x : A) (x' : A')
+    (x_corres : x =~= x')
+    : Some x =~= Some x'.
+
+#[global] Hint Constructors option_corres : core.
+
+#[global]
+Instance Similarity_option {A : Type} {A' : Type} (SIM : Similarity A A') : Similarity (option A) (option A') :=
+  @option_corres A A' SIM.
+
+#[global]
+Instance Similarity_bool : Similarity bool bool :=
+  @eq bool.
+
+Definition UPPER_BOUND : Z :=
+  2 ^ 64.
+
+#[global]
+Instance Similarity_u64 : Similarity u64 nat :=
+  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n < UPPER_BOUND)%Z.
+
+(** End Similarity_Instances. *)
+
+Lemma Similarity_u64_range (n : u64) (n' : nat)
+  (n_corres : n =~= n')
+  : (uint.Z n >= 0 /\ uint.Z n < UPPER_BOUND)%Z.
+Proof.
+  do 2 red in n_corres. word.
+Qed.
+
 Lemma list_corres_length {A : Type} {A' : Type} {SIM : Similarity A A'} (xs : list A) (xs' : list A')
   (xs_corres : xs =~= xs')
   : @length A xs = @length A' xs'.
 Proof.
   induction xs_corres; simpl; congruence.
+Qed.
+
+Lemma last_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A')
+  (xs_corres : xs =~= xs')
+  : @last A xs =~= @last A' xs'.
+Proof.
+  induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; eauto.
+  destruct xs_corres as [ | x1 x1' xs1 xs1' x1_corres xs1_corres]; simpl; eauto.
 Qed.
 
 Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (ys : list A) (ys' : list A')
@@ -52,6 +95,26 @@ Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) 
   : @app A xs ys =~= @app A' xs' ys'.
 Proof.
   revert ys ys' ys_corres. induction xs_corres; simpl; eauto.
+Qed.
+
+Lemma app_corres_inv {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (ys : list A) (ys' : list A')
+  (H_corres : xs =~= xs' \/ ys =~= ys')
+  : xs ++ ys =~= xs' ++ ys' <-> (xs =~= xs' /\ ys =~= ys').
+Proof.
+  split.
+  - destruct H_corres as [xs_corres | ys_corres].
+    + enough (xs ++ ys =~= xs' ++ ys' -> ys =~= ys') by tauto.
+      revert ys ys'; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; eauto.
+      intros ? ? H_corres. inv H_corres; eauto.
+    + enough (xs ++ ys =~= xs' ++ ys' -> xs =~= xs') by tauto.
+      intros H_corres. pose proof (list_corres_length _ _ H_corres) as claim1.
+      do 2 rewrite length_app in claim1. pose proof (list_corres_length _ _ ys_corres) as claim2.
+      assert (length xs = length xs') as LENGTH by word.
+      clear claim1 claim2.
+      revert xs xs' LENGTH ys ys' ys_corres H_corres.
+      induction xs as [ | x xs IH], xs' as [ | x' xs']; simpl; intros ? ? ? ? ?; try congruence; eauto.
+      inv H_corres; eauto.
+  - intros [xs_corres ys_corres]; eapply app_corres; eauto.
 Qed.
 
 Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
@@ -64,23 +127,19 @@ Proof.
   induction xs_corres; simpl; eauto.
 Qed.
 
-Definition UPPER_BOUND : Z :=
-  2 ^ 64.
-
-#[global]
-Instance Similarity_u64 : Similarity u64 nat :=
-  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n < UPPER_BOUND)%Z.
-
-Lemma Similarity_u64_range (n : u64) (n' : nat)
-  (n_corres : n =~= n')
-  : (uint.Z n >= 0 /\ uint.Z n < UPPER_BOUND)%Z.
+Lemma take_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat)
+  (xs_corres : xs =~= xs')
+  : take n xs =~= take n xs'.
 Proof.
-  do 2 red in n_corres. word.
+  revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
 Qed.
 
-#[global]
-Instance Similarity_bool : Similarity bool bool :=
-  @eq bool.
+Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat)
+  (xs_corres : xs =~= xs')
+  : drop n xs =~= drop n xs'.
+Proof.
+  revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
+Qed.
 
 Module Operation'.
 
@@ -299,7 +358,7 @@ Module NatImplServer.
     take index m ++ drop (index + 1)%nat m.
 
   Definition coq_getDataFromOperationLog (l : list Operation'.t) : nat :=
-    match l !! (length l - 1)%nat with
+    match last l with
     | Some v => v.(Operation'.Data)
     | None => 0%nat
     end.
