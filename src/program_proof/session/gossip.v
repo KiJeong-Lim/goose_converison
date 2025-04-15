@@ -50,7 +50,7 @@ Section heap.
         if coq_oneOffVersionVector s.(Server.VectorClock) e.(Operation.VersionVector) then
           let OperationsPerformed := coq_mergeOperations s.(Server.OperationsPerformed) [e] in
           let VectorClock := coq_maxTS s.(Server.VectorClock) e.(Operation.VersionVector) in
-          let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) i in
+          let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) (uint.nat i) in
           (i, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed s.(Server.MyOperations) PendingOperations s.(Server.GossipAcknowledgements))
         else ((i + 1)%nat, s)
       ).
@@ -135,8 +135,7 @@ Section heap.
             iPureIntro.
             { unfold coq_deleteAtIndexOperation. split.
               - rewrite length_app length_take length_drop. word.
-              - replace (uint.nat (W64 index)) with index by word.
-                rewrite drop_app. replace (drop index (take index s .(Server.PendingOperations))) with ( @nil Operation.t); cycle 1.
+              - rewrite drop_app. replace (drop index (take index s .(Server.PendingOperations))) with ( @nil Operation.t); cycle 1.
                 { symmetry. eapply nil_length_inv. rewrite length_drop length_take. word. }
                 simpl. rewrite length_take.
                 assert (index < length s .(Server.PendingOperations))%nat as YES4.

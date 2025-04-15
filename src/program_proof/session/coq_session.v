@@ -85,11 +85,11 @@ Module CoqSessionServer.
                         end)
           output (0%nat, [])).
 
-  Definition coq_deleteAtIndexOperation (o: list Operation.t) (index: u64) : list Operation.t :=
-    (take (uint.nat index) o) ++ (drop (uint.nat index + 1) o).
+  Definition coq_deleteAtIndexOperation (o: list Operation.t) (index: nat) : list Operation.t :=
+    (take index o) ++ (drop (index + 1)%nat o).
 
-  Definition coq_deleteAtIndexMessage (m: list Message.t) (index: u64) : list Message.t :=
-    (take (uint.nat index) m) ++ (drop (uint.nat index + 1) m).
+  Definition coq_deleteAtIndexMessage (m: list Message.t) (index: nat) : list Message.t :=
+    (take index m) ++ (drop (index + 1)%nat m).
 
   Definition coq_getDataFromOperationLog (l: list Operation.t) : u64 :=
     match last l with
@@ -110,7 +110,7 @@ Module CoqSessionServer.
         if coq_oneOffVersionVector s.(Server.VectorClock) e.(Operation.VersionVector) then
           let OperationsPerformed := coq_mergeOperations s.(Server.OperationsPerformed) [e] in
           let VectorClock := coq_maxTS s.(Server.VectorClock) e.(Operation.VersionVector) in
-          let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) i in
+          let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) (uint.nat i) in
           (i, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed s.(Server.MyOperations) PendingOperations s.(Server.GossipAcknowledgements))
         else ((i + 1)%nat, s)
       in
@@ -176,7 +176,7 @@ Module CoqSessionServer.
         let '(i, (s, outGoingRequests)) := acc in
         let '(succeeded, s, reply) := coq_processClientRequest s element in
         if succeeded then
-          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
+          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) (uint.nat i) in
           (i, (Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply]))
         else
           ((i + 1)%nat, (s, outGoingRequests))
