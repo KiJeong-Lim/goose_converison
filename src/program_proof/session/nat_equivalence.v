@@ -162,15 +162,13 @@ Qed.
 
 #[global] Hint Resolve fold_left_corres : session_hints.
 
-Lemma fold_left_corres_withInvariant {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (Φ : forall idx : nat, forall z : A, forall z' : A', forall xs : list B, forall xs' : list B', Prop) (f : A -> B -> A) (f' : A' -> B' -> A') (xs : list B) (xs' : list B') (z : A) (z' : A')
-  (f_corres : forall z : A, forall z' : A', z =~= z' -> forall x : B, forall x' : B', z =~= z' -> f z x =~= f' z' x')
+Lemma fold_left_corres_withInvariant {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (Φ : forall z : A, forall z' : A', forall xs : list B, forall xs : list B', Prop) (f : A -> B -> A) (f' : A' -> B' -> A') (xs : list B) (xs' : list B') (z : A) (z' : A')
+  (f_corres : forall x : B, forall x' : B', x =~= x' -> forall z : A, forall z' : A', forall xs : list B, forall xs' : list B', (z =~= z' /\ Φ z z' (x :: xs) (x' :: xs')) -> (f z x =~= f' z' x' /\ Φ (f z x) (f' z' x') xs xs'))
   (xs_corres : xs =~= xs')
-  (z_corres : z =~= z')
-  (STEP : forall z : A, forall z' : A', z =~= z' -> forall x : B, forall x' : B', x =~= x' -> forall xs : list B, forall xs' : list B', xs =~= xs' -> Φ (S (length xs)) z z' (x :: xs) (x' :: xs') -> Φ (length xs) (f z x) (f' z' x') xs xs')
-  (EXIT : Φ (length xs) z z' xs xs')
-  : @fold_left A B f xs z =~= @fold_left A' B' f' xs' z'.
+  (z_corres : z =~= z' /\ Φ z z' xs xs')
+  : fold_left f xs z =~= fold_left f' xs' z' /\ Φ (fold_left f xs z) (fold_left f' xs' z') [] [].
 Proof.
-  revert z z' z_corres EXIT; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; intros; [tauto | eapply IH; eauto].
+  revert z z' z_corres; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; intros; [ | eapply IH; eauto; eapply f_corres]; tauto.
 Qed.
 
 Lemma take_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (xs : list A) (xs' : list A')
@@ -807,16 +805,29 @@ Module NatImplServer.
     intros s s' s_corres m m' m_corres; unfold CoqSessionServer.coq_receiveGossip, coq_receiveGossip.
     eapply ite_corres; trivial.
     { do 2 red. destruct m_corres; apply list_corres_length in S2S_Gossip_Operations_corres. destruct (length m'.(Message'.S2S_Gossip_Operations) =? 0)%nat as [ | ] eqn: H_OBS; [rewrite Nat.eqb_eq in H_OBS; rewrite Z.eqb_eq | rewrite Nat.eqb_neq in H_OBS; rewrite Z.eqb_neq]; word. }
-    eapply snd_corres. eapply fold_left_corres_withInvariant with (P := fun IDX : nat => fun acc : nat * Server.t => fun acc' : nat * Server'.t => (CoqSessionServer.coq_mergeOperations s .(Server.PendingOperations) m .(Message.S2S_Gossip_Operations)) !! IDX = Some ).
-    - intros acc acc' acc_corres e e' e_corres. destruct acc as [i s0], acc' as [i' s0']; destruct acc_corres as [i_corres s0_corres]; simpl in *. eapply ite_corres.
-      + destruct s0_corres, e_corres; eapply coq_oneOffVersionVector_corres; trivial.
-      + econstructor; simpl; trivial. destruct s0_corres, e_corres; econstructor; simpl; trivial.
-        * eapply coq_maxTS_corres; eauto.
-        * eapply coq_mergeOperations_corres; eauto. econstructor 2; econstructor; eauto.
-        * eapply coq_deleteAtIndexOperation_corres; eauto. do 2 red in i_corres |- *; unfold MAX_BOUND; subst i'.
-          admit.
-      + admit.
-    - admit.
+    eapply snd_corres. eapply fold_left_corres_withInvariant with (Φ := fun acc => fun acc' => fun focus => fun focus' => let n : nat := acc.1 in (uint.nat (W64 n) = n) /\ (uint.Z (W64 n) >= 0 /\ uint.Z n <= MAX_BOUND - length focus)%Z); simpl.
+    { intros e e' e_corres acc acc' focus focus' [acc_corres H_focus]. destruct acc as [i s0], acc' as [i' s0']; destruct acc_corres as [i_corres s0_corres]; simpl in *. split.
+      - eapply ite_corres.
+        + destruct s0_corres, e_corres; eapply coq_oneOffVersionVector_corres; eauto.
+        + econstructor; simpl.
+          * do 2 red in i_corres |- *; word.
+          * destruct s0_corres; econstructor; simpl; trivial.
+            { destruct e_corres; eapply coq_maxTS_corres; eauto. }
+            { eapply coq_mergeOperations_corres; eauto. }
+            { eapply coq_deleteAtIndexOperation_corres; eauto. do 2 red in i_corres |- *. subst i'. word. }
+        + econstructor; simpl; trivial. do 2 red in i_corres |- *; word.
+      - destruct (CoqSessionServer.coq_oneOffVersionVector s0.(Server.VectorClock) e.(Operation.VersionVector)) as [ | ] eqn: H_OBS; simpl.
+        + word.
+        + unfold MAX_BOUND in *; word.
+    }
+    { destruct s_corres, m_corres; eapply coq_mergeOperations_corres; eauto. }
+    { split.
+      - econstructor; simpl.
+        + do 2 red; word.
+        + destruct s_corres; econstructor; simpl; trivial. destruct m_corres; eapply coq_mergeOperations_corres; trivial.
+      - enough (length (CoqSessionServer.coq_mergeOperations s.(Server.PendingOperations) m.(Message.S2S_Gossip_Operations)) ≤ 2 ^ 64 - 2)%Z by now unfold MAX_BOUND; word.
+        admit.
+    }
   Admitted.
 
   Lemma coq_acknowledgeGossip_corres
