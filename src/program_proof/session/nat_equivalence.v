@@ -816,17 +816,15 @@ Module NatImplServer.
             { eapply coq_mergeOperations_corres; eauto. }
             { eapply coq_deleteAtIndexOperation_corres; eauto. do 2 red in i_corres |- *. subst i'. word. }
         + econstructor; simpl; trivial. do 2 red in i_corres |- *; word.
-      - destruct (CoqSessionServer.coq_oneOffVersionVector s0.(Server.VectorClock) e.(Operation.VersionVector)) as [ | ] eqn: H_OBS; simpl.
-        + word.
-        + unfold MAX_BOUND in *; word.
+      - unfold MAX_BOUND in *; destruct (CoqSessionServer.coq_oneOffVersionVector s0.(Server.VectorClock) e.(Operation.VersionVector)) as [ | ] eqn: H_OBS; simpl; word.
     }
     { destruct s_corres, m_corres; eapply coq_mergeOperations_corres; eauto. }
     { split.
       - econstructor; simpl.
         + do 2 red; word.
         + destruct s_corres; econstructor; simpl; trivial. destruct m_corres; eapply coq_mergeOperations_corres; trivial.
-      - enough (length (CoqSessionServer.coq_mergeOperations s.(Server.PendingOperations) m.(Message.S2S_Gossip_Operations)) ≤ 2 ^ 64 - 2)%Z by now unfold MAX_BOUND; word.
-        admit.
+      - assert (length (CoqSessionServer.coq_mergeOperations s.(Server.PendingOperations) m.(Message.S2S_Gossip_Operations)) ≤ 2 ^ 64 - 2)%Z by admit.
+        unfold MAX_BOUND; word.
     }
   Admitted.
 
