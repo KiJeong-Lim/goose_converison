@@ -176,7 +176,7 @@ Module CoqSessionServer.
         let '(i, (s, outGoingRequests)) := acc in
         let '(succeeded, s, reply) := coq_processClientRequest s element in
         if succeeded then
-          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) (uint.nat i) in
+          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
           (i, (Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply]))
         else
           ((i + 1)%nat, (s, outGoingRequests))
@@ -187,8 +187,8 @@ Module CoqSessionServer.
       let loop_init : list Message.t :=
         []
       in
-      let loop_step (acc: list Message.t) (index: nat) : list Message.t :=
-        if (negb (index =? (uint.nat server.(Server.Id)))) && (negb (length (coq_getGossipOperations server index) =? 0)) then
+      let loop_step (acc: list Message.t) (index: u64) : list Message.t :=
+        if negb (uint.nat index =? uint.nat server.(Server.Id))%nat && negb (length (coq_getGossipOperations server index) =? 0)%nat then
           let S2S_Gossip_Sending_ServerId := server.(Server.Id) in
           let S2S_Gossip_Receiving_ServerId := index in
           let S2S_Gossip_Operations := coq_getGossipOperations server index in
@@ -198,7 +198,7 @@ Module CoqSessionServer.
         else
           acc
       in
-      (server, fold_left loop_step (seq 0%nat (uint.nat server.(Server.NumberOfServers))) loop_init)
+      (server, fold_left loop_step (map (fun i : nat => W64 i) (seq 0%nat (uint.nat server.(Server.NumberOfServers)))) loop_init)
     | _ => (server, [])
     end.
 
@@ -362,6 +362,7 @@ Module INVARIANT.
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
+    ; MyOperations_length : (length s.(MyOperations) <= 2^64 - 2)%Z
     }.
 
   Record CLIENT (c: Client.t) : Prop :=

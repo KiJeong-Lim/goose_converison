@@ -295,6 +295,29 @@ Qed.
 
 #[global] Hint Resolve list_update_corres : session_hints.
 
+Lemma replicate_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (x : A) (x' : A')
+  (n_corres : n =~= n')
+  (x_corres : x =~= x')
+  : replicate n x =~= replicate n' x'.
+Proof.
+  do 2 red in n_corres; subst n'; induction n as [ | n IH]; simpl; eauto.
+Qed.
+
+#[global] Hint Resolve replicate_corres : session_hints.
+
+Lemma seq_0_corres (n : u64) (n' : nat)
+  (n_corres : n =~= n')
+  : map (λ i : nat, W64 i) (seq 0 n') =~= seq 0 n'.
+Proof.
+  do 2 red in n_corres. destruct n_corres as [EQ [LE GE]].
+  revert n EQ LE GE.
+  induction n' as [ | n' IH]; intros; eauto.
+  rewrite -> seq_S in *. rewrite -> map_app in *. simpl in *.
+  eapply app_corres.
+  - eapply IH with (n := W64 n'); eauto; try word.
+  - econstructor 2; eauto. do 2 red; word.
+Qed.
+
 Module Operation'.
 
   Record t : Set :=
@@ -860,7 +883,7 @@ Module NatImplServer.
 
   Lemma coq_processClientRequest_corres
     : CoqSessionServer.coq_processClientRequest =~= coq_processClientRequest.
-  Proof. (**
+  Proof.
     intros s s' s_corres m m' m_corres; unfold CoqSessionServer.coq_processClientRequest, coq_processClientRequest.
     eapply ite_corres; trivial.
     - eapply negb_corres. destruct s_corres, m_corres; eapply coq_compareVersionVector_corres; trivial.
@@ -873,26 +896,89 @@ Module NatImplServer.
         - econstructor; simpl; trivial. reflexivity.
         - destruct s_corres, m_corres; econstructor; simpl; trivial; try (do 2 red; unfold MAX_BOUND; word); trivial. eapply coq_getDataFromOperationLog_corres; trivial.
       }
-      { econstructor; simpl.
+      { assert (
+          <[uint.nat (s .(Server.Id)):=W64 (match s .(Server.VectorClock) !! uint.nat s .(Server.Id) with Some v => uint.Z v | None => 0 end + 1)%Z]> s .(Server.VectorClock) =~= <[s' .(Server'.Id):=(match s' .(Server'.VectorClock) !! s' .(Server'.Id) with Some v => v | None => 0 end + 1)%nat]> s' .(Server'.VectorClock)
+        ) as CLAIM.
+        { destruct s_corres; eapply list_update_corres; simpl; trivial.
+          - do 2 red in Id_corres |- *; word.
+          - assert (s .(Server.VectorClock) !! uint.nat s .(Server.Id) =~= s' .(Server'.VectorClock) !! s' .(Server'.Id)) as YES1.
+            { eapply list_lookup_corres; trivial. do 2 red in Id_corres |- *; word. }
+            revert YES1. set (x := s .(Server.VectorClock) !! uint.nat s .(Server.Id)). set (x' := s' .(Server'.VectorClock) !! s' .(Server'.Id)).
+            intros YES1. destruct YES1.
+            + do 2 red; unfold MAX_BOUND; word.
+            + do 2 red in x_corres |- *. admit.
+        }
+        econstructor; simpl.
         - econstructor; simpl.
           + reflexivity.
-          + destruct s_corres, m_corres; econstructor; simpl; trivial.
-            * eapply list_update_corres; simpl; trivial.
-              { do 2 red in Id_corres |- *; word. }
-              { assert (s .(Server.VectorClock) !! uint.nat s .(Server.Id) =~= s' .(Server'.VectorClock) !! s' .(Server'.Id)) as YES1.
-                { eapply list_lookup_corres; trivial. do 2 red in Id_corres |- *; word. }
-                revert YES1. set (x := s .(Server.VectorClock) !! uint.nat s .(Server.Id)). set (x' := s' .(Server'.VectorClock) !! s' .(Server'.Id)).
-                intros YES1. destruct YES1.
-                - do 2 red; unfold MAX_BOUND; word.
-                - do 2 red in x_corres |- *. 
-              }
+          + destruct s_corres, m_corres; econstructor; simpl; trivial; eapply coq_sortedInsert_corres; trivial; econstructor; simpl; trivial.
+        - destruct s_corres, m_corres; econstructor; simpl; trivial; try (do 2 red; unfold MAX_BOUND; word); trivial.
       }
-  Qed. *) Admitted.
+  Admitted.
+
+  #[global] Hint Resolve coq_processClientRequest_corres : session_hints.
 
   Lemma coq_processRequest_corres
     : CoqSessionServer.coq_processRequest =~= coq_processRequest.
   Proof.
+    intros s s' s_corres m m' m_corres; unfold CoqSessionServer.coq_processRequest, coq_processRequest.
+    destruct s_corres, m_corres; do 2 red in MessageType_corres.
+    destruct (uint.nat m.(Message.MessageType)) as [ | [ | [ | [ | n]]]] eqn: H_OBS; destruct (m'.(Message'.MessageType)) as [ | [ | [ | [ | n']]]] eqn: H_OBS'; try word.
+    - assert (CoqSessionServer.coq_processClientRequest s m =~= coq_processClientRequest s' m') as YES1.
+      { eapply coq_processClientRequest_corres; econstructor; simpl; trivial. do 2 red; word. }
+      revert YES1. set (x := CoqSessionServer.coq_processClientRequest s m). set (x' := coq_processClientRequest s' m').
+      intros YES1. destruct YES1 as [[x1_corres x2_corres] x3_corres]; simpl in *. destruct x as [[x1 x2] x3], x' as [[x1' x2'] x3']; simpl in *.
+      eapply ite_corres; trivial.
+      + econstructor; simpl; trivial. econstructor 2; eauto.
+      + econstructor; simpl; eauto. destruct x2_corres, x3_corres; econstructor; simpl; trivial.
+        eapply app_corres; eauto. econstructor 2; eauto. econstructor; simpl; trivial. do 2 red; word.
+    - eapply snd_corres. eapply fold_left_corres.
+      + intros acc acc' acc_corres element element' element_corres. destruct acc as [i [s0 outGoingRequests]], acc' as [i' [s0' outGoingRequests']]; simpl in *.
+        destruct acc_corres as [i_corres [s0_corres outGoingRequests_corres]]; simpl in *.
+        assert (CoqSessionServer.coq_processClientRequest s0 element =~= coq_processClientRequest s0' element') as YES1.
+        { eapply coq_processClientRequest_corres; trivial. }
+        revert YES1. set (x := CoqSessionServer.coq_processClientRequest s0 element). set (x' := coq_processClientRequest s0' element').
+        intros YES1. destruct YES1 as [[x1_corres x2_corres] x3_corres]; simpl in *. destruct x as [[x1 x2] x3], x' as [[x1' x2'] x3']; simpl in *.
+        eapply ite_corres; trivial.
+        * econstructor; simpl; trivial. econstructor; simpl.
+          { destruct x2_corres; econstructor; simpl; trivial. eapply coq_deleteAtIndexMessage_corres; trivial. }
+          { eapply app_corres; trivial. econstructor 2; eauto. }
+        * econstructor; simpl.
+          { do 2 red in i_corres |- *; word. }
+          { econstructor; simpl; trivial. }
+      + assert (CoqSessionServer.coq_receiveGossip s m =~= coq_receiveGossip s' m') as YES1.
+        { eapply coq_receiveGossip_corres; econstructor; simpl; trivial. do 2 red; word. }
+        destruct YES1; trivial.
+      + econstructor; simpl; try reflexivity. econstructor; simpl.
+        * eapply coq_receiveGossip_corres; econstructor; simpl; trivial. do 2 red; word.
+        * econstructor 2; eauto. econstructor; simpl; trivial; try (do 2 red; unfold MAX_BOUND; word); trivial.
+        assert (CoqSessionServer.coq_receiveGossip s m =~= coq_receiveGossip s' m') as YES1.
+        { eapply coq_receiveGossip_corres; econstructor; simpl; trivial. do 2 red; word. }
+        destruct YES1; trivial.
+    - econstructor; simpl; eauto. eapply coq_acknowledgeGossip_corres; econstructor; simpl; trivial. do 2 red; word.
+    - econstructor; simpl.
+      + econstructor; simpl; trivial.
+      + eapply fold_left_corres.
+        { intros acc acc' acc_corres index index' index_corres.
+          eapply ite_corres; trivial.
+          - eapply andb_corres.
+            + eapply negb_corres. do 2 red in Id_corres, index_corres |- *. destruct (index' =? s' .(Server'.Id))%nat as [ | ] eqn: H_OBS1; [rewrite -> Nat.eqb_eq in H_OBS1 |- * | rewrite -> Nat.eqb_neq in H_OBS1 |- *]; word.
+            + eapply negb_corres. do 2 red in index_corres |- *.
+              assert (length (CoqSessionServer.coq_getGossipOperations s index) = length (coq_getGossipOperations s' index')) as CLAIM.
+              { eapply list_corres_length. eapply coq_getGossipOperations_corres; [econstructor; simpl; trivial | do 2 red; word]. }
+              rewrite CLAIM; trivial.
+          - eapply app_corres; trivial. econstructor 2; eauto. econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+            + eapply coq_getGossipOperations_corres; trivial. econstructor; simpl; trivial.
+            + admit.
+        }
+        { do 2 red in NumberOfServers_corres. destruct NumberOfServers_corres as (H & ? & ?). rewrite H.
+          eapply seq_0_corres with (n := s.(Server.NumberOfServers)). econstructor; simpl; word.
+        }
+        { eauto. }
+    - econstructor; simpl; eauto. econstructor; simpl; trivial.
   Admitted.
+
+  #[global] Hint Resolve coq_processRequest_corres : session_hints.
 
 End NatImplServer.
 
@@ -902,9 +988,9 @@ Module NatImplClient.
 
   Definition coq_read (c : Client'.t) (serverId : nat) : Message'.t :=
     match c.(Client'.SessionSemantic) with
-    | 0%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 1%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 2%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 0%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 1%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 2%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 3%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 c.(Client'.ReadVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 4%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 c.(Client'.WriteVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 5%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (coq_maxTS c.(Client'.WriteVersionVector) c.(Client'.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
@@ -913,11 +999,11 @@ Module NatImplClient.
 
   Definition coq_write (c : Client'.t) (serverId : nat) (value : nat) : Message'.t :=
     match c.(Client'.SessionSemantic) with
-    | 0%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value [] 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 0%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 1%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value c.(Client'.ReadVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 2%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value c.(Client'.WriteVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 3%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value [] 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 4%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value [] 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 3%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 4%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 5%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (coq_maxTS c.(Client'.WriteVersionVector) c.(Client'.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | _ => Message'.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
     end.
@@ -938,17 +1024,71 @@ Module NatImplClient.
   Lemma coq_read_corres
     : CoqSessionClient.coq_read =~= coq_read.
   Proof.
-  Admitted.
+    intros c c' c_corres serverId serverId' serverId_corres; unfold CoqSessionClient.coq_read, coq_read.
+    destruct c_corres; do 2 red in SessionSemantic_corres.
+    destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]]; destruct (c' .(Client'.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n']]]]]]; try word.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      eapply replicate_corres; trivial.
+      + do 2 red in NumberOfServers_corres |- *; word.
+      + do 2 red; unfold MAX_BOUND; word.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      eapply replicate_corres; trivial.
+      + do 2 red in NumberOfServers_corres |- *; word.
+      + do 2 red; unfold MAX_BOUND; word.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      eapply replicate_corres; trivial.
+      + do 2 red in NumberOfServers_corres |- *; word.
+      + do 2 red; unfold MAX_BOUND; word.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      eapply coq_maxTS_corres; trivial.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+  Qed.
 
   Lemma coq_write_corres
     : CoqSessionClient.coq_write =~= coq_write.
   Proof.
-  Admitted.
+    intros c c' c_corres serverId serverId' serverId_corres value value' value_corres; unfold CoqSessionClient.coq_write, coq_write.
+    destruct c_corres; do 2 red in SessionSemantic_corres.
+    destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]]; destruct (c' .(Client'.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n']]]]]]; try word.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      eapply replicate_corres; trivial.
+      + do 2 red in NumberOfServers_corres |- *; word.
+      + do 2 red; unfold MAX_BOUND; word.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      eapply replicate_corres; trivial.
+      + do 2 red in NumberOfServers_corres |- *; word.
+      + do 2 red; unfold MAX_BOUND; word.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      eapply replicate_corres; trivial.
+      + do 2 red in NumberOfServers_corres |- *; word.
+      + do 2 red; unfold MAX_BOUND; word.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      eapply coq_maxTS_corres; trivial.
+    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+  Qed.
 
   Lemma coq_processRequest_corres
     : CoqSessionClient.coq_processRequest =~= coq_processRequest.
   Proof.
-  Admitted.
+    intros c c' c_corres requestType requestType' requestType_corres serverId serverId' serverId_corres value value' value_corres ackMessage ackMessage' ackMessage_corres.
+    unfold CoqSessionClient.coq_processRequest, coq_processRequest. destruct c_corres, ackMessage_corres. do 2 red in requestType_corres.
+    destruct (uint.nat requestType) as [ | [ | [ | n]]] eqn: H_OBS; destruct (requestType') as [ | [ | [ | n']]] eqn: H_OBS'; try word.
+    - econstructor; simpl.
+      + econstructor; simpl; trivial.
+      + eapply coq_read_corres; trivial. econstructor; simpl; trivial.
+    - econstructor; simpl.
+      + econstructor; simpl; trivial.
+      + eapply coq_write_corres; trivial. econstructor; simpl; trivial.
+    - do 2 red in S2C_Client_OperationType_corres. destruct (uint.nat ackMessage .(Message.S2C_Client_OperationType)) as [ | [ | x]] eqn: H_OBS1; destruct (ackMessage' .(Message'.S2C_Client_OperationType)) as [ | [ | x']] eqn: H_OBS1'; try word.
+      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
+      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
+      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
+    - econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
+  Qed.
 
 End NatImplClient.
 

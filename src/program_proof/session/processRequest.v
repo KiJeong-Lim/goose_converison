@@ -201,7 +201,7 @@ Section heap.
         let '(i, (s, outGoingRequests)) := acc in
         let '(succeeded, s, reply) := coq_processClientRequest s element in
         if succeeded then
-          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) (uint.nat i) in
+          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
           (i, (Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply]))
         else
           ((i + 1)%nat, (s, outGoingRequests))
@@ -373,8 +373,8 @@ Section heap.
     wp_if_destruct.
     { wp_apply (wp_ref_to); auto. iIntros "%i H_i". wp_pures.
       set (loop_init := @nil Message.t).
-      set (loop_step := λ acc : list Message.t, λ index : nat,
-        if (negb (index =? (uint.nat s.(Server.Id)))) && (negb (length (coq_getGossipOperations s index) =? 0)) then
+      set (loop_step := λ acc : list Message.t, λ index : u64,
+        if negb (uint.nat index =? uint.nat s.(Server.Id))%nat && negb (length (coq_getGossipOperations s index) =? 0)%nat then
           let S2S_Gossip_Sending_ServerId := s.(Server.Id) in
           let S2S_Gossip_Receiving_ServerId := index in
           let S2S_Gossip_Operations := coq_getGossipOperations s index in
@@ -388,7 +388,7 @@ Section heap.
       { iDestruct "H7" as "(%ops1 & H7 & H_ops1)". iPoseProof (big_sepL2_length with "[$H_ops1]") as "%LEN1". iPoseProof (own_slice_sz with "[$H7]") as "%LEN2". word. }
       wp_apply (wp_forBreak_cond
         ( λ continue, ∃ index : nat, ∃ msgs : list Message.t, ∃ out_going_requests : Slice.t,
-          ⌜msgs = fold_left loop_step (seq 0%nat index) loop_init⌝ ∗
+          ⌜msgs = fold_left loop_step (map (λ i : nat, W64 i) (seq 0%nat index)) loop_init⌝ ∗
           i ↦[uint64T] #(W64 index) ∗
           server ↦[(uint64T * (uint64T * (slice.T (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (slice.T uint64T * (uint64T * (uint64T * (slice.T (slice.T uint64T * (uint64T * unitT)) * (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (slice.T uint64T * (uint64T * (uint64T * unitT)))))))))))))))))) * (slice.T uint64T * (slice.T (slice.T uint64T * (uint64T * unitT)) * (slice.T (slice.T uint64T * (uint64T * unitT)) * (slice.T (slice.T uint64T * (uint64T * unitT)) * (slice.T uint64T * unitT))))))))%ht] server_val (s.(Server.Id), s.(Server.NumberOfServers), t4, t3, t2, t1, t0, t)%core ∗
           outGoingRequests ↦[(slice.T (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (slice.T uint64T * (uint64T * (uint64T * (slice.T (slice.T uint64T * (uint64T * unitT)) * (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (uint64T * (slice.T uint64T * (uint64T * (uint64T * unitT)))))))))))))))))))%ht] slice_val out_going_requests ∗
@@ -410,18 +410,18 @@ Section heap.
         wp_load. wp_if_destruct.
         - wp_load. wp_load. wp_if_destruct.
           + wp_load. wp_load. wp_apply (wp_getGossipOperations (OWN_UnsatisfiedRequests := true) with "[H_UnsatisfiedRequests H_VectorClock H_OperationsPerformed H_MyOperations H_PendingOperations H_GossipAcknowledgements]"). { iFrame; simplNotation; simpl; done. } iIntros "%ns [H_ns H_is_server]".
-            wp_apply wp_slice_len. wp_if_destruct.
+            replace (coq_getGossipOperations s (uint.nat (W64 index))) with (coq_getGossipOperations s index) in * by now f_equal; word. wp_apply wp_slice_len. wp_if_destruct.
             * wp_load. wp_load. wp_pures. wp_apply wp_slice_len. wp_load. refine (let TMP : w64 := t1 .(Slice.sz) in _). fold TMP. replace (#(W64 1), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (#s .(Server.Id), (#(W64 index), (ns, (#TMP, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, #()))))))))))))))))))%V with (message_into_val .(to_val) (W64 1, W64 0, W64 0, W64 0, W64 0, Slice.nil, s.(Server.Id), (W64 index), ns, TMP, W64 0, W64 0, W64 0, W64 0, W64 0, Slice.nil, W64 0, W64 0)) by reflexivity. subst TMP.
               iDestruct "H_out_going_requests" as "(%msgv & H_out_going_requests & H_msgv)". wp_apply (wp_SliceAppend with "[$H_out_going_requests]"). iIntros "%out_going_requests' H_out_going_requests'". wp_store. wp_load. wp_store.
-              iAssert ⌜uint.nat ns.(Slice.sz) = length (coq_getGossipOperations s (W64 index))⌝%I as "%ns_SZ".
+              iAssert ⌜uint.nat ns.(Slice.sz) = length (coq_getGossipOperations s index)⌝%I as "%ns_SZ".
               { iDestruct "H_ns" as "(%ops1 & H_ns & H_ops1)". iPoseProof (big_sepL2_length with "[$H_ops1]") as "%LEN1". iPoseProof (own_slice_sz with "[$H_ns]") as "%LEN2". word. }
-              iModIntro. iApply "HΦ". iExists (index + 1)%nat. iExists (fold_left loop_step (seq 0 (index + 1)) loop_init). iExists out_going_requests'. replace (w64_word_instance .(word.add) (W64 index) (W64 1)) with (W64 (index + 1)%nat) by word. iFrame.
+              iModIntro. iApply "HΦ". iExists (index + 1)%nat. iExists (fold_left loop_step (map (λ i : nat, W64 i) (seq 0 (index + 1))) loop_init). iExists out_going_requests'. replace (w64_word_instance .(word.add) (W64 index) (W64 1)) with (W64 (index + 1)%nat) by word. iFrame.
               iDestruct "H_is_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)"; simplNotation; simpl; subst; iFrame.
               iSplitL "". { done. }
               iSplitR "".
-              { replace (index + 1)%nat with (S index) by word. rewrite seq_S. iPoseProof (big_sepL2_length with "[$H_msgv]") as "%LEN". rewrite fold_left_app. simpl. unfold loop_step at 2.
-                destruct (index =? uint.nat s .(Server.Id)) as [ | ] eqn: H_OBS2. { rewrite Z.eqb_eq in H_OBS2. contradiction Heqb4. word. }
-                destruct (length (coq_getGossipOperations s (W64 index)) =? 0) as [ | ] eqn: H_OBS3. { rewrite Z.eqb_eq in H_OBS3. contradiction Heqb5. word. }
+              { replace (index + 1)%nat with (S index) by word. rewrite seq_S. iPoseProof (big_sepL2_length with "[$H_msgv]") as "%LEN". rewrite map_app; rewrite fold_left_app. simpl. unfold loop_step at 2.
+                destruct (uint.nat (W64 index) =? uint.nat s .(Server.Id))%nat as [ | ] eqn: H_OBS2. { rewrite Nat.eqb_eq in H_OBS2. contradiction Heqb4. word. }
+                destruct (length (coq_getGossipOperations s (W64 index)) =? 0)%nat as [ | ] eqn: H_OBS3. { rewrite Nat.eqb_eq in H_OBS3. contradiction Heqb5. word. }
                 simpl. iApply (big_sepL2_app with "[$H_msgv] [H_ns]"). simpl. iSplitR ""; try done. iExists 0%nat. iFrame; simplNotation; simpl.
                 iSplitL "". { done. }
                 iSplitL "". { done. }
@@ -443,28 +443,28 @@ Section heap.
               }
               iPureIntro; split; [word | congruence].
             * wp_load. wp_store.
-              iAssert ⌜uint.nat ns.(Slice.sz) = length (coq_getGossipOperations s (W64 index))⌝%I as "%ns_SZ".
+              iAssert ⌜uint.nat ns.(Slice.sz) = length (coq_getGossipOperations s index)⌝%I as "%ns_SZ".
               { iDestruct "H_ns" as "(%ops1 & H_ns & H_ops1)". iPoseProof (big_sepL2_length with "[$H_ops1]") as "%LEN1". iPoseProof (own_slice_sz with "[$H_ns]") as "%LEN2". word. }
               iModIntro. iApply "HΦ".
               iExists (index + 1)%nat. iExists _. iExists out_going_requests. replace (w64_word_instance .(word.add) (W64 index) (W64 1)) with (W64 (index + 1)%nat) by word. iFrame.
               iDestruct "H_is_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)"; simplNotation; simpl; subst; iFrame.
               iSplitL "".
-              { replace (index + 1)%nat with (S index) by word. rewrite seq_S. rewrite fold_left_app. simpl. unfold loop_step at 2. destruct (index =? uint.nat s .(Server.Id)) as [ | ] eqn: H_OBS2.
+              { replace (index + 1)%nat with (S index) by word. rewrite seq_S. rewrite map_app. rewrite fold_left_app. simpl. unfold loop_step at 2. destruct (uint.nat (W64 index) =? uint.nat s .(Server.Id))%nat as [ | ] eqn: H_OBS2.
                 - simpl in *. done.
-                - destruct (length (coq_getGossipOperations s (W64 index)) =? 0) as [ | ] eqn: H_OBS3.
+                - destruct (length (coq_getGossipOperations s index) =? 0)%nat as [ | ] eqn: H_OBS3.
                   + simpl in *. done.
-                  + rewrite -> Z.eqb_neq in H_OBS2, H_OBS3. simpl. word.
+                  + rewrite -> Nat.eqb_neq in H_OBS2, H_OBS3. simpl. word.
               }
               iPureIntro; split; [word | congruence].
           + wp_load. wp_store.
             iModIntro. iApply "HΦ".
             iExists (index + 1)%nat. iExists _. iExists out_going_requests. replace (w64_word_instance .(word.add) (W64 index) (W64 1)) with (W64 (index + 1)%nat) by word. iFrame.
             iPureIntro. split.
-            * replace (index + 1)%nat with (S index) by word. rewrite seq_S. rewrite fold_left_app. simpl. unfold loop_step at 2. destruct (index =? uint.nat s .(Server.Id)) as [ | ] eqn: H_OBS2.
+            * replace (index + 1)%nat with (S index) by word. rewrite seq_S. rewrite map_app. rewrite fold_left_app. simpl. unfold loop_step at 2. destruct (uint.nat index =? uint.nat s .(Server.Id))%nat as [ | ] eqn: H_OBS2.
               { simpl in *. done. }
-              destruct (length (coq_getGossipOperations s (W64 index)) =? 0) as [ | ] eqn: H_OBS3.
+              destruct (length (coq_getGossipOperations s index) =? 0)%nat as [ | ] eqn: H_OBS3.
               { simpl in *. done. }
-              { rewrite -> Z.eqb_neq in H_OBS2, H_OBS3. simpl. contradiction H_OBS2. rewrite i_BOUND. now do 3 f_equal. }
+              { rewrite -> Nat.eqb_neq in H_OBS2, H_OBS3. simpl. contradiction H_OBS2. rewrite i_BOUND. rewrite Heqb4. word. }
             * split. { word. } congruence.
         - iModIntro. iApply "HΦ".
           iExists index. iExists _. iExists out_going_requests. iFrame.
