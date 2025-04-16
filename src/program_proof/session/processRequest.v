@@ -201,7 +201,7 @@ Section heap.
         let '(i, (s, outGoingRequests)) := acc in
         let '(succeeded, s, reply) := coq_processClientRequest s element in
         if succeeded then
-          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
+          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) (uint.nat i) in
           (i, (Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply]))
         else
           ((i + 1)%nat, (s, outGoingRequests))
@@ -277,11 +277,11 @@ Section heap.
             { iDestruct "message_slice_ns2" as "(%ops2 & message_slice_ns2 & H_ops2)".
               iPoseProof (big_sepL2_length with "[$H_ops2]") as "%LEN1".
               iPoseProof (own_slice_sz with "[$message_slice_ns2]") as "%LEN2".
-              rewrite <- EQ in LEN1. rewrite <- LEN2. iPureIntro. symmetry. done.
+              rewrite <- EQ in LEN1. rewrite <- LEN2. iPureIntro. symmetry. replace (uint.nat (W64 index)) with index in LEN1 by word. done.
             }
             iExists (prevs ++ [cur]). iExists nexts. iExists (let s : Server.t := (coq_processClientRequest s cur).1.2 in Server.mk s.(Server.Id) s.(Server.NumberOfServers) (coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) index) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements)). iExists (msgs ++ [(coq_processClientRequest s cur).2])%list. iExists _. iExists index. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iExists _. iFrame.
             iSplitL "". { rewrite <- app_assoc. done. }
-            iSplitL "". { iPureIntro. rewrite fold_left_app. simpl. rewrite <- LOOP. simpl. destruct (coq_processClientRequest s cur) as [[b' s'] reply']; simpl in *. subst b'; reflexivity. }
+            iSplitL "". { iPureIntro. rewrite fold_left_app. simpl. rewrite <- LOOP. simpl. destruct (coq_processClientRequest s cur) as [[b' s'] reply']; simpl in *. subst b'. replace (uint.nat (W64 index)) with index by word. reflexivity. }
             iSplitL "message_slice_ns2". { simpl. rewrite <- EQ. replace (uint.nat (W64 index)) with index by word. rewrite <- H2_invariant. iExact "message_slice_ns2". }
             simpl in *. iDestruct "is_server_ns" as "(%H1'' & %H2'' & H3'' & H4'' & %H5'' & H6'' & H7'' & H8'' & H9'' & %H10'')". iFrame. iPureIntro.
             simplNotation; subst; simpl; split. { destruct H1_invariant. split; simpl; trivial. } rewrite <- EQ in LEN_ns2. replace (uint.nat (W64 (length prevs'))) with (length prevs') in * by word. repeat (split; try done).

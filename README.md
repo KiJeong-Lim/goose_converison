@@ -28,9 +28,6 @@ To compile dependencies for proofs do (`make src/program_proof/session/versionVe
 20. read
 21. client.processRequest
 
-## Other Proofs:
-1. Equivalence of u64 and nat of implementations
-   
 # Verifying concurrent, crash-safe systems with Perennial
 
 [![CI](https://github.com/mit-pdos/perennial/actions/workflows/ci.yml/badge.svg)](https://github.com/mit-pdos/perennial/actions/workflows/ci.yml)

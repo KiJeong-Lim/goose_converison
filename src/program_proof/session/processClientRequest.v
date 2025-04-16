@@ -13,8 +13,8 @@ Section heap.
       CoqSessionServer.deleteAtIndexOperation s #index
     {{{
         ns, RET (slice_val ns);
-        operation_slice ns (coq_deleteAtIndexOperation l index) n ∗
-        ⌜(length (coq_deleteAtIndexOperation l index) + 1 = length l)%nat⌝
+        operation_slice ns (coq_deleteAtIndexOperation l (uint.nat index)) n ∗
+        ⌜(length (coq_deleteAtIndexOperation l (uint.nat index)) + 1 = length l)%nat⌝
     }}}.
   Proof.
     rewrite/ deleteAtIndexOperation. rename s into s1. iIntros (Φ) "[(%ops1 & H_s1 & H_ops1) %H_index] HΦ".
@@ -74,15 +74,12 @@ Section heap.
           simpl. iApply (big_sepL2_app with "[H_prefix]"). { iExact "H_prefix". }
           destruct (drop (uint.nat index) ops1) as [ | ops1_hd ops1_tl] eqn: H_ops1.
           { simpl in *. iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%NIL".
-            rewrite <- drop_drop. replace (drop (uint.nat (W64 1)) []) with ( @nil (Slice.t * w64)) by reflexivity.
             rewrite NIL. iExact "H_suffix".
           }
           iPoseProof (big_sepL2_cons_inv_l with "[$H_suffix]") as "(%l_hd & %l_tl & %H_l & H_hd & H_tl)".
-          replace (uint.nat (W64 1)) with 1%nat by word. simpl. replace (drop 0 ops1_tl) with ops1_tl by reflexivity.
-          rewrite <- drop_drop. rewrite H_l. iExact "H_tl".
-      + iPureIntro. rewrite length_app. rewrite length_take. rewrite length_drop. word.
-    - unfold coq_deleteAtIndexOperation. replace (uint.nat (W64 (uint.nat index))) with (uint.nat index) by word.
-      replace (drop (uint.nat index + 1) l) with (drop (uint.nat (W64 1)) (drop (uint.nat index) l)); trivial.
+          rewrite H_l. iExact "H_tl".
+      + iPureIntro. rewrite length_app. rewrite length_take. rewrite length_drop. rewrite length_drop. word.
+    - unfold coq_deleteAtIndexOperation. replace (drop (uint.nat index + 1) l) with (drop (uint.nat (W64 1)) (drop (uint.nat index) l)); trivial.
       rewrite drop_drop. f_equal.
   Qed.
 
@@ -94,8 +91,8 @@ Section heap.
       CoqSessionServer.deleteAtIndexMessage s #index
     {{{
         ns, RET (slice_val ns);
-        message_slice ns (coq_deleteAtIndexMessage l index) n len_c2s ∗
-        ⌜(length (coq_deleteAtIndexMessage l index) + 1 = length l)%nat⌝
+        message_slice ns (coq_deleteAtIndexMessage l (uint.nat index)) n len_c2s ∗
+        ⌜(length (coq_deleteAtIndexMessage l (uint.nat index)) + 1 = length l)%nat⌝
     }}}.
   Proof.
     rewrite/ deleteAtIndexMessage. rename s into s1. iIntros (Φ) "[(%ops1 & H_s1 & H_ops1) %H_index] HΦ".

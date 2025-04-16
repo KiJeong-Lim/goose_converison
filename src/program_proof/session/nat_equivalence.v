@@ -27,6 +27,15 @@ Qed.
 
 #[global] Hint Resolve Similarity_fun_intro : session_hints.
 
+Lemma Similarity_fun_intro {D : Type} {D' : Type} {C : Type} {C' : Type} {DOM_SIM : Similarity D D'} {COD_SIM : Similarity C C'} (f : D -> C) (f' : D' -> C')
+  (OBLIGATION1 : forall x : D, forall x' : D', forall x_corres : x =~= x', f x =~= f' x')
+  : f =~= f'.
+Proof.
+  exact OBLIGATION1.
+Qed.
+
+#[global] Hint Resolve Similarity_fun_intro : session_hints.
+
 #[global]
 Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type}
   (FST_SIM : Similarity A A')
@@ -35,6 +44,16 @@ Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type}
 Proof.
   exact (fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p').
 Defined.
+
+Lemma Similarity_prod_intro {A : Type} {A' : Type} {B : Type} {B' : Type} {FST_SIM : Similarity A A'} {SND_SIM : Similarity B B'} (p : A * B) (p' : A' * B')
+  (OBLIGATION1 : p.1 =~= p'.1)
+  (OBLIGATION2 : p.2 =~= p'.2)
+  : p =~= p'.
+Proof.
+  exact (conj OBLIGATION1 OBLIGATION2).
+Qed.
+
+#[global] Hint Resolve Similarity_prod_intro : session_hints.
 
 Lemma Similarity_prod_intro {A : Type} {A' : Type} {B : Type} {B' : Type} {FST_SIM : Similarity A A'} {SND_SIM : Similarity B B'} (p : A * B) (p' : A' * B')
   (OBLIGATION1 : p.1 =~= p'.1)
@@ -68,6 +87,7 @@ Inductive option_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similar
     : Some x =~= Some x'.
 
 #[local] Hint Constructors option_corres : core.
+#[local] Hint Constructors option_corres : core.
 
 #[global]
 Instance Similarity_option {A : Type} {A' : Type} (SIM : Similarity A A') : Similarity (option A) (option A') :=
@@ -76,6 +96,15 @@ Instance Similarity_option {A : Type} {A' : Type} (SIM : Similarity A A') : Simi
 #[global]
 Instance Similarity_bool : Similarity bool bool :=
   @eq bool.
+
+Lemma Similarity_bool_intro (b : bool) (b' : bool)
+  (OBLIGATION1 : b = b')
+  : b =~= b'.
+Proof.
+  exact OBLIGATION1.
+Qed.
+
+#[global] Hint Resolve Similarity_bool_intro : session_hints.
 
 Lemma Similarity_bool_intro (b : bool) (b' : bool)
   (OBLIGATION1 : b = b')
@@ -99,6 +128,15 @@ Qed.
 
 #[global] Hint Resolve Similarity_nat_intro : session_hints.
 
+Lemma Similarity_nat_intro (n : nat) (n' : nat)
+  (OBLIGATION1 : n = n')
+  : n =~= n'.
+Proof.
+  exact OBLIGATION1.
+Qed.
+
+#[global] Hint Resolve Similarity_nat_intro : session_hints.
+
 (** End BasicInstances_of_Similarity. *)
 
 Definition MAX_BOUND : Z :=
@@ -107,6 +145,16 @@ Definition MAX_BOUND : Z :=
 #[global]
 Instance Similarity_u64 : Similarity u64 nat :=
   fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
+
+Lemma Similarity_u64_intro (n : u64) (n' : nat)
+  (OBLIGATION1 : uint.nat n = n')
+  (OBLIGATION2 : (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z)
+  : n =~= n'.
+Proof.
+  exact (conj OBLIGATION1 OBLIGATION2).
+Qed.
+
+#[global] Hint Resolve Similarity_u64_intro : session_hints.
 
 Lemma Similarity_u64_intro (n : u64) (n' : nat)
   (OBLIGATION1 : uint.nat n = n')
@@ -141,6 +189,8 @@ Qed.
 
 #[global] Hint Resolve last_corres : session_hints.
 
+#[global] Hint Resolve last_corres : session_hints.
+
 Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (ys : list A) (ys' : list A')
   (xs_corres : xs =~= xs')
   (ys_corres : ys =~= ys')
@@ -148,6 +198,8 @@ Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) 
 Proof.
   revert ys ys' ys_corres; induction xs_corres; simpl; eauto.
 Qed.
+
+#[global] Hint Resolve app_corres : session_hints.
 
 #[global] Hint Resolve app_corres : session_hints.
 
@@ -173,6 +225,19 @@ Proof.
   revert z z' z_corres INIT; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; intros; [eauto | eapply IH; eauto; eapply f_corres; eauto].
 Qed.
 
+#[global] Hint Resolve fold_left_corres : session_hints.
+
+Lemma fold_left_corres_withInvariant {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (Φ : forall ACCUM : A, forall ACCUM' : A', forall NEXTS : list B, forall NEXTS' : list B', Prop) (f : A -> B -> A) (f' : A' -> B' -> A') (xs : list B) (xs' : list B') (z : A) (z' : A')
+  (f_corres : forall x : B, forall x' : B', x =~= x' -> forall z : A, forall z' : A', z =~= z' -> forall xs : list B, forall xs' : list B', Φ z z' (x :: xs) (x' :: xs') -> f z x =~= f' z' x')
+  (xs_corres : xs =~= xs')
+  (z_corres : z =~= z')
+  (STEP : forall x : B, forall x' : B', x =~= x' -> forall z : A, forall z' : A', z =~= z' -> forall xs : list B, forall xs' : list B', Φ z z' (x :: xs) (x' :: xs') -> Φ (f z x) (f' z' x') xs xs')
+  (INIT : Φ z z' xs xs')
+  : fold_left f xs z =~= fold_left f' xs' z' /\ Φ (fold_left f xs z) (fold_left f' xs' z') [] [].
+Proof.
+  revert z z' z_corres INIT; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; intros; [eauto | eapply IH; eauto; eapply f_corres; eauto].
+Qed.
+
 Lemma take_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (xs : list A) (xs' : list A')
   (n_corres : n =~= n')
   (xs_corres : xs =~= xs')
@@ -183,6 +248,8 @@ Qed.
 
 #[global] Hint Resolve take_corres : session_hints.
 
+#[global] Hint Resolve take_corres : session_hints.
+
 Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (xs : list A) (xs' : list A')
   (n_corres : n =~= n')
   (xs_corres : xs =~= xs')
@@ -190,6 +257,8 @@ Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n'
 Proof.
   do 2 red in n_corres; subst n'; revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
 Qed.
+
+#[global] Hint Resolve drop_corres : session_hints.
 
 #[global] Hint Resolve drop_corres : session_hints.
 
@@ -642,7 +711,29 @@ Module NatImplServer.
   Qed.
 
   #[global] Hint Resolve coq_compareVersionVector_corres : session_hints.
+  Lemma coq_compareVersionVector_corres
+    : CoqSessionServer.coq_compareVersionVector =~= coq_compareVersionVector.
+  Proof.
+    intros xs xs' xs_corres ys ys' ys_corres; revert ys ys' ys_corres; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl; try now red; reflexivity.
+    do 2 red in x_corres, y_corres. destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]]; (destruct (uint.nat x <? uint.nat y)%Z as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_ge in H_OBS]); (destruct (uint.nat y <=? uint.nat x)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.leb_le in H_OBS' | rewrite Nat.leb_gt in H_OBS']); simpl in *; eauto with *.
+  Qed.
 
+  #[global] Hint Resolve coq_compareVersionVector_corres : session_hints.
+
+  Lemma coq_lexicographicCompare_corres
+    : CoqSessionServer.coq_lexicographicCompare =~= coq_lexicographicCompare.
+  Proof.
+    intros xs xs' xs_corres ys ys' ys_corres; revert ys ys' ys_corres; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl; try now red; reflexivity.
+    do 2 red in x_corres, y_corres. destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]]; (destruct (uint.Z x =? uint.Z y)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat x =? uint.nat y)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']); simpl in *.
+    - eauto with *.
+    - word.
+    - word.
+    - do 2 red. rewrite Z.gtb_ltb. destruct (uint.nat y <? uint.nat x)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.ltb_lt in H_OBS1 | rewrite Nat.ltb_ge in H_OBS1].
+      + rewrite Z.ltb_lt. word.
+      + rewrite Z.ltb_ge. word.
+  Qed.
+
+  #[global] Hint Resolve coq_lexicographicCompare_corres : session_hints.
   Lemma coq_lexicographicCompare_corres
     : CoqSessionServer.coq_lexicographicCompare =~= coq_lexicographicCompare.
   Proof.
@@ -667,6 +758,15 @@ Module NatImplServer.
   Qed.
 
   #[global] Hint Resolve coq_maxTwoInts_corres : session_hints.
+  Lemma coq_maxTwoInts_corres
+    : CoqSessionServer.coq_maxTwoInts =~= coq_maxTwoInts.
+  Proof.
+    intros x x' x_corres y y' y_corres; unfold CoqSessionServer.coq_maxTwoInts, coq_maxTwoInts.
+    do 2 red in x_corres, y_corres. destruct x_corres as [<- [? ?]], y_corres as [<- [? ?]].
+    rewrite Z.gtb_ltb; (destruct (uint.Z y <? uint.Z x)%Z as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_ge in H_OBS]); (destruct (uint.nat y <? uint.nat x)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.ltb_lt in H_OBS' | rewrite Nat.ltb_nlt in H_OBS']); (do 2 red; try word).
+  Qed.
+
+  #[global] Hint Resolve coq_maxTwoInts_corres : session_hints.
 
   Lemma coq_maxTS_corres
     : CoqSessionServer.coq_maxTS =~= coq_maxTS.
@@ -677,7 +777,49 @@ Module NatImplServer.
   Qed.
 
   #[global] Hint Resolve coq_maxTS_corres : session_hints.
+  Lemma coq_maxTS_corres
+    : CoqSessionServer.coq_maxTS =~= coq_maxTS.
+  Proof.
+    intros xs xs' xs_corres ys ys' ys_corres; revert ys ys' ys_corres.
+    induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl; eauto.
+    econstructor 2; eauto. eapply coq_maxTwoInts_corres; eauto with *.
+  Qed.
 
+  #[global] Hint Resolve coq_maxTS_corres : session_hints.
+
+  Lemma coq_oneOffVersionVector_corres
+    : CoqSessionServer.coq_oneOffVersionVector =~= coq_oneOffVersionVector.
+  Proof.
+    intros xs xs' xs_corres ys ys' ys_corres; unfold CoqSessionServer.coq_oneOffVersionVector, coq_oneOffVersionVector; do 2 red.
+    destruct (fold_left _ _ _) as [output canApply] eqn: H_OBS in |- *.
+    destruct (fold_left _ _ _) as [output' canApply'] eqn: H_OBS' in |- *.
+    enough (want : (output, canApply) =~= (output', canApply')).
+    { do 2 red in want. destruct want as [output_corres canApply_corres]; do 2 red in output_corres, canApply_corres; simpl in *. congruence. }
+    rewrite <- H_OBS, <- H_OBS'. eapply fold_left_corres.
+    - clear. intros acc acc' acc_corres element element' element_corres.
+      do 2 red in acc_corres, element_corres. destruct acc as [output canApply], acc' as [output' canApply'].
+      destruct acc_corres as [output_corres canApply_corres]; simpl in *. destruct element as [e1 e2], element' as [e1' e2'].
+      destruct element_corres as [e1_corres e2_corres]; simpl in *. do 2 red in output_corres, canApply_corres, e1_corres, e2_corres.
+      destruct e1_corres as [<- [? ?]], e2_corres as [<- [? ?]]; (destruct canApply as [ | ]; subst canApply'; simpl in * ); (destruct output as [ | ]; subst output'); simpl in *.
+      + (destruct (uint.Z (w64_word_instance .(word.add) e1 (W64 1)) =? uint.Z e2)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat e1 + 1 =? uint.nat e2)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']).
+        { eauto with *. }
+        { contradiction H_OBS'. enough (uint.Z e1 + 1 = uint.Z e2)%Z by word. rewrite <- H_OBS. unfold MAX_BOUND in *. word. }
+        { contradiction H_OBS. enough (uint.nat e1 + 1 = uint.nat e2)%nat by word. rewrite <- H_OBS'. unfold MAX_BOUND in *. word. }
+        { rewrite Z.geb_leb; (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.leb_le in H_OBS1 | rewrite Nat.leb_gt in H_OBS1]); (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1'; [rewrite Z.leb_le in H_OBS1' | rewrite Z.leb_gt in H_OBS1']); eauto with *. }
+      + (destruct (uint.Z (w64_word_instance .(word.add) e1 (W64 1)) =? uint.Z e2)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat e1 + 1 =? uint.nat e2)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']).
+        { econstructor; reflexivity. }
+        { contradiction H_OBS'. enough (uint.Z e1 + 1 = uint.Z e2)%Z by word. rewrite <- H_OBS. unfold MAX_BOUND in *. word. }
+        { contradiction H_OBS. enough (uint.nat e1 + 1 = uint.nat e2)%nat by word. rewrite <- H_OBS'. unfold MAX_BOUND in *. word. }
+        { rewrite Z.geb_leb; (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.leb_le in H_OBS1 | rewrite Nat.leb_gt in H_OBS1]); (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1'; [rewrite Z.leb_le in H_OBS1' | rewrite Z.leb_gt in H_OBS1']); eauto with *. }
+      + rewrite Z.geb_leb; (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1; [rewrite Z.leb_le in H_OBS1 | rewrite Z.leb_gt in H_OBS1]); (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1'; [rewrite Nat.leb_le in H_OBS1' | rewrite Nat.leb_gt in H_OBS1']); eauto with *.
+      + rewrite Z.geb_leb; (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1; [rewrite Z.leb_le in H_OBS1 | rewrite Z.leb_gt in H_OBS1]); (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1'; [rewrite Nat.leb_le in H_OBS1' | rewrite Nat.leb_gt in H_OBS1']); eauto with *.
+    - clear output output' canApply canApply' H_OBS H_OBS'. revert ys ys' ys_corres.
+      induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros ? ? ys_corres; destruct ys_corres as [ | y y' ys ys' y_corres ys_corres]; simpl in *; eauto.
+      econstructor 2; eauto with *.
+    - eauto with *.
+  Qed.
+
+  #[global] Hint Resolve coq_oneOffVersionVector_corres : session_hints.
   Lemma coq_oneOffVersionVector_corres
     : CoqSessionServer.coq_oneOffVersionVector =~= coq_oneOffVersionVector.
   Proof.
@@ -746,7 +888,44 @@ Module NatImplServer.
   Qed.
 
   #[global] Hint Resolve coq_sortedInsert_corres : session_hints.
+  Lemma coq_sortedInsert_corres
+    : CoqSessionServer.coq_sortedInsert =~= coq_sortedInsert.
+  Proof.
+    intros xs xs' xs_corres y y' y_corres; revert y y' y_corres.
+    induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; intros; simpl; eauto.
+    eapply ite_corres.
+    - destruct x_corres, y_corres. eapply orb_corres.
+      + eapply coq_lexicographicCompare_corres; eauto with *.
+      + eapply coq_equalSlices_corres; eauto with *.
+    - eauto.
+    - eauto with *.
+  Qed.
 
+  #[global] Hint Resolve coq_sortedInsert_corres : session_hints.
+
+  Lemma coq_mergeOperations_corres
+    : CoqSessionServer.coq_mergeOperations =~= coq_mergeOperations.
+  Proof.
+    intros xs xs' xs_corres ys ys' ys_corres; unfold CoqSessionServer.coq_mergeOperations, coq_mergeOperations.
+    eapply snd_corres. eapply fold_left_corres.
+    - intros acc acc' acc_corres element element' element_corres.
+      destruct acc as [index acc], acc' as [index' acc']; destruct acc_corres as [index_corres acc_corres]; simpl in *.
+      eapply match_option_corres.
+      + eapply list_lookup_corres.
+        * eapply fold_left_corres; eauto with *.
+        * do 2 red in index_corres |- *; word.
+      + intros y y' y_corres. eapply ite_corres.
+        * eapply coq_equalOperations_corres; eauto.
+        * econstructor; simpl; eauto. do 2 red in index_corres |- *; word.
+        * econstructor; simpl; eauto with *.
+      + econstructor; simpl; eauto. 
+        * eauto with *.
+        * eapply app_corres; eauto with *.
+    - eapply fold_left_corres; eauto with *.
+    - eauto with *.
+  Qed.
+
+  #[global] Hint Resolve coq_mergeOperations_corres : session_hints.
   Lemma coq_mergeOperations_corres
     : CoqSessionServer.coq_mergeOperations =~= coq_mergeOperations.
   Proof.
@@ -779,6 +958,14 @@ Module NatImplServer.
   Qed.
 
   #[global] Hint Resolve coq_deleteAtIndexOperation_corres : session_hints.
+  Lemma coq_deleteAtIndexOperation_corres
+    : CoqSessionServer.coq_deleteAtIndexOperation =~= coq_deleteAtIndexOperation.
+  Proof.
+    intros xs xs' xs_corres n n' n_corres; unfold CoqSessionServer.coq_deleteAtIndexOperation, coq_deleteAtIndexOperation.
+    eapply app_corres; [eapply take_corres | eapply drop_corres]; eauto; do 2 red in n_corres |- *; word.
+  Qed.
+
+  #[global] Hint Resolve coq_deleteAtIndexOperation_corres : session_hints.
 
   Lemma coq_deleteAtIndexMessage_corres
     : CoqSessionServer.coq_deleteAtIndexMessage =~= coq_deleteAtIndexMessage.
@@ -788,7 +975,26 @@ Module NatImplServer.
   Qed.
 
   #[global] Hint Resolve coq_deleteAtIndexMessage_corres : session_hints.
+  Lemma coq_deleteAtIndexMessage_corres
+    : CoqSessionServer.coq_deleteAtIndexMessage =~= coq_deleteAtIndexMessage.
+  Proof.
+    intros xs xs' xs_corres n n' n_corres; unfold CoqSessionServer.coq_deleteAtIndexMessage, coq_deleteAtIndexMessage.
+    eapply app_corres; [eapply take_corres | eapply drop_corres]; eauto; do 2 red in n_corres |- *; word.
+  Qed.
 
+  #[global] Hint Resolve coq_deleteAtIndexMessage_corres : session_hints.
+
+  Lemma coq_getDataFromOperationLog_corres
+    : CoqSessionServer.coq_getDataFromOperationLog =~= coq_getDataFromOperationLog.
+  Proof.
+    intros xs xs' xs_corres; unfold CoqSessionServer.coq_getDataFromOperationLog, coq_getDataFromOperationLog.
+    eapply match_option_corres.
+    - eapply last_corres; eauto.
+    - intros x x' x_corres; destruct x_corres; eauto.
+    - do 2 red; unfold MAX_BOUND; word.
+  Qed.
+
+  #[global] Hint Resolve coq_getDataFromOperationLog_corres : session_hints.
   Lemma coq_getDataFromOperationLog_corres
     : CoqSessionServer.coq_getDataFromOperationLog =~= coq_getDataFromOperationLog.
   Proof.
@@ -830,22 +1036,87 @@ Module NatImplServer.
       unfold MAX_BOUND; word.
     }
   Admitted.
+  Lemma coq_receiveGossip_corres
+    : CoqSessionServer.coq_receiveGossip =~= coq_receiveGossip.
+  Proof.
+    intros s s' s_corres m m' m_corres; unfold CoqSessionServer.coq_receiveGossip, coq_receiveGossip.
+    eapply ite_corres; trivial.
+    { do 2 red. destruct m_corres; apply list_corres_length in S2S_Gossip_Operations_corres. destruct (length m'.(Message'.S2S_Gossip_Operations) =? 0)%nat as [ | ] eqn: H_OBS; [rewrite Nat.eqb_eq in H_OBS; rewrite Z.eqb_eq | rewrite Nat.eqb_neq in H_OBS; rewrite Z.eqb_neq]; word. }
+    eapply snd_corres; eapply fold_left_corres.
+    - intros acc acc' acc_corres e e' e_corres. destruct acc as [i s0], acc' as [i' s0']; destruct acc_corres as [i_corres s0_corres]; simpl in *. eapply ite_corres.
+      + destruct s0_corres, e_corres; eapply coq_oneOffVersionVector_corres; trivial.
+      + econstructor; simpl; trivial. destruct s0_corres, e_corres; econstructor; simpl; trivial.
+        * eapply coq_maxTS_corres; eauto.
+        * eapply coq_mergeOperations_corres; eauto. econstructor 2; econstructor; eauto.
+        * eapply coq_deleteAtIndexOperation_corres; eauto.
+      + econstructor; simpl; trivial. do 2 red in i_corres |- *; word.
+    - destruct s_corres, m_corres; eapply coq_mergeOperations_corres; trivial.
+    - econstructor; simpl.
+      + reflexivity.
+      + destruct s_corres; econstructor; simpl; trivial. destruct m_corres; eapply coq_mergeOperations_corres; trivial.
+  Qed.
 
   Lemma coq_acknowledgeGossip_corres
     : CoqSessionServer.coq_acknowledgeGossip =~= coq_acknowledgeGossip.
   Proof.
-  Admitted.
+    intros s s' s_corres m m' m_corres; unfold CoqSessionServer.coq_acknowledgeGossip, coq_acknowledgeGossip.
+    eapply ite_corres_dual; trivial.
+    - do 2 red. symmetry. rewrite Z.geb_leb.
+      destruct (length s .(Server.GossipAcknowledgements) <=? uint.Z m .(Message.S2S_Acknowledge_Gossip_Sending_ServerId)) as [ | ] eqn: H_OBS; [rewrite Z.leb_le in H_OBS | rewrite Z.leb_gt in H_OBS]; simpl.
+      + rewrite Nat.ltb_ge. destruct s_corres, m_corres. do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres. apply list_corres_length in GossipAcknowledgements_corres. rewrite <- GossipAcknowledgements_corres. word.
+      + rewrite Nat.ltb_lt. destruct s_corres, m_corres. do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres. apply list_corres_length in GossipAcknowledgements_corres. rewrite <- GossipAcknowledgements_corres. word.
+    - destruct s_corres, m_corres; econstructor; simpl; trivial. eapply list_update_corres; trivial.
+      + do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres |- *; word.
+      + eapply coq_maxTwoInts_corres; trivial. eapply match_option_corres; trivial.
+        * eapply list_lookup_corres; trivial. do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres |- *; word.
+        * intros y y' y_corres. eauto.
+        * do 2 red; unfold MAX_BOUND; word.
+  Qed.
 
   Lemma coq_getGossipOperations_corres
     : CoqSessionServer.coq_getGossipOperations =~= coq_getGossipOperations.
   Proof.
-  Admitted.
+    intros s s' s_corres i i' i_corres; unfold CoqSessionServer.coq_getGossipOperations, coq_getGossipOperations.
+    eapply match_option_corres; eauto.
+    - destruct s_corres; eapply list_lookup_corres; trivial. do 2 red in i_corres |- *; word.
+    - intros y y' y_corres. destruct s_corres; eapply drop_corres; trivial. do 2 red in y_corres |- *; word.
+  Qed.
 
   Lemma coq_processClientRequest_corres
     : CoqSessionServer.coq_processClientRequest =~= coq_processClientRequest.
+  Proof. (**
+    intros s s' s_corres m m' m_corres; unfold CoqSessionServer.coq_processClientRequest, coq_processClientRequest.
+    eapply ite_corres; trivial.
+    - eapply negb_corres. destruct s_corres, m_corres; eapply coq_compareVersionVector_corres; trivial.
+    - econstructor; simpl.
+      + econstructor; simpl; trivial. reflexivity.
+      + econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
+    - eapply ite_corres.
+      { destruct m_corres; do 2 red in C2S_Client_OperationType_corres |- *. destruct (m' .(Message'.C2S_Client_OperationType) =? 0)%nat as [ | ] eqn: H_OBS; [rewrite Nat.eqb_eq in H_OBS; rewrite Z.eqb_eq | rewrite Nat.eqb_neq in H_OBS; rewrite Z.eqb_neq]; word. }
+      { econstructor; simpl.
+        - econstructor; simpl; trivial. reflexivity.
+        - destruct s_corres, m_corres; econstructor; simpl; trivial; try (do 2 red; unfold MAX_BOUND; word); trivial. eapply coq_getDataFromOperationLog_corres; trivial.
+      }
+      { econstructor; simpl.
+        - econstructor; simpl.
+          + reflexivity.
+          + destruct s_corres, m_corres; econstructor; simpl; trivial.
+            * eapply list_update_corres; simpl; trivial.
+              { do 2 red in Id_corres |- *; word. }
+              { assert (s .(Server.VectorClock) !! uint.nat s .(Server.Id) =~= s' .(Server'.VectorClock) !! s' .(Server'.Id)) as YES1.
+                { eapply list_lookup_corres; trivial. do 2 red in Id_corres |- *; word. }
+                revert YES1. set (x := s .(Server.VectorClock) !! uint.nat s .(Server.Id)). set (x' := s' .(Server'.VectorClock) !! s' .(Server'.Id)).
+                intros YES1. destruct YES1.
+                - do 2 red; unfold MAX_BOUND; word.
+                - do 2 red in x_corres |- *. 
+              }
+      }
+  Qed. *) Admitted.
+
+  Lemma coq_processRequest_corres
+    : CoqSessionServer.coq_processRequest =~= coq_processRequest.
   Proof.
   Admitted.
-
   Lemma coq_processRequest_corres
     : CoqSessionServer.coq_processRequest =~= coq_processRequest.
   Proof.
