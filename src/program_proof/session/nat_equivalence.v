@@ -162,15 +162,15 @@ Qed.
 
 #[global] Hint Resolve fold_left_corres : session_hints.
 
-Lemma fold_left_corres_withInvariant {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (P : nat -> A -> A' -> Prop) (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
-  (f_corres : forall x, forall x', x =~= x' -> forall y, forall y', y =~= y' -> forall n, P (S n) x x' -> (f x y =~= f' x' y' /\ P n (f x y) (f' x' y')))
+Lemma fold_left_corres_withInvariant {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (Φ : forall ACCUM : A, forall ACCUM' : A', forall NEXTS : list B, forall NEXTS' : list B', Prop) (f : A -> B -> A) (f' : A' -> B' -> A') (xs : list B) (xs' : list B') (z : A) (z' : A')
+  (f_corres : forall x : B, forall x' : B', x =~= x' -> forall z : A, forall z' : A', z =~= z' -> forall xs : list B, forall xs' : list B', Φ z z' (x :: xs) (x' :: xs') -> f z x =~= f' z' x')
   (xs_corres : xs =~= xs')
-  (z_corres : z =~= z' /\ P (length xs) z z')
-  : @fold_left A B f xs z =~= @fold_left A' B' f' xs' z'.
+  (z_corres : z =~= z')
+  (STEP : forall x : B, forall x' : B', x =~= x' -> forall z : A, forall z' : A', z =~= z' -> forall xs : list B, forall xs' : list B', Φ z z' (x :: xs) (x' :: xs') -> Φ (f z x) (f' z' x') xs xs')
+  (INIT : Φ z z' xs xs')
+  : fold_left f xs z =~= fold_left f' xs' z' /\ Φ (fold_left f xs z) (fold_left f' xs' z') [] [].
 Proof.
-  revert z z' z_corres; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl.
-  - tauto.
-  - intros. destruct z_corres. eapply IH. eapply f_corres; trivial.
+  revert z z' z_corres INIT; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; simpl; intros; [eauto | eapply IH; eauto; eapply f_corres; eauto].
 Qed.
 
 Lemma take_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (xs : list A) (xs' : list A')
@@ -818,28 +818,75 @@ Module NatImplServer.
       + econstructor; simpl; trivial. destruct s0_corres, e_corres; econstructor; simpl; trivial.
         * eapply coq_maxTS_corres; eauto.
         * eapply coq_mergeOperations_corres; eauto. econstructor 2; econstructor; eauto.
-        * eapply coq_deleteAtIndexOperation_corres; eauto. do 2 red in i_corres |- *; unfold MAX_BOUND; subst i'. word.
+        * eapply coq_deleteAtIndexOperation_corres; eauto.
+      + econstructor; simpl; trivial. do 2 red in i_corres |- *; word.
+    - destruct s_corres, m_corres; eapply coq_mergeOperations_corres; trivial.
+    - econstructor; simpl.
+      + reflexivity.
+      + destruct s_corres; econstructor; simpl; trivial. destruct m_corres; eapply coq_mergeOperations_corres; trivial.
   Qed.
 
   Lemma coq_acknowledgeGossip_corres
     : CoqSessionServer.coq_acknowledgeGossip =~= coq_acknowledgeGossip.
   Proof.
+    intros s s' s_corres m m' m_corres; unfold CoqSessionServer.coq_acknowledgeGossip, coq_acknowledgeGossip.
+    eapply ite_corres_dual; trivial.
+    - do 2 red. symmetry. rewrite Z.geb_leb.
+      destruct (length s .(Server.GossipAcknowledgements) <=? uint.Z m .(Message.S2S_Acknowledge_Gossip_Sending_ServerId)) as [ | ] eqn: H_OBS; [rewrite Z.leb_le in H_OBS | rewrite Z.leb_gt in H_OBS]; simpl.
+      + rewrite Nat.ltb_ge. destruct s_corres, m_corres. do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres. apply list_corres_length in GossipAcknowledgements_corres. rewrite <- GossipAcknowledgements_corres. word.
+      + rewrite Nat.ltb_lt. destruct s_corres, m_corres. do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres. apply list_corres_length in GossipAcknowledgements_corres. rewrite <- GossipAcknowledgements_corres. word.
+    - destruct s_corres, m_corres; econstructor; simpl; trivial. eapply list_update_corres; trivial.
+      + do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres |- *; word.
+      + eapply coq_maxTwoInts_corres; trivial. eapply match_option_corres; trivial.
+        * eapply list_lookup_corres; trivial. do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres |- *; word.
+        * intros y y' y_corres. eauto.
+        * do 2 red; unfold MAX_BOUND; word.
   Qed.
 
   Lemma coq_getGossipOperations_corres
     : CoqSessionServer.coq_getGossipOperations =~= coq_getGossipOperations.
   Proof.
+    intros s s' s_corres i i' i_corres; unfold CoqSessionServer.coq_getGossipOperations, coq_getGossipOperations.
+    eapply match_option_corres; eauto.
+    - destruct s_corres; eapply list_lookup_corres; trivial. do 2 red in i_corres |- *; word.
+    - intros y y' y_corres. destruct s_corres; eapply drop_corres; trivial. do 2 red in y_corres |- *; word.
   Qed.
 
   Lemma coq_processClientRequest_corres
     : CoqSessionServer.coq_processClientRequest =~= coq_processClientRequest.
-  Proof.
-  Qed.
+  Proof. (**
+    intros s s' s_corres m m' m_corres; unfold CoqSessionServer.coq_processClientRequest, coq_processClientRequest.
+    eapply ite_corres; trivial.
+    - eapply negb_corres. destruct s_corres, m_corres; eapply coq_compareVersionVector_corres; trivial.
+    - econstructor; simpl.
+      + econstructor; simpl; trivial. reflexivity.
+      + econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
+    - eapply ite_corres.
+      { destruct m_corres; do 2 red in C2S_Client_OperationType_corres |- *. destruct (m' .(Message'.C2S_Client_OperationType) =? 0)%nat as [ | ] eqn: H_OBS; [rewrite Nat.eqb_eq in H_OBS; rewrite Z.eqb_eq | rewrite Nat.eqb_neq in H_OBS; rewrite Z.eqb_neq]; word. }
+      { econstructor; simpl.
+        - econstructor; simpl; trivial. reflexivity.
+        - destruct s_corres, m_corres; econstructor; simpl; trivial; try (do 2 red; unfold MAX_BOUND; word); trivial. eapply coq_getDataFromOperationLog_corres; trivial.
+      }
+      { econstructor; simpl.
+        - econstructor; simpl.
+          + reflexivity.
+          + destruct s_corres, m_corres; econstructor; simpl; trivial.
+            * eapply list_update_corres; simpl; trivial.
+              { do 2 red in Id_corres |- *; word. }
+              { assert (s .(Server.VectorClock) !! uint.nat s .(Server.Id) =~= s' .(Server'.VectorClock) !! s' .(Server'.Id)) as YES1.
+                { eapply list_lookup_corres; trivial. do 2 red in Id_corres |- *; word. }
+                revert YES1. set (x := s .(Server.VectorClock) !! uint.nat s .(Server.Id)). set (x' := s' .(Server'.VectorClock) !! s' .(Server'.Id)).
+                intros YES1. destruct YES1.
+                - do 2 red; unfold MAX_BOUND; word.
+                - do 2 red in x_corres |- *. 
+              }
+      }
+  Qed. *) Admitted.
 
   Lemma coq_processRequest_corres
     : CoqSessionServer.coq_processRequest =~= coq_processRequest.
   Proof.
-  Qed.
+  Admitted.
 
 End NatImplServer.
 

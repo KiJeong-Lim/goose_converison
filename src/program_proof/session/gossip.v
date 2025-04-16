@@ -50,7 +50,7 @@ Section heap.
         if coq_oneOffVersionVector s.(Server.VectorClock) e.(Operation.VersionVector) then
           let OperationsPerformed := coq_mergeOperations s.(Server.OperationsPerformed) [e] in
           let VectorClock := coq_maxTS s.(Server.VectorClock) e.(Operation.VersionVector) in
-          let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) (uint.nat i) in
+          let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) i in
           (i, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed s.(Server.MyOperations) PendingOperations s.(Server.GossipAcknowledgements))
         else ((i + 1)%nat, s)
       ).
