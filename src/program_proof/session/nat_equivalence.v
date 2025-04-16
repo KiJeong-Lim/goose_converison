@@ -988,9 +988,9 @@ Module NatImplClient.
 
   Definition coq_read (c : Client'.t) (serverId : nat) : Message'.t :=
     match c.(Client'.SessionSemantic) with
-    | 0%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 1%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 2%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 0%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate c.(Client'.NumberOfServers) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 1%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate c.(Client'.NumberOfServers) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 2%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (replicate c.(Client'.NumberOfServers) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 3%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 c.(Client'.ReadVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 4%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 c.(Client'.WriteVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 5%nat => Message'.mk 0 c.(Client'.Id) serverId 0 0 (coq_maxTS c.(Client'.WriteVersionVector) c.(Client'.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
@@ -999,11 +999,11 @@ Module NatImplClient.
 
   Definition coq_write (c : Client'.t) (serverId : nat) (value : nat) : Message'.t :=
     match c.(Client'.SessionSemantic) with
-    | 0%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 0%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate c.(Client'.NumberOfServers) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 1%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value c.(Client'.ReadVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 2%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value c.(Client'.WriteVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 3%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 4%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate (c .(Client'.NumberOfServers)) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 3%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate c.(Client'.NumberOfServers) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 4%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (replicate c.(Client'.NumberOfServers) 0%nat) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | 5%nat => Message'.mk 0 c.(Client'.Id) serverId 1 value (coq_maxTS c.(Client'.WriteVersionVector) c.(Client'.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | _ => Message'.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
     end.
@@ -1046,6 +1046,8 @@ Module NatImplClient.
     - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
   Qed.
 
+  #[global] Hint Resolve coq_read_corres : session_hints.
+
   Lemma coq_write_corres
     : CoqSessionClient.coq_write =~= coq_write.
   Proof.
@@ -1071,6 +1073,8 @@ Module NatImplClient.
     - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
   Qed.
 
+  #[global] Hint Resolve coq_write_corres : session_hints.
+
   Lemma coq_processRequest_corres
     : CoqSessionClient.coq_processRequest =~= coq_processRequest.
   Proof.
@@ -1089,6 +1093,8 @@ Module NatImplClient.
       + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
     - econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
   Qed.
+
+  #[global] Hint Resolve coq_processRequest_corres : session_hints.
 
 End NatImplClient.
 

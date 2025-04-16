@@ -362,7 +362,6 @@ Module INVARIANT.
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
-    ; MyOperations_length : (length s.(MyOperations) <= 2^64 - 2)%Z
     }.
 
   Record CLIENT (c: Client.t) : Prop :=
