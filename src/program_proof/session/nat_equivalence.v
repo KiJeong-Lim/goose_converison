@@ -68,7 +68,6 @@ Inductive option_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similar
     : Some x =~= Some x'.
 
 #[local] Hint Constructors option_corres : core.
-#[local] Hint Constructors option_corres : core.
 
 #[global]
 Instance Similarity_option {A : Type} {A' : Type} (SIM : Similarity A A') : Similarity (option A) (option A') :=
@@ -142,8 +141,6 @@ Qed.
 
 #[global] Hint Resolve last_corres : session_hints.
 
-#[global] Hint Resolve last_corres : session_hints.
-
 Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (ys : list A) (ys' : list A')
   (xs_corres : xs =~= xs')
   (ys_corres : ys =~= ys')
@@ -151,8 +148,6 @@ Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) 
 Proof.
   revert ys ys' ys_corres; induction xs_corres; simpl; eauto.
 Qed.
-
-#[global] Hint Resolve app_corres : session_hints.
 
 #[global] Hint Resolve app_corres : session_hints.
 
@@ -310,8 +305,7 @@ Lemma seq_0_corres (n : u64) (n' : nat)
   : map (λ i : nat, W64 i) (seq 0 n') =~= seq 0 n'.
 Proof.
   do 2 red in n_corres. destruct n_corres as [EQ [LE GE]].
-  revert n EQ LE GE.
-  induction n' as [ | n' IH]; intros; eauto.
+  revert n EQ LE GE. induction n' as [ | n' IH]; intros; eauto.
   rewrite -> seq_S in *. rewrite -> map_app in *. simpl in *.
   eapply app_corres.
   - eapply IH with (n := W64 n'); eauto; try word.
