@@ -154,35 +154,12 @@ Definition sortedInsert: val :=
     (if: (slice.len "s") = "index"
     then SliceAppend (struct.t Operation) "s" "value"
     else
-      let: "right" := SliceAppendSlice (struct.t Operation) (SliceSingleton "value") (SliceSkip (struct.t Operation) "s" "index") in
-      let: "result" := SliceAppendSlice (struct.t Operation) (SliceTake "s" "index") "right" in
-      "result").
-
-Definition mergeOperations: val :=
-  rec: "mergeOperations" "l1" "l2" :=
-    (if: ((slice.len "l1") = #0) && ((slice.len "l2") = #0)
-    then NewSlice (struct.t Operation) #0
-    else
-      let: "output" := ref_to (slice.T (struct.t Operation)) (SliceAppendSlice (struct.t Operation) (NewSlice (struct.t Operation) #0) "l1") in
-      let: "i" := ref_to uint64T #0 in
-      let: "l" := ref_to uint64T (slice.len "l2") in
-      Skip;;
-      (for: (λ: <>, (![uint64T] "i") < (![uint64T] "l")); (λ: <>, Skip) := λ: <>,
-        "output" <-[slice.T (struct.t Operation)] (sortedInsert (![slice.T (struct.t Operation)] "output") (SliceGet (struct.t Operation) "l2" (![uint64T] "i")));;
-        "i" <-[uint64T] ((![uint64T] "i") + #1);;
-        Continue);;
-      let: "prev" := ref_to uint64T #1 in
-      let: "curr" := ref_to uint64T #1 in
-      Skip;;
-      (for: (λ: <>, (![uint64T] "curr") < (slice.len (![slice.T (struct.t Operation)] "output"))); (λ: <>, Skip) := λ: <>,
-        (if: (~ (equalOperations (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "output") ((![uint64T] "curr") - #1)) (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "output") (![uint64T] "curr"))))
-        then
-          SliceSet (struct.t Operation) (![slice.T (struct.t Operation)] "output") (![uint64T] "prev") (SliceGet (struct.t Operation) (![slice.T (struct.t Operation)] "output") (![uint64T] "curr"));;
-          "prev" <-[uint64T] ((![uint64T] "prev") + #1)
-        else #());;
-        "curr" <-[uint64T] ((![uint64T] "curr") + #1);;
-        Continue);;
-      SliceTake (![slice.T (struct.t Operation)] "output") (![uint64T] "prev")).
+      (if: equalOperations (SliceGet (struct.t Operation) "s" "index") "value"
+      then "s"
+      else
+        let: "right" := SliceAppendSlice (struct.t Operation) (SliceSingleton "value") (SliceSkip (struct.t Operation) "s" "index") in
+        let: "result" := SliceAppendSlice (struct.t Operation) (SliceTake "s" "index") "right" in
+        "result")).
 
 Definition deleteAtIndexOperation: val :=
   rec: "deleteAtIndexOperation" "l" "index" :=
@@ -207,21 +184,43 @@ Definition receiveGossip: val :=
     (if: (slice.len (struct.get Message "S2S_Gossip_Operations" "request")) = #0
     then "server"
     else
-      let: "s" := ref_to (struct.t Server) "server" in
-      struct.storeF Server "PendingOperations" "s" (mergeOperations (struct.get Server "PendingOperations" (![struct.t Server] "s")) (struct.get Message "S2S_Gossip_Operations" "request"));;
       let: "i" := ref_to uint64T #0 in
       Skip;;
-      (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.get Server "PendingOperations" (![struct.t Server] "s")))); (λ: <>, Skip) := λ: <>,
-        (if: oneOffVersionVector (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i")))
+      (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.get Message "S2S_Gossip_Operations" "request"))); (λ: <>, Skip) := λ: <>,
+        (if: oneOffVersionVector (struct.get Server "VectorClock" "server") (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Message "S2S_Gossip_Operations" "request") (![uint64T] "i")))
         then
-          struct.storeF Server "OperationsPerformed" "s" (mergeOperations (struct.get Server "OperationsPerformed" (![struct.t Server] "s")) (SliceSingleton (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i"))));;
-          struct.storeF Server "VectorClock" "s" (maxTS (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i"))));;
-          struct.storeF Server "PendingOperations" "s" (deleteAtIndexOperation (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i"));;
-          Continue
+          struct.storeF Server "OperationsPerformed" "server" (sortedInsert (struct.get Server "OperationsPerformed" "server") (SliceGet (struct.t Operation) (struct.get Message "S2S_Gossip_Operations" "request") (![uint64T] "i")));;
+          struct.storeF Server "VectorClock" "server" (maxTS (struct.get Server "VectorClock" "server") (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Message "S2S_Gossip_Operations" "request") (![uint64T] "i"))))
         else
-          "i" <-[uint64T] ((![uint64T] "i") + #1);;
-          Continue));;
-      ![struct.t Server] "s").
+          (if: compareVersionVector (struct.get Server "VectorClock" "server") (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Message "S2S_Gossip_Operations" "request") (![uint64T] "i")))
+          then #()
+          else struct.storeF Server "PendingOperations" "server" (sortedInsert (struct.get Server "PendingOperations" "server") (SliceGet (struct.t Operation) (struct.get Message "S2S_Gossip_Operations" "request") (![uint64T] "i")))));;
+        "i" <-[uint64T] ((![uint64T] "i") + #1);;
+        Continue);;
+      "i" <-[uint64T] #0;;
+      let: "seen" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
+      Skip;;
+      (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.get Server "PendingOperations" "server"))); (λ: <>, Skip) := λ: <>,
+        (if: oneOffVersionVector (struct.get Server "VectorClock" "server") (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" "server") (![uint64T] "i")))
+        then
+          struct.storeF Server "OperationsPerformed" "server" (sortedInsert (struct.get Server "OperationsPerformed" "server") (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" "server") (![uint64T] "i")));;
+          struct.storeF Server "VectorClock" "server" (maxTS (struct.get Server "VectorClock" "server") (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" "server") (![uint64T] "i"))));;
+          "seen" <-[slice.T uint64T] (SliceAppend uint64T (![slice.T uint64T] "seen") (![uint64T] "i"))
+        else #());;
+        "i" <-[uint64T] ((![uint64T] "i") + #1);;
+        Continue);;
+      "i" <-[uint64T] #0;;
+      let: "j" := ref_to uint64T #0 in
+      let: "output" := ref_to (slice.T (struct.t Operation)) (NewSlice (struct.t Operation) #0) in
+      Skip;;
+      (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.get Server "PendingOperations" "server"))); (λ: <>, Skip) := λ: <>,
+        (if: ((![uint64T] "j") < (slice.len (![slice.T uint64T] "seen"))) && ((![uint64T] "i") = (SliceGet uint64T (![slice.T uint64T] "seen") (![uint64T] "j")))
+        then "j" <-[uint64T] ((![uint64T] "j") + #1)
+        else "output" <-[slice.T (struct.t Operation)] (SliceAppend (struct.t Operation) (![slice.T (struct.t Operation)] "output") (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" "server") (![uint64T] "i"))));;
+        "i" <-[uint64T] ((![uint64T] "i") + #1);;
+        Continue);;
+      struct.storeF Server "PendingOperations" "server" (![slice.T (struct.t Operation)] "output");;
+      "server").
 
 Definition acknowledgeGossip: val :=
   rec: "acknowledgeGossip" "server" "request" :=
@@ -258,18 +257,18 @@ Definition processClientRequest: val :=
         let: "s" := ref_to (struct.t Server) "server" in
         SliceSet uint64T (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Server "Id" "server") ((SliceGet uint64T (struct.get Server "VectorClock" (![struct.t Server] "s")) (struct.get Server "Id" "server")) + #1);;
         struct.storeF Server "OperationsPerformed" "s" (sortedInsert (struct.get Server "OperationsPerformed" (![struct.t Server] "s")) (struct.mk Operation [
-          "VersionVector" ::= SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" "server");
+          "VersionVector" ::= SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" (![struct.t Server] "s"));
           "Data" ::= struct.get Message "C2S_Client_Data" "request"
         ]));;
         struct.storeF Server "MyOperations" "s" (sortedInsert (struct.get Server "MyOperations" (![struct.t Server] "s")) (struct.mk Operation [
-          "VersionVector" ::= SliceAppendSlice uint64T slice.nil (struct.get Server "VectorClock" (![struct.t Server] "s"));
+          "VersionVector" ::= SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" (![struct.t Server] "s"));
           "Data" ::= struct.get Message "C2S_Client_Data" "request"
         ]));;
         struct.storeF Message "MessageType" "reply" #4;;
         struct.storeF Message "S2C_Client_OperationType" "reply" #1;;
         struct.storeF Message "S2C_Client_Data" "reply" #0;;
-        struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" "server"));;
-        struct.storeF Message "S2C_Server_Id" "reply" (struct.get Server "Id" "server");;
+        struct.storeF Message "S2C_Client_VersionVector" "reply" (SliceAppendSlice uint64T (NewSlice uint64T #0) (struct.get Server "VectorClock" (![struct.t Server] "s")));;
+        struct.storeF Message "S2C_Server_Id" "reply" (struct.get Server "Id" (![struct.t Server] "s"));;
         struct.storeF Message "S2C_Client_Number" "reply" (struct.get Message "C2S_Client_Id" "request");;
         (#true, ![struct.t Server] "s", ![struct.t Message] "reply"))).
 
@@ -293,12 +292,6 @@ Definition processRequest: val :=
       (if: (struct.get Message "MessageType" "request") = #1
       then
         "s" <-[struct.t Server] (receiveGossip (![struct.t Server] "s") "request");;
-        "outGoingRequests" <-[slice.T (struct.t Message)] (SliceAppend (struct.t Message) (![slice.T (struct.t Message)] "outGoingRequests") (struct.mk Message [
-          "MessageType" ::= #2;
-          "S2S_Acknowledge_Gossip_Sending_ServerId" ::= struct.get Server "Id" (![struct.t Server] "s");
-          "S2S_Acknowledge_Gossip_Receiving_ServerId" ::= struct.get Message "S2S_Gossip_Sending_ServerId" "request";
-          "S2S_Acknowledge_Gossip_Index" ::= struct.get Message "S2S_Gossip_Index" "request"
-        ]));;
         let: "i" := ref_to uint64T #0 in
         let: "reply" := ref_to (struct.t Message) (struct.mk Message [
         ]) in
@@ -332,6 +325,7 @@ Definition processRequest: val :=
                 let: "operations" := getGossipOperations (![struct.t Server] "s") "index" in
                 (if: (slice.len "operations") ≠ #0
                 then
+                  SliceSet uint64T (struct.get Server "GossipAcknowledgements" "server") "index" (slice.len (struct.get Server "MyOperations" (![struct.t Server] "s")));;
                   "outGoingRequests" <-[slice.T (struct.t Message)] (SliceAppend (struct.t Message) (![slice.T (struct.t Message)] "outGoingRequests") (struct.mk Message [
                     "MessageType" ::= #1;
                     "S2S_Gossip_Sending_ServerId" ::= struct.get Server "Id" (![struct.t Server] "s");
