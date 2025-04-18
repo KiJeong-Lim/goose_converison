@@ -10,12 +10,12 @@ Infix "=~=" := is_similar_to.
 (** Section BasicInstances_of_Similarity. *)
 
 #[global]
-Instance Similarity_fun {D : Type} {D' : Type} {C : Type} {C' : Type}
+Instance Similarity_forall {D : Type} {D' : Type} {C : D -> Type} {C' : D' -> Type}
   (DOM_SIM : Similarity D D')
-  (COD_SIM : Similarity C C')
-  : Similarity (D -> C) (D' -> C').
+  (COD_SIM : forall x : D, forall x' : D', x =~= x' -> Similarity (C x) (C' x'))
+  : Similarity (forall x : D, C x) (forall x' : D', C' x').
 Proof.
-  exact (fun f : D -> C => fun f' : D' -> C' => forall x, forall x', x =~= x' -> f x =~= f' x').
+  exact (fun f : forall x : D, C x => fun f' : forall x' : D', C' x' => forall x : D, forall x' : D', forall x_corres : x =~= x', @is_similar_to (C x) (C' x') (COD_SIM x x' x_corres) (f x) (f' x')).
 Defined.
 
 Lemma Similarity_fun_intro {D : Type} {D' : Type} {C : Type} {C' : Type} {DOM_SIM : Similarity D D'} {COD_SIM : Similarity C C'} (f : D -> C) (f' : D' -> C')
