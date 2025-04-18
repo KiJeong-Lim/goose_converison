@@ -28,6 +28,14 @@ Qed.
 #[global] Hint Resolve Similarity_fun_intro : session_hints.
 
 #[global]
+Instance Similarity_subset {A : Type} {A' : Type} {P : A -> Prop} {P' : A' -> Prop}
+  (SIM : Similarity A A')
+  : Similarity { x : A | P x } { x' : A' | P' x' }.
+Proof.
+  exact (fun s => fun s' => proj1_sig s =~= proj1_sig s').
+Defined.
+
+#[global]
 Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type}
   (FST_SIM : Similarity A A')
   (SND_SIM : Similarity B B')
