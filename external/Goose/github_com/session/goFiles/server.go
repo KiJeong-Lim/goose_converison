@@ -189,8 +189,7 @@ func receiveGossip(server Server, request Message) Server {
 		if oneOffVersionVector(server.VectorClock, request.S2S_Gossip_Operations[i].VersionVector) {
 			server.OperationsPerformed = sortedInsert(server.OperationsPerformed, request.S2S_Gossip_Operations[i])
 			server.VectorClock = maxTS(server.VectorClock, request.S2S_Gossip_Operations[i].VersionVector)
-		} else if compareVersionVector(server.VectorClock, request.S2S_Gossip_Operations[i].VersionVector) {
-		} else {
+		} else if !compareVersionVector(server.VectorClock, request.S2S_Gossip_Operations[i].VersionVector) {
 			server.PendingOperations = sortedInsert(server.PendingOperations, request.S2S_Gossip_Operations[i])
 		}
 		i = i + 1
@@ -258,7 +257,13 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 
 		return true, server, reply
 	} else {
-	        var s = server
+	    var s = server
+
+		var constant = uint64(18446744073709551613) // 2^64 - 3
+		if !((uint64(s.VectorClock[s.Id]) <= constant) && (uint64(len(s.MyOperations)) <= constant)) {
+			return false, s, reply
+		}
+
 		s.VectorClock[server.Id] += 1
 
 		s.OperationsPerformed = sortedInsert(s.OperationsPerformed, Operation{
