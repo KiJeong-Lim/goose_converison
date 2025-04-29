@@ -14,23 +14,23 @@ Module CoqSessionClient.
 
   Definition coq_read (c: Client.t) (serverId: u64) : Message.t :=
     match uint.nat c.(Client.SessionSemantic) with
-    | 0%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 1%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 2%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 3%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 4%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (c.(Client.WriteVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 5%nat => Message.mk 0 (c.(Client.Id)) serverId 0 0 (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 0%nat => Message.mk 0 c.(Client.Id) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 1%nat => Message.mk 0 c.(Client.Id) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 2%nat => Message.mk 0 c.(Client.Id) serverId 0 0 (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 3%nat => Message.mk 0 c.(Client.Id) serverId 0 0 c.(Client.ReadVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 4%nat => Message.mk 0 c.(Client.Id) serverId 0 0 c.(Client.WriteVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 5%nat => Message.mk 0 c.(Client.Id) serverId 0 0 (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | _ => Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
     end.
 
   Definition coq_write (c: Client.t) (serverId: u64) (value: u64) : Message.t :=
     match uint.nat c.(Client.SessionSemantic) with
-    | 0%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 1%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 2%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (c.(Client.WriteVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 3%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 4%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
-    | 5%nat => Message.mk 0 (c.(Client.Id)) serverId 1 value (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 0%nat => Message.mk 0 c.(Client.Id) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 1%nat => Message.mk 0 c.(Client.Id) serverId 1 value c.(Client.ReadVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 2%nat => Message.mk 0 c.(Client.Id) serverId 1 value c.(Client.WriteVersionVector) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 3%nat => Message.mk 0 c.(Client.Id) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 4%nat => Message.mk 0 c.(Client.Id) serverId 1 value (replicate (uint.nat c.(Client.NumberOfServers)) (W64 0)) 0 0 [] 0 0 0 0 0 0 [] 0 0
+    | 5%nat => Message.mk 0 c.(Client.Id) serverId 1 value (coq_maxTS c.(Client.WriteVersionVector) c.(Client.ReadVersionVector)) 0 0 [] 0 0 0 0 0 0 [] 0 0
     | _ => Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0
     end.
 
@@ -41,7 +41,7 @@ Module CoqSessionClient.
     | 2%nat =>
       match uint.nat ackMessage.(Message.S2C_Client_OperationType) with
       | 0%nat => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) c.(Client.WriteVersionVector) ackMessage.(Message.S2C_Client_VersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
-      | 1%nat => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) (ackMessage.(Message.S2C_Client_VersionVector)) c.(Client.ReadVersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
+      | 1%nat => (Client.mk c.(Client.Id) c.(Client.NumberOfServers) ackMessage.(Message.S2C_Client_VersionVector) c.(Client.ReadVersionVector) c.(Client.SessionSemantic), Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
       | _ => (c, Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
       end
     | _ => (c, Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)

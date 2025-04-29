@@ -386,37 +386,34 @@ Section heap.
   Lemma Forall_Operation_wf l ops (n: nat)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (⌜Forall (Operation_wf n) l⌝)%I.
   Proof.
-    revert ops. induction l as [ | hd tl IH]; intros ops.
-    - iIntros "H_big_sepL2". iPureIntro. eauto.
-    - iIntros "H_big_sepL2". iPoseProof (big_sepL2_cons_inv_r with "H_big_sepL2") as "(%hd' & %tl' & -> & H_hd & H_tl)".
+    revert ops; induction l as [ | hd tl IH]; intros ops.
+    - iIntros "H_big_sepL2"; iPureIntro; eauto.
+    - iIntros "H_big_sepL2"; iPoseProof (big_sepL2_cons_inv_r with "H_big_sepL2") as "(%hd' & %tl' & -> & H_hd & H_tl)".
       iDestruct "H_hd" as "(%H1 & %H2 & H3)". iClear "H3".
       iAssert ⌜Forall (Operation_wf n) tl⌝%I as "%YES1".
-      { iApply IH. iExact "H_tl". }
-      iPureIntro. econstructor.
-      + split.
-        * eapply SessionPrelude.Forall_True.
-        * done.
-      + exact YES1.
+      { iApply IH; iExact "H_tl". }
+      iPureIntro; econstructor; trivial.
+      split; [eapply SessionPrelude.Forall_True | done].
   Qed.
 
   Lemma pers_is_operation opv o (n: nat)
     : (is_operation opv o n)%I ⊢@{iProp Σ} (<pers> (is_operation opv o n))%I.
   Proof.
-    iIntros "#H". done.
+    iIntros "#H"; done.
   Qed.
 
   Lemma pers_big_sepL2_is_operation l ops (n: nat)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (<pers> ([∗ list] opv;o ∈ ops;l, is_operation opv o n))%I.
   Proof.
-    iIntros "H_big_sepL2". iApply (big_sepL2_persistently).
+    iIntros "H_big_sepL2"; iApply (big_sepL2_persistently).
     iApply (big_sepL2_mono (λ k, λ y1, λ y2, is_operation y1 y2 n)%I with "[$H_big_sepL2]").
-    intros. iIntros "#H". done.
+    intros; iIntros "#H"; done.
   Qed.
 
   Lemma pers_emp
     : (emp)%I ⊢@{iProp Σ} (<pers> emp)%I.
   Proof.
-    iIntros "#H". done.
+    iIntros "#H"; done.
   Qed.
 
   Lemma big_sepL2_is_operation_elim (l: list Operation.t) (ops: list (Slice.t * w64)) (n: nat) (i: nat) l_i ops_i
@@ -424,20 +421,20 @@ Section heap.
     (H_ops_i: ops !! i = Some ops_i)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (is_operation ops_i l_i n)%I.
   Proof.
-    rewrite <- take_drop with (l := l) (i := i). rewrite <- take_drop with (l := ops) (i := i). iIntros "H". 
+    rewrite <- take_drop with (l := l) (i := i); rewrite <- take_drop with (l := ops) (i := i); iIntros "H". 
     assert (i < length l)%nat as H1_i by now eapply lookup_lt_is_Some_1.
     assert (i < length ops)%nat as H2_i by now eapply lookup_lt_is_Some_1.  
     iAssert (([∗ list] opv;o ∈ take i ops;take i l, is_operation opv o n) ∗ ([∗ list] opv;o ∈ drop i ops;drop i l, is_operation opv o n))%I with "[H]" as "[H1 H2]".
-    { iApply (big_sepL2_app_equiv with "H"). do 2 rewrite length_take. word. }
+    { iApply (big_sepL2_app_equiv with "H"); do 2 rewrite length_take; word. }
     destruct (drop i ops) as [ | ops_i' ops_suffix] eqn: H_ops_suffix.
-    { apply f_equal with (f := length) in H_ops_suffix. simpl in *. rewrite length_drop in H_ops_suffix. word. }
+    { apply f_equal with (f := length) in H_ops_suffix; simpl in *; rewrite length_drop in H_ops_suffix. word. }
     iPoseProof (big_sepL2_cons_inv_l with "[$H2]") as "(%l_i' & %l_suffix & %H_l_suffix & H3 & H4)".
-    rewrite <- take_drop with (l := l) (i := i) in H_l_i. rewrite <- take_drop with (l := ops) (i := i) in H_ops_i.
-    rewrite H_l_suffix in H_l_i. rewrite H_ops_suffix in H_ops_i.
+    rewrite <- take_drop with (l := l) (i := i) in H_l_i; rewrite <- take_drop with (l := ops) (i := i) in H_ops_i.
+    rewrite H_l_suffix in H_l_i; rewrite H_ops_suffix in H_ops_i.
     assert (i = length (take i l)) as H3_i.
-    { rewrite length_take. word. }
+    { rewrite length_take; word. }
     assert (i = length (take i ops)) as H4_i.
-    { rewrite length_take. word. }
+    { rewrite length_take; word. }
     pose proof (list_lookup_middle (take i l) l_suffix l_i' i H3_i) as EQ_l_i.
     pose proof (list_lookup_middle (take i ops) ops_suffix ops_i' i H4_i) as EQ_ops_i.
     assert (l_i = l_i') as <- by congruence.
@@ -449,12 +446,12 @@ Section heap.
     (LENGTH: length l = length ops)
     : (∀ i : nat, ∀ l_i, ∀ ops_i, ⌜(l !! i = Some l_i) /\ (ops !! i = Some ops_i)⌝ -∗ is_operation ops_i l_i n)%I ⊢@{iProp Σ} ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I.
   Proof.
-    revert ops n LENGTH. induction l as [ | l_hd l_tl IH], ops as [ | ops_hd ops_tl]; intros; simpl in *; try congruence.
-    - iIntros "#H". iClear "H". done.
-    - iIntros "#H". iSplit.
-      + iApply "H". instantiate (1 := 0%nat). done.
+    revert ops n LENGTH; induction l as [ | l_hd l_tl IH], ops as [ | ops_hd ops_tl]; intros; simpl in *; try congruence.
+    - iIntros "#H"; iClear "H"; done.
+    - iIntros "#H"; iSplit.
+      + iApply "H"; instantiate (1 := 0%nat); done.
       + iApply IH. { word. }
-        iIntros "%i %l_i %ops_i [%H_l_i %H_ops_i]". iApply "H". instantiate (1 := S i). done.
+        iIntros "%i %l_i %ops_i [%H_l_i %H_ops_i]"; iApply "H"; instantiate (1 := S i); done.
   Qed.
 
   Lemma big_sepL2_middle_split {A: Type} {B: Type} {Φ: A -> B -> iProp Σ} {xs: list A} {i: nat} {x0: A} (ys: list B)
@@ -472,13 +469,12 @@ Section heap.
     { (do 2 rewrite length_take); word. }
     assert (is_Some (ys !! i)) as [y0 H_y0].
     { eapply lookup_lt_is_Some_2; word. }
-    iExists y0. iExists (take i ys). iExists (drop (S i) ys).
+    iExists y0; iExists (take i ys); iExists (drop (S i) ys).
     pose proof (take_drop_middle ys i y0 H_y0) as claim3.
     iSplitL "".
     { iPureIntro; split; [rewrite claim3; eapply take_drop | rewrite length_take; word]. }
     rewrite <- take_drop with (l := ys) (i := i) in claim3 at -1.
-    apply SessionPrelude.app_cancel_l in claim3; rewrite take_drop in claim3.
-    rewrite <- claim3.
+    apply SessionPrelude.app_cancel_l in claim3; rewrite take_drop in claim3; rewrite <- claim3.
     iPoseProof (big_sepL2_cons_inv_r with "[$H_suffix]") as "(%x0' & %xs2 & %EQ & H_middle & H_suffix)".
     rewrite <- take_drop with (l := xs) (i := i) in claim1 at -1.
     apply SessionPrelude.app_cancel_l in claim1; rewrite take_drop in claim1.
@@ -487,7 +483,7 @@ Section heap.
     { iExact "H_middle". }
     rewrite take_drop; iSplitL "H_prefix".
     { iExact "H_prefix". }
-    { rewrite <- drop_drop with (l := xs) (n1 := 1%nat) (n2 := i). rewrite -> EQ. iExact "H_suffix". }
+    { rewrite <- drop_drop with (l := xs) (n1 := 1%nat) (n2 := i); rewrite -> EQ; iExact "H_suffix". }
   Qed.
 
   Lemma big_sepL2_middle_merge {A: Type} {B: Type} {Φ: A -> B -> iProp Σ} {xs: list A} {i: nat} {x0: A} (y0: B) (ys1: list B) (ys2: list B)

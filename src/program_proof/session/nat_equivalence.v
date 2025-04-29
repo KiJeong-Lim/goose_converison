@@ -10,49 +10,22 @@ Infix "=~=" := is_similar_to.
 (** Section BasicInstances_of_Similarity. *)
 
 #[global]
-Instance Similarity_forall {D : Type} {D' : Type} {C : D -> Type} {C' : D' -> Type}
-  (DOM_SIM : Similarity D D')
-  (COD_SIM : forall x : D, forall x' : D', x =~= x' -> Similarity (C x) (C' x'))
-  : Similarity (forall x : D, C x) (forall x' : D', C' x').
-Proof.
-  exact (fun f : forall x : D, C x => fun f' : forall x' : D', C' x' => forall x : D, forall x' : D', forall x_corres : x =~= x', @is_similar_to (C x) (C' x') (COD_SIM x x' x_corres) (f x) (f' x')).
-Defined.
+Instance Similarity_forall {D : Type} {D' : Type} {C : D -> Type} {C' : D' -> Type} (DOM_SIM : Similarity D D') (COD_SIM : forall x : D, forall x' : D', x =~= x' -> Similarity (C x) (C' x')) : Similarity (forall x : D, C x) (forall x' : D', C' x') :=
+  fun f : forall x : D, C x => fun f' : forall x' : D', C' x' => forall x : D, forall x' : D', forall x_corres : x =~= x', @is_similar_to (C x) (C' x') (COD_SIM x x' x_corres) (f x) (f' x').
 
-Lemma Similarity_fun_intro {D : Type} {D' : Type} {C : Type} {C' : Type} {DOM_SIM : Similarity D D'} {COD_SIM : Similarity C C'} (f : D -> C) (f' : D' -> C')
-  (OBLIGATION1 : forall x : D, forall x' : D', forall x_corres : x =~= x', f x =~= f' x')
-  : f =~= f'.
+Lemma Similarity_fun_unfold {D : Type} {D' : Type} {C : Type} {C' : Type} {DOM_SIM : Similarity D D'} {COD_SIM : Similarity C C'} (f : D -> C) (f' : D' -> C')
+  : (f =~= f') = (forall x : D, forall x' : D', forall x_corres : x =~= x', f x =~= f' x').
 Proof.
-  exact OBLIGATION1.
+  reflexivity.
 Qed.
 
-#[global] Hint Resolve Similarity_fun_intro : session_hints.
+#[global]
+Instance Similarity_subset {A : Type} {A' : Type} {P : A -> Prop} {P' : A' -> Prop} (SIM : Similarity A A') : Similarity { x : A | P x } { x' : A' | P' x' } :=
+  fun s => fun s' => proj1_sig s =~= proj1_sig s'.
 
 #[global]
-Instance Similarity_subset {A : Type} {A' : Type} {P : A -> Prop} {P' : A' -> Prop}
-  (SIM : Similarity A A')
-  : Similarity { x : A | P x } { x' : A' | P' x' }.
-Proof.
-  exact (fun s => fun s' => proj1_sig s =~= proj1_sig s').
-Defined.
-
-#[global]
-Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type}
-  (FST_SIM : Similarity A A')
-  (SND_SIM : Similarity B B')
-  : Similarity (A * B) (A' * B').
-Proof.
-  exact (fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p').
-Defined.
-
-Lemma Similarity_prod_intro {A : Type} {A' : Type} {B : Type} {B' : Type} {FST_SIM : Similarity A A'} {SND_SIM : Similarity B B'} (p : A * B) (p' : A' * B')
-  (OBLIGATION1 : p.1 =~= p'.1)
-  (OBLIGATION2 : p.2 =~= p'.2)
-  : p =~= p'.
-Proof.
-  exact (conj OBLIGATION1 OBLIGATION2).
-Qed.
-
-#[global] Hint Resolve Similarity_prod_intro : session_hints.
+Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type} (FST_SIM : Similarity A A') (SND_SIM : Similarity B B') : Similarity (A * B) (A' * B') :=
+  fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p'.
 
 Inductive list_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similarity (list A) (list A') :=
   | nil_corres
@@ -85,31 +58,11 @@ Instance Similarity_option {A : Type} {A' : Type} (SIM : Similarity A A') : Simi
 Instance Similarity_bool : Similarity bool bool :=
   @eq bool.
 
-Lemma Similarity_bool_intro (b : bool) (b' : bool)
-  (OBLIGATION1 : b = b')
-  : b =~= b'.
-Proof.
-  exact OBLIGATION1.
-Qed.
-
-#[global] Hint Resolve Similarity_bool_intro : session_hints.
-
 #[global]
 Instance Similarity_nat : Similarity nat nat :=
   @eq nat.
 
-Lemma Similarity_nat_intro (n : nat) (n' : nat)
-  (OBLIGATION1 : n = n')
-  : n =~= n'.
-Proof.
-  exact OBLIGATION1.
-Qed.
-
-#[global] Hint Resolve Similarity_nat_intro : session_hints.
-
 (** End BasicInstances_of_Similarity. *)
-
-(*
 
 Definition MAX_BOUND : Z :=
   2 ^ 64 - 2.
@@ -117,16 +70,6 @@ Definition MAX_BOUND : Z :=
 #[global]
 Instance Similarity_u64 : Similarity u64 nat :=
   fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
-
-Lemma Similarity_u64_intro (n : u64) (n' : nat)
-  (OBLIGATION1 : uint.nat n = n')
-  (OBLIGATION2 : (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z)
-  : n =~= n'.
-Proof.
-  exact (conj OBLIGATION1 OBLIGATION2).
-Qed.
-
-#[global] Hint Resolve Similarity_u64_intro : session_hints.
 
 Lemma Similarity_u64_range (n : u64) (n' : nat)
   (n_corres : n =~= n')
@@ -149,8 +92,6 @@ Proof.
   induction xs_corres as [ | ? ? ? ? ? [ | ? ? ? ? ? ?] ?]; simpl; eauto.
 Qed.
 
-#[global] Hint Resolve last_corres : session_hints.
-
 Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (ys : list A) (ys' : list A')
   (xs_corres : xs =~= xs')
   (ys_corres : ys =~= ys')
@@ -158,8 +99,6 @@ Lemma app_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) 
 Proof.
   revert ys ys' ys_corres; induction xs_corres; simpl; eauto.
 Qed.
-
-#[global] Hint Resolve app_corres : session_hints.
 
 Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (f : A -> B -> A) (xs : list B) (z : A) (f' : A' -> B' -> A') (xs' : list B') (z' : A')
   (f_corres : f =~= f')
@@ -169,8 +108,6 @@ Lemma fold_left_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Si
 Proof.
   do 4 red in f_corres; revert z z' z_corres; induction xs_corres; simpl; eauto.
 Qed.
-
-#[global] Hint Resolve fold_left_corres : session_hints.
 
 Lemma fold_left_corres_withInvariant {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (Φ : forall ACCUM : A, forall ACCUM' : A', forall NEXTS : list B, forall NEXTS' : list B', Prop) (f : A -> B -> A) (f' : A' -> B' -> A') (xs : list B) (xs' : list B') (z : A) (z' : A')
   (f_corres : forall x : B, forall x' : B', x =~= x' -> forall z : A, forall z' : A', z =~= z' -> forall xs : list B, forall xs' : list B', Φ z z' (x :: xs) (x' :: xs') -> f z x =~= f' z' x')
@@ -191,8 +128,6 @@ Proof.
   do 2 red in n_corres; subst n'; revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
 Qed.
 
-#[global] Hint Resolve take_corres : session_hints.
-
 Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (xs : list A) (xs' : list A')
   (n_corres : n =~= n')
   (xs_corres : xs =~= xs')
@@ -200,8 +135,6 @@ Lemma drop_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n'
 Proof.
   do 2 red in n_corres; subst n'; revert xs xs' xs_corres; induction n as [ | n IH]; intros ? ? xs_corres; destruct xs_corres as [ | x x' x_corres xs xs' xs_corres]; simpl in *; eauto.
 Qed.
-
-#[global] Hint Resolve drop_corres : session_hints.
 
 Lemma andb_corres (b1 : bool) (b1' : bool) (b2 : bool) (b2' : bool)
   (b1_corres : b1 =~= b1')
@@ -211,8 +144,6 @@ Proof.
   do 2 red in b1_corres, b2_corres |- *; congruence.
 Qed.
 
-#[global] Hint Resolve andb_corres : session_hints.
-
 Lemma orb_corres (b1 : bool) (b1' : bool) (b2 : bool) (b2' : bool)
   (b1_corres : b1 =~= b1')
   (b2_corres : b2 =~= b2')
@@ -221,16 +152,12 @@ Proof.
   do 2 red in b1_corres, b2_corres |- *; congruence.
 Qed.
 
-#[global] Hint Resolve orb_corres : session_hints.
-
 Lemma negb_corres (b1 : bool) (b1' : bool)
   (b1_corres : b1 =~= b1')
   : negb b1 =~= negb b1'.
 Proof.
   do 2 red in b1_corres |- *; congruence.
 Qed.
-
-#[global] Hint Resolve negb_corres : session_hints.
 
 Lemma ite_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (b : bool) (b' : bool) (x : A) (x' : A') (y : A) (y' : A')
   (b_corres : b =~= b')
@@ -241,7 +168,7 @@ Proof.
   do 2 red in b_corres; destruct b as [ | ]; subst b'; simpl; eauto.
 Qed.
 
-Lemma ite_corres_dual {A : Type} {A' : Type} {A_SIM : Similarity A A'} (b : bool) (b' : bool) (x : A) (x' : A') (y : A) (y' : A')
+Lemma ite_corres_op {A : Type} {A' : Type} {A_SIM : Similarity A A'} (b : bool) (b' : bool) (x : A) (x' : A') (y : A) (y' : A')
   (b_corres : negb b =~= b')
   (x_corres : x =~= x')
   (y_corres : y =~= y')
@@ -259,16 +186,12 @@ Proof.
   destruct x_corres; eauto.
 Qed.
 
-#[global] Hint Resolve match_option_corres : session_hints.
-
 Lemma fst_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (p : A * B) (p' : A' * B')
   (p_corres : p =~= p')
   : @fst A B p =~= @fst A' B' p'.
 Proof.
   destruct p_corres as [? ?]; eauto.
 Qed.
-
-#[global] Hint Resolve fst_corres : session_hints.
 
 Lemma snd_corres {A : Type} {A' : Type} {B : Type} {B' : Type} {A_SIM : Similarity A A'} {B_SIM : Similarity B B'} (p : A * B) (p' : A' * B')
   (p_corres : p =~= p')
@@ -277,8 +200,6 @@ Proof.
   destruct p_corres as [? ?]; eauto.
 Qed.
 
-#[global] Hint Resolve fst_corres : session_hints.
-
 Lemma list_lookup_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : list A) (xs' : list A') (n : nat) (n' : nat)
   (xs_corres : xs =~= xs')
   (n_corres : n =~= n')
@@ -286,8 +207,6 @@ Lemma list_lookup_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (xs : 
 Proof.
   do 2 red in n_corres; subst n'; revert n; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; destruct n as [ | n']; simpl in *; eauto.
 Qed.
-
-#[global] Hint Resolve list_lookup_corres : session_hints.
 
 Lemma list_update_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (y : A) (y' : A') (xs : list A) (xs' : list A')
   (n_corres : n =~= n')
@@ -298,8 +217,6 @@ Proof.
   do 2 red in n_corres; subst n'; revert n y y' y_corres; induction xs_corres as [ | x x' xs xs' x_corres xs_corres IH]; destruct n as [ | n']; intros; simpl; eauto.
 Qed.
 
-#[global] Hint Resolve list_update_corres : session_hints.
-
 Lemma replicate_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat) (n' : nat) (x : A) (x' : A')
   (n_corres : n =~= n')
   (x_corres : x =~= x')
@@ -307,8 +224,6 @@ Lemma replicate_corres {A : Type} {A' : Type} {A_SIM : Similarity A A'} (n : nat
 Proof.
   do 2 red in n_corres; subst n'; induction n as [ | n IH]; simpl; eauto.
 Qed.
-
-#[global] Hint Resolve replicate_corres : session_hints.
 
 Lemma seq_0_corres (n : u64) (n' : nat)
   (n_corres : n =~= n')
@@ -322,6 +237,14 @@ Proof.
   - econstructor 2; eauto. do 2 red; word.
 Qed.
 
+Lemma eqb_0_corres (n : u64) (n' : nat)
+  (n_corres : n =~= n')
+  : (uint.Z n =? 0)%Z =~= (n' =? 0)%nat.
+Proof.
+  do 2 red in n_corres |- *. (destruct (uint.Z n =? 0)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (n' =? 0)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']); word.
+Qed.
+
+(*
 Module Operation'.
 
   Record t : Set :=
@@ -1103,5 +1026,4 @@ Module NatImplClient.
 End NatImplClient.
 
 Export NatImplClient.
-
 *)
