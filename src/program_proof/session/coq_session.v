@@ -43,9 +43,9 @@ Module CoqSessionServer.
       let (e1, e2) := element in
       let (output, canApply) := acc in
       if canApply && (uint.Z (w64_word_instance.(word.add) e1 (W64 1)) =? uint.Z e2) then
-        (output && true, false)
+        (output, false)
       else if uint.Z e1 >=? uint.Z e2 then
-        (output && true, canApply)
+        (output, canApply)
       else 
         (false, canApply)
     in
