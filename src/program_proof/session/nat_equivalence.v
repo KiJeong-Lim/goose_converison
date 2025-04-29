@@ -11,21 +11,21 @@ Infix "=~=" := is_similar_to.
 
 #[global]
 Instance Similarity_forall {D : Type} {D' : Type} {C : D -> Type} {C' : D' -> Type} (DOM_SIM : Similarity D D') (COD_SIM : forall x : D, forall x' : D', x =~= x' -> Similarity (C x) (C' x')) : Similarity (forall x : D, C x) (forall x' : D', C' x') :=
-  fun f : forall x : D, C x => fun f' : forall x' : D', C' x' => forall x : D, forall x' : D', forall x_corres : x =~= x', @is_similar_to (C x) (C' x') (COD_SIM x x' x_corres) (f x) (f' x').
+  fun f => fun f' => forall x : D, forall x' : D', forall x_corres : x =~= x', @is_similar_to (C x) (C' x') (COD_SIM x x' x_corres) (f x) (f' x').
 
 Lemma Similarity_fun_unfold {D : Type} {D' : Type} {C : Type} {C' : Type} {DOM_SIM : Similarity D D'} {COD_SIM : Similarity C C'} (f : D -> C) (f' : D' -> C')
   : (f =~= f') = (forall x : D, forall x' : D', forall x_corres : x =~= x', f x =~= f' x').
 Proof.
   reflexivity.
-Qed.
+Defined.
 
 #[global]
-Instance Similarity_subset {A : Type} {A' : Type} {P : A -> Prop} {P' : A' -> Prop} (SIM : Similarity A A') : Similarity { x : A | P x } { x' : A' | P' x' } :=
+Instance Similarity_sig {A : Type} {A' : Type} {P : A -> Prop} {P' : A' -> Prop} (SIM : Similarity A A') : Similarity { x : A | P x } { x' : A' | P' x' } :=
   fun s => fun s' => proj1_sig s =~= proj1_sig s'.
 
 #[global]
 Instance Similarity_prod {A : Type} {A' : Type} {B : Type} {B' : Type} (FST_SIM : Similarity A A') (SND_SIM : Similarity B B') : Similarity (A * B) (A' * B') :=
-  fun p : A * B => fun p' : A' * B' => fst p =~= fst p' /\ snd p =~= snd p'.
+  fun p => fun p' => fst p =~= fst p' /\ snd p =~= snd p'.
 
 Inductive list_corres {A : Type} {A' : Type} {SIM : Similarity A A'} : Similarity (list A) (list A') :=
   | nil_corres
