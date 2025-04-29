@@ -145,7 +145,7 @@ Module CoqSessionServer.
     if (negb (coq_compareVersionVector s.(Server.VectorClock) r.(Message.C2S_Client_VersionVector))) then
       (false, s, (Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0))
     else
-      if (uint.Z r.(Message.C2S_Client_OperationType) =? 0) then
+      if uint.Z r.(Message.C2S_Client_OperationType) =? 0 then
         let S2C_Client_Data := coq_getDataFromOperationLog s.(Server.OperationsPerformed) in
         let S2C_Client_VersionVector := s.(Server.VectorClock) in
         let S2C_Client_Number := r.(Message.C2S_Client_Id) in
@@ -191,9 +191,6 @@ Module CoqSessionServer.
       snd (fold_left loop_step focus loop_init)
     | 2%nat => (coq_acknowledgeGossip server request, [])
     | 3%nat =>
-      let loop_init : list Message.t :=
-        []
-      in
       let loop_step (acc: list Message.t) (index: u64) : list Message.t :=
         if negb (uint.nat index =? uint.nat server.(Server.Id))%nat && negb (length (coq_getGossipOperations server index) =? 0)%nat then
           let S2S_Gossip_Sending_ServerId := server.(Server.Id) in
@@ -205,8 +202,11 @@ Module CoqSessionServer.
         else
           acc
       in
-      let nat_to_u64 (i: nat) := W64 i in
-      (server, fold_left loop_step (map nat_to_u64 (seq 0%nat (uint.nat server.(Server.NumberOfServers)))) loop_init)
+      let nat_to_u64 (i: nat) : u64 :=
+        W64 i
+      in
+      let focus := map nat_to_u64 (seq 0%nat (uint.nat server.(Server.NumberOfServers))) in
+      (server, fold_left loop_step focus [])
     | _ => (server, [])
     end.
 
