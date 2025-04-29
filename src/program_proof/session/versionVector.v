@@ -422,7 +422,7 @@ Section heap.
     {{{
         True
     }}}
-      CoqSessionServer.maxTwoInts #x #y 
+      CoqSessionServer.maxTwoInts #x #y
     {{{
         r, RET #r;
         ⌜r = coq_maxTwoInts x y⌝
@@ -450,7 +450,7 @@ Section heap.
     }}}
       CoqSessionServer.maxTS x y 
     {{{
-        (s': Slice.t), RET (slice_val s'); 
+        s', RET (slice_val s'); 
         own_slice s' uint64T (DfracOwn 1) (coq_maxTS xs ys) ∗ 
         own_slice_small x uint64T d xs ∗
         own_slice_small y uint64T d' ys 
@@ -858,7 +858,7 @@ Section heap.
       }}}
         CoqSessionServer.oneOffVersionVector x y
       {{{
-          b, RET #b ;
+          b, RET #b;
           ⌜b = coq_oneOffVersionVector xs ys⌝ ∗
           own_slice_small x uint64T dq_x xs ∗
           own_slice_small y uint64T dq_y ys ∗
