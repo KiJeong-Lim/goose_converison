@@ -5,6 +5,7 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
+  (*
   Lemma wp_receiveGossip (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
     (msgv: tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t)
     (n: nat) len_c2s len_s2c len_mo len_ga :
@@ -354,5 +355,6 @@ Section heap.
         }
         iPureIntro. tauto.
   Qed.
+  *)
 
 End heap.

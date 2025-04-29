@@ -8,21 +8,21 @@ Module CoqSessionServer.
   Fixpoint coq_compareVersionVector (v1: list u64) (v2: list u64) : bool :=
     match v1 with
     | [] => true
-    | cons h1 t1 => match v2 with
-                    | [] => true
-                    | cons h2 t2 => if (uint.nat h1 <? uint.nat h2) then false else
-                                      (coq_compareVersionVector t1 t2)
-                    end
+    | h1 :: t1 =>
+      match v2 with
+      | [] => true
+      | h2 :: t2 => if uint.Z h1 <? uint.Z h2 then false else coq_compareVersionVector t1 t2
+      end
     end.
 
   Fixpoint coq_lexicographicCompare (v1: list u64) (v2: list u64) : bool :=
     match v1 with
     | [] => false 
-    | cons h1 t1 => match v2 with
-                    | [] => false 
-                    | cons h2 t2 => if (uint.Z h1) =? (uint.Z h2) then
-                                      (coq_lexicographicCompare t1 t2) else (uint.Z h1) >? (uint.Z h2)
-                    end
+    | h1 :: t1 =>
+      match v2 with
+      | [] => false 
+      | h2 :: t2 => if uint.Z h1 =? uint.Z h2 then coq_lexicographicCompare t1 t2 else uint.Z h1 >? uint.Z h2
+      end
     end.
 
   Definition coq_maxTwoInts (x: u64) (y: u64) : u64 :=
@@ -31,65 +31,62 @@ Module CoqSessionServer.
   Fixpoint coq_maxTS (t1: list u64) (t2: list u64) : list u64 :=
     match t1 with
     | [] => []
-    | cons hd1 tl1 => match t2 with
-                      | [] => [] 
-                      | cons hd2 tl2 => (cons (coq_maxTwoInts hd1 hd2) (coq_maxTS tl1 tl2))
-                      end
+    | hd1 :: tl1 =>
+      match t2 with
+      | [] => [] 
+      | hd2 :: tl2 => coq_maxTwoInts hd1 hd2 :: coq_maxTS tl1 tl2
+      end
     end.
 
   Definition coq_oneOffVersionVector (v1: list u64) (v2: list u64) : bool :=
-    let (output, canApply) :=
-      fold_left (fun (acc: bool * bool) (element: u64 * u64) =>
-                  let (e1, e2) := element in
-                  let (output, canApply) := acc in
-                  if (canApply && (uint.Z (w64_word_instance.(word.add) e1 (W64 1)) =? uint.Z e2)) then
-                    (output && true, false)
-                  else
-                    if uint.Z e1 >=? uint.Z e2 then
-                      (output && true, canApply)
-                    else 
-                      (false, canApply)) (zip v1 v2) (true, true) in
-    output && (negb canApply).
+    let loop_step (acc: bool * bool) (element: u64 * u64) : bool * bool :=
+      let (e1, e2) := element in
+      let (output, canApply) := acc in
+      if canApply && (uint.Z (w64_word_instance.(word.add) e1 (W64 1)) =? uint.Z e2) then
+        (output && true, false)
+      else if uint.Z e1 >=? uint.Z e2 then
+        (output && true, canApply)
+      else 
+        (false, canApply)
+    in
+    let (output, canApply) := fold_left loop_step (zip v1 v2) (true, true) in
+    output && negb canApply.
 
   Fixpoint coq_equalSlices (s1: list u64) (s2: list u64) : bool :=
     match s1 with
     | [] => true
-    | cons h1 t1 => match s2 with
-                    | [] => true
-                    | cons h2 t2 => if (negb ((uint.Z h1) =? (uint.Z h2)))
-                                    then false else (coq_equalSlices t1 t2)
-                    end
+    | h1 :: t1 =>
+      match s2 with
+      | [] => true
+      | h2 :: t2 => if negb (uint.Z h1 =? uint.Z h2) then false else coq_equalSlices t1 t2
+      end
     end.
 
   Definition coq_equalOperations (o1: Operation.t) (o2: Operation.t) : bool :=
-    (coq_equalSlices o1.(Operation.VersionVector) o2.(Operation.VersionVector)) && ((uint.nat o1.(Operation.Data)) =? (uint.nat (o2.(Operation.Data)))).
+    coq_equalSlices o1.(Operation.VersionVector) o2.(Operation.VersionVector) && (uint.Z o1.(Operation.Data) =? uint.Z (o2.(Operation.Data))).
 
   Fixpoint coq_sortedInsert (l: list Operation.t) (i: Operation.t) : list Operation.t :=
     match l with
     | [] => [i]
-    | cons h t => if (orb (coq_lexicographicCompare h.(Operation.VersionVector) i.(Operation.VersionVector))
-                      (coq_equalSlices h.(Operation.VersionVector) i.(Operation.VersionVector)))
-                  then (i :: h :: t)%list else (h :: coq_sortedInsert t i)%list
+    | h :: t => if coq_lexicographicCompare h.(Operation.VersionVector) i.(Operation.VersionVector) || coq_equalSlices h.(Operation.VersionVector) i.(Operation.VersionVector) then (i :: h :: t)%list else (h :: coq_sortedInsert t i)%list
     end.
 
   Definition coq_mergeOperations (l1: list Operation.t) (l2: list Operation.t) : list Operation.t :=
-      let output := fold_left (fun acc element => coq_sortedInsert acc element) l2 l1 in
-      snd (fold_left (fun (acc: nat * list Operation.t) element =>
-                        let (index, acc) := acc in
-                        match (output !! (index + 1)%nat) with
-                        | Some v => if (coq_equalOperations element v) then
-                                      ((index + 1)%nat, acc)
-                                    else
-                                      ((index + 1)%nat, acc ++ [element])
-                        | None => ((index + 1)%nat, acc ++ [element])
-                        end)
-          output (0%nat, [])).
+    let output := fold_left coq_sortedInsert l2 l1 in
+    let loop_step (acc: nat * list Operation.t) (element: Operation.t) : nat * list Operation.t :=
+      let (index, acc) := acc in
+      match output !! (index + 1)%nat with
+      | Some v => if coq_equalOperations element v then ((index + 1)%nat, acc) else ((index + 1)%nat, acc ++ [element])
+      | None => ((index + 1)%nat, acc ++ [element])
+      end
+    in
+    snd (fold_left loop_step output (0%nat, [])).
 
   Definition coq_deleteAtIndexOperation (o: list Operation.t) (index: nat) : list Operation.t :=
-    (take index o) ++ (drop (index + 1)%nat o).
+    take index o ++ drop (index + 1)%nat o.
 
   Definition coq_deleteAtIndexMessage (m: list Message.t) (index: nat) : list Message.t :=
-    (take index m) ++ (drop (index + 1)%nat m).
+    take index m ++ drop (index + 1)%nat m.
 
   Definition coq_getDataFromOperationLog (l: list Operation.t) : u64 :=
     match last l with
@@ -98,7 +95,7 @@ Module CoqSessionServer.
     end.
 
   Definition coq_receiveGossip (s: Server.t) (r: Message.t) : Server.t :=
-    if length (r.(Message.S2S_Gossip_Operations)) =? 0 then
+    if (length (r.(Message.S2S_Gossip_Operations)) =? 0)%nat then
       s
     else
       let focus := coq_mergeOperations s.(Server.PendingOperations) r.(Message.S2S_Gossip_Operations) in
@@ -118,19 +115,23 @@ Module CoqSessionServer.
 
   Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) : Server.t :=
     let i := r.(Message.S2S_Acknowledge_Gossip_Sending_ServerId) in
-    let l : (list u64) := s.(Server.GossipAcknowledgements) in
-    if (uint.Z i >=? length l) then s else 
-    let prevGossipAcknowledgementsValue : u64 := match s.(Server.GossipAcknowledgements) !! (uint.nat i) with
-                                              | Some x => x
-                                              | None => 0
-                                              end in
-    let newGossipAcknowledgements : u64 := coq_maxTwoInts prevGossipAcknowledgementsValue r.(Message.S2S_Acknowledge_Gossip_Index) in
-    let gossipAcknowledgements: (list u64) := (<[uint.nat i := newGossipAcknowledgements]> l) in
-    Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) gossipAcknowledgements.
+    let l := s.(Server.GossipAcknowledgements) in
+    if uint.Z i >=? length l then
+      s
+    else
+      let prevGossipAcknowledgementsValue : u64 :=
+        match s.(Server.GossipAcknowledgements) !! uint.nat i with
+        | Some x => x
+        | None => 0
+        end
+      in
+      let newGossipAcknowledgements := coq_maxTwoInts prevGossipAcknowledgementsValue r.(Message.S2S_Acknowledge_Gossip_Index) in
+      let gossipAcknowledgements := <[uint.nat i := newGossipAcknowledgements]> l in
+      Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) gossipAcknowledgements.
 
-  Definition coq_getGossipOperations (s: Server.t) (serverId: u64) : (list Operation.t) :=
+  Definition coq_getGossipOperations (s: Server.t) (serverId: u64) : list Operation.t :=
     match s.(Server.GossipAcknowledgements) !! uint.nat serverId with
-    | Some v => drop (uint.nat v) (s .(Server.MyOperations))
+    | Some v => drop (uint.nat v) s.(Server.MyOperations)
     | None => []
     end.
 
@@ -138,7 +139,7 @@ Module CoqSessionServer.
     if (negb (coq_compareVersionVector s.(Server.VectorClock) r.(Message.C2S_Client_VersionVector))) then
       (false, s, (Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0))
     else
-      if (uint.nat r.(Message.C2S_Client_OperationType) =? 0) then
+      if (uint.Z r.(Message.C2S_Client_OperationType) =? 0) then
         let S2C_Client_Data := coq_getDataFromOperationLog s.(Server.OperationsPerformed) in
         let S2C_Client_VersionVector := s.(Server.VectorClock) in
         let S2C_Client_Number := r.(Message.C2S_Client_Id) in
@@ -222,8 +223,8 @@ Section properties.
     reflexivity.
   Defined.
 
-  Definition Operation_wf (len : nat) : Operation.t -> Prop :=
-    fun o => Forall (fun _ => True) (o .(Operation.VersionVector)) /\ length (o .(Operation.VersionVector)) = len.
+  Definition Operation_wf (len : nat) (o: Operation.t) : Prop :=
+    Forall (fun _ => True) (o .(Operation.VersionVector)) /\ length (o .(Operation.VersionVector)) = len.
 
   #[global]
   Instance hsEq_Operation (len : nat) : hsEq Operation.t (well_formed := Operation_wf len) :=
@@ -241,7 +242,7 @@ Section properties.
 
   #[local] Hint Resolve @Forall_True : core.
 
-  Lemma aux0_lexicographicCompare (l1 l2 l3: list u64) :
+  Lemma aux0_lexicographicCompare l1 l2 l3 :
     coq_lexicographicCompare l2 l1 = true ->
     coq_lexicographicCompare l3 l2 = true ->
     coq_lexicographicCompare l3 l1 = true.
@@ -250,7 +251,7 @@ Section properties.
     intros. eapply vectorGt_transitive; eauto.
   Qed.
 
-  Lemma aux1_lexicographicCompare (l1 l2: list u64) :
+  Lemma aux1_lexicographicCompare l1 l2 :
     length l1 = length l2 -> 
     l1 ≠ l2 ->
     (coq_lexicographicCompare l2 l1 = false <-> coq_lexicographicCompare l1 l2 = true).
@@ -276,7 +277,7 @@ Section properties.
         * eapply ltProp_transitivity with (y := l2); eauto.
   Qed.
 
-  Lemma aux3_lexicographicCompare (l1 l2: list u64) :
+  Lemma aux3_lexicographicCompare l1 l2 :
     length l1 = length l2 -> 
     coq_lexicographicCompare l2 l1 = false ->
     coq_lexicographicCompare l1 l2 = false ->
@@ -289,7 +290,7 @@ Section properties.
     - rewrite <- ltb_lt in H_gt; eauto 2. simpl in *. congruence.
   Qed.
 
-  Lemma aux4_lexicographicCompare (l1 l2: list u64) :
+  Lemma aux4_lexicographicCompare l1 l2 :
     coq_lexicographicCompare l1 l2 = true ->
     coq_equalSlices l1 l2 = false.
   Proof.
@@ -297,7 +298,7 @@ Section properties.
     intros. eapply vectorGt_implies_not_vectorEq; eauto 2.
   Qed.
 
-  Lemma aux5_lexicographicCompare (l1 l2: list u64) :
+  Lemma aux5_lexicographicCompare l1 l2 :
     coq_equalSlices l1 l2 = true ->
     coq_lexicographicCompare l1 l2 = false.
   Proof.
@@ -305,7 +306,7 @@ Section properties.
     intros. eapply vectorEq_implies_not_vectorGt; eauto 2.
   Qed.
 
-  Lemma aux0_equalSlices (l1 l2: list u64) :
+  Lemma aux0_equalSlices l1 l2 :
     length l1 = length l2 ->
     coq_equalSlices l1 l2 = true ->
     l1 = l2.
@@ -313,7 +314,7 @@ Section properties.
     rewrite redefine_coq_equalSlices. intros. rewrite <- vectorEq_true_iff; eauto 2.
   Qed.
 
-  Lemma aux1_equalSlices (l1 l2: list u64) :
+  Lemma aux1_equalSlices l1 l2 :
     length l1 = length l2 ->
     coq_equalSlices l1 l2 = false ->
     l1 ≠ l2.
@@ -322,7 +323,7 @@ Section properties.
     rewrite H0; congruence.
   Qed.
 
-  Lemma aux2_equalSlices (l1 l2: list u64) (b: bool) :
+  Lemma aux2_equalSlices l1 l2 b :
     length l1 = length l2 ->
     coq_equalSlices l1 l2 = b ->
     coq_equalSlices l2 l1 = b.
@@ -330,7 +331,7 @@ Section properties.
     rewrite redefine_coq_equalSlices. intros. subst b. eapply (eqb_comm (hsEq_A := hsEq_vector (length l1))); eauto.
   Qed.
 
-  Lemma aux3_equalSlices (l: list u64) :
+  Lemma aux3_equalSlices l :
     coq_equalSlices l l = true.
   Proof.
     change (coq_equalSlices l l) with (eqb (hsEq := hsEq_vector (length l)) l l).
@@ -341,7 +342,7 @@ Section properties.
     : coq_equalOperations o1 o2 = coq_equalOperations o2 o1.
   Proof.
     unfold coq_equalOperations. replace Z.eqb with (SessionPrelude.eqb (hsEq := hsEq_Z)) by reflexivity. rewrite eqb_comm; eauto.
-    destruct (hsEq_Z .(eqb) (uint.nat o2 .(Operation.Data)) (uint.nat o1 .(Operation.Data))) as [ | ] eqn: H_obs; rewrite eqb_obs in H_obs; eauto.
+    destruct (hsEq_Z .(eqb) (uint.Z o2 .(Operation.Data)) (uint.Z o1 .(Operation.Data))) as [ | ] eqn: H_obs; rewrite eqb_obs in H_obs; eauto.
     - do 2 rewrite andb_true_r. simpl in H_obs. generalize (o1 .(Operation.VersionVector)) as v1. generalize (o2 .(Operation.VersionVector)) as v2.
       induction v2 as [ | v2_hd v2_tl IH], v1 as [ | v1_hd v1_tl]; simpl; eauto.
       rewrite IH. replace Z.eqb with (SessionPrelude.eqb (hsEq := hsEq_Z)) by reflexivity. rewrite eqb_comm; eauto.
@@ -350,24 +351,26 @@ Section properties.
 
   Definition is_sorted (l: list Operation.t) : Prop :=
     ∀ i j, (i < j)%nat -> ∀ o1 o2, l !! i = Some o1 -> l !! j = Some o2 ->
-    coq_lexicographicCompare (o2.(Operation.VersionVector)) (o1.(Operation.VersionVector)) = true \/ coq_equalSlices (o2.(Operation.VersionVector)) (o1.(Operation.VersionVector)) = true.
+    coq_lexicographicCompare o2.(Operation.VersionVector) o1.(Operation.VersionVector) = true \/ coq_equalSlices o2.(Operation.VersionVector) o1.(Operation.VersionVector) = true.
 
 End properties.
 
 Module INVARIANT.
 
-  Record SERVER (s: Server.t) : Prop :=
+  Record SERVER (P: Server.t -> Prop) (s: Server.t) : Prop :=
     SERVER_INVARIANT_INTRO
     { PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations)
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
+    ; SERVER_EXTRA_INVARIANT: P s
     }.
 
-  Record CLIENT (c: Client.t) : Prop :=
+  Record CLIENT (P: Client.t -> Prop) (c: Client.t) : Prop :=
     CLIENT_INVARIANT_INTRO
     { SessionSemantic_ge_0: (uint.Z c.(Client.SessionSemantic) >= 0)%Z
     ; SessionSemantic_le_5: (uint.Z c.(Client.SessionSemantic) <= 5)%Z
+    ; CLIENT_EXTRA_INVARIANT: P c
     }.
 
 End INVARIANT.

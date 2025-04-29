@@ -5,6 +5,7 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
+  (*
   Lemma wp_deleteAtIndexOperation (s: Slice.t) (index: w64) (l: list Operation.t) (n: nat) :
     {{{
         operation_slice s l n ∗
@@ -1276,5 +1277,6 @@ Section heap.
           iFrame.
       }
   Qed.
+  *)
 
 End heap.

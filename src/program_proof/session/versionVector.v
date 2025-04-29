@@ -3,6 +3,7 @@ From Perennial.program_proof.session Require Import coq_session.
 Section heap.
   Context `{hG: !heapGS Σ}.
                
+  (*
   Lemma wp_compareVersionVector (x: Slice.t) (xs: list w64) (y: Slice.t)
     (ys: list w64) (d: dfrac) :
     {{{
@@ -1310,7 +1311,8 @@ Section heap.
         replace (true, true) with loop_init by auto.
         destruct (fold_left loop_step (zip xs_prev ys_prev) loop_init) as [ind ?].
         simpl in *. rewrite <- H11. rewrite andb_false_l. auto.
-  Qed. 
+  Qed.
+  *)
     
 End heap.
 

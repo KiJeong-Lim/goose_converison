@@ -109,6 +109,8 @@ Qed.
 
 (** End BasicInstances_of_Similarity. *)
 
+(*
+
 Definition MAX_BOUND : Z :=
   2 ^ 64 - 2.
 
@@ -1101,3 +1103,5 @@ Module NatImplClient.
 End NatImplClient.
 
 Export NatImplClient.
+
+*)

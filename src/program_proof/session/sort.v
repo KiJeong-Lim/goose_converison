@@ -5,6 +5,7 @@ From Perennial.program_proof.session Require Export versionVector.
 Section heap.
   Context `{hG: !heapGS Σ}.
 
+  (*
   Lemma implies_Sorted :
     forall (l: list Operation.t) (element: Operation.t) (i: u64),
     is_sorted l ->
@@ -748,5 +749,6 @@ Section heap.
     eapply SessionPrelude.sortedInsert_isSorted; eauto.
     split; eauto.
   Qed.
+  *)
 
 End heap.

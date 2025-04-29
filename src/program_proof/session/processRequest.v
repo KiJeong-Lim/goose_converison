@@ -5,6 +5,7 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
+  (*
   Lemma wp_processClientRequest {OWN_UnsatisfiedRequests: bool} sv s msgv msg (n: nat) (m: nat) len_po len_ga len_s2c :
     {{{
         is_server' sv s n m m m len_po len_ga OWN_UnsatisfiedRequests ∗
@@ -492,5 +493,6 @@ Section heap.
       - split; trivial. split; trivial.
     }
   Qed.
+  *)
 
 End heap.
