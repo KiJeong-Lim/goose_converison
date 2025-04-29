@@ -68,7 +68,13 @@ Module CoqSessionServer.
   Fixpoint coq_sortedInsert (l: list Operation.t) (i: Operation.t) : list Operation.t :=
     match l with
     | [] => [i]
-    | h :: t => if coq_lexicographicCompare h.(Operation.VersionVector) i.(Operation.VersionVector) || coq_equalSlices h.(Operation.VersionVector) i.(Operation.VersionVector) then (i :: h :: t)%list else (h :: coq_sortedInsert t i)%list
+    | h :: t =>
+      if coq_lexicographicCompare h.(Operation.VersionVector) i.(Operation.VersionVector) then
+        i :: h :: t
+      else if coq_equalSlices h.(Operation.VersionVector) i.(Operation.VersionVector) then
+        h :: t
+      else
+        h :: coq_sortedInsert t i
     end.
 
   Definition coq_mergeOperations (l1: list Operation.t) (l2: list Operation.t) : list Operation.t :=
