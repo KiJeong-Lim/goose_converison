@@ -1311,4 +1311,34 @@ Section heap.
         simpl in *. rewrite <- H11. rewrite andb_false_l. auto.
   Qed.
 
+  Lemma wp_equalOperations (opv1: Slice.t*u64) (o1: Operation.t) (opv2: Slice.t*u64) (o2: Operation.t) (n: nat) :
+    {{{
+        is_operation opv1 o1 n ∗
+        is_operation opv2 o2 n
+    }}}
+      CoqSessionServer.equalOperations (operation_val opv1) (operation_val opv2)
+    {{{
+        r, RET #r;
+        ⌜r = coq_equalOperations o1 o2⌝ ∗
+        is_operation opv1 o1 n ∗
+        is_operation opv2 o2 n
+    }}}.
+  Proof.
+    rewrite /equalOperations. iIntros "%Φ [Ho1 Ho2] HΦ".
+    iDestruct "Ho1" as "(%Hopv1snd & %Hlen1 & Ho1)". iDestruct "Ho2" as "(%Hopv2snd & %Hlen2 & Ho2)".
+    wp_rec. wp_pures. wp_apply (wp_equalSlices with "[Ho1 Ho2]"). { iFrame. iPureIntro. word. }
+    iIntros "%r (-> & Hopv1 & Hopv2 & %LEN)". wp_if_destruct.
+    - wp_pures. iModIntro. iApply "HΦ". unfold coq_equalOperations.
+      simpl. rewrite Hopv1snd Hopv2snd. iFrame.
+      iPureIntro. destruct (_ =? _) as [ | ] eqn: H_compare.
+      + rewrite Z.eqb_eq in H_compare.
+        assert (EQ : o1.(Operation.Data) = o2.(Operation.Data)) by word.
+        rewrite andb_true_r. rewrite Heqb. rewrite bool_decide_eq_true. repeat split; congruence.
+      + rewrite Z.eqb_neq in H_compare.
+        assert (NE : o1.(Operation.Data) ≠ o2.(Operation.Data)) by word.
+        rewrite andb_false_r. rewrite bool_decide_eq_false. repeat split; congruence.
+    - iModIntro. iApply "HΦ". unfold coq_equalOperations.
+      simpl. rewrite Heqb. simpl. iFrame. iPureIntro. done.
+  Qed.
+
 End heap.
