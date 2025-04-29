@@ -199,7 +199,8 @@ Module CoqSessionServer.
         else
           acc
       in
-      (server, fold_left loop_step (map (fun i : nat => W64 i) (seq 0%nat (uint.nat server.(Server.NumberOfServers)))) loop_init)
+      let nat_to_u64 (i: nat) := W64 i in
+      (server, fold_left loop_step (map nat_to_u64 (seq 0%nat (uint.nat server.(Server.NumberOfServers)))) loop_init)
     | _ => (server, [])
     end.
 
@@ -223,8 +224,8 @@ Section properties.
     reflexivity.
   Defined.
 
-  Definition Operation_wf (len : nat) (o: Operation.t) : Prop :=
-    Forall (fun _ => True) (o .(Operation.VersionVector)) /\ length (o .(Operation.VersionVector)) = len.
+  Definition Operation_wf (len : nat) (o : Operation.t) : Prop :=
+    Forall (fun _ => True) o.(Operation.VersionVector) /\ length o.(Operation.VersionVector) = len.
 
   #[global]
   Instance hsEq_Operation (len : nat) : hsEq Operation.t (well_formed := Operation_wf len) :=
@@ -363,14 +364,14 @@ Module INVARIANT.
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
-    ; SERVER_EXTRA_INVARIANT: P s
+    ; EXTRA_SERVER_INVARIANT: P s
     }.
 
   Record CLIENT (P: Client.t -> Prop) (c: Client.t) : Prop :=
     CLIENT_INVARIANT_INTRO
     { SessionSemantic_ge_0: (uint.Z c.(Client.SessionSemantic) >= 0)%Z
     ; SessionSemantic_le_5: (uint.Z c.(Client.SessionSemantic) <= 5)%Z
-    ; CLIENT_EXTRA_INVARIANT: P c
+    ; EXTRA_CLIENT_INVARIANT: P c
     }.
 
 End INVARIANT.
