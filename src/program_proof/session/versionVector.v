@@ -2,23 +2,21 @@ From Perennial.program_proof.session Require Import coq_session.
 
 Section heap.
   Context `{hG: !heapGS Σ}.
-               
-  (*
-  Lemma wp_compareVersionVector (x: Slice.t) (xs: list w64) (y: Slice.t)
-    (ys: list w64) (d: dfrac) :
+
+  Lemma wp_compareVersionVector (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :
     {{{
-          own_slice_small x uint64T d xs ∗
-          own_slice_small y uint64T d ys ∗
-          ⌜length xs = length ys⌝ 
+        own_slice_small x uint64T dx xs ∗
+        own_slice_small y uint64T dy ys ∗
+        ⌜length xs = length ys⌝ 
     }}}
       CoqSessionServer.compareVersionVector x y 
-      {{{
-            r , RET #r;
-            ⌜r = coq_compareVersionVector xs ys⌝ ∗
-            own_slice_small x uint64T d xs ∗
-            own_slice_small y uint64T d ys ∗            
-            ⌜length xs = length ys⌝ 
-      }}}.
+    {{{
+        r, RET #r;
+        ⌜r = coq_compareVersionVector xs ys⌝ ∗
+        own_slice_small x uint64T dx xs ∗
+        own_slice_small y uint64T dy ys ∗            
+        ⌜length xs = length ys⌝ 
+    }}}.
   Proof.
     iIntros (Φ) "(H1 & H2) H3".
     rewrite /compareVersionVector.
@@ -34,8 +32,8 @@ Section heap.
     wp_apply (wp_forBreak_cond
                 (λ continue,
                    ∃ (b: bool) (i: w64),
-                     "Hx" ∷ own_slice_small x uint64T d xs ∗
-                     "Hy" ∷ own_slice_small y uint64T d ys ∗
+                     "Hx" ∷ own_slice_small x uint64T dx xs ∗
+                     "Hy" ∷ own_slice_small y uint64T dy ys ∗
                      output ↦[boolT] #b ∗
                      index ↦[uint64T] #i ∗
                      l ↦[uint64T] #(length xs) ∗
@@ -137,7 +135,7 @@ Section heap.
       + induction ys.
         * intros. inversion H5.
         * intros. simpl. destruct (decide (uint.Z a <? uint.Z a0 = true)).
-          { assert (uint.nat a <? uint.nat a0 = true) by word.
+          { assert (uint.Z a <? uint.Z a0 = true) by word.
             rewrite H0. split; auto.
             rewrite length_cons in H.
             destruct H11; auto.
@@ -149,7 +147,7 @@ Section heap.
               + auto.
               + auto.
           }
-          { intros. split; auto. assert (uint.nat a <? uint.nat a0 = false) by word.
+          { intros. split; auto. assert (uint.Z a <? uint.Z a0 = false) by word.
             rewrite H0.
             assert (uint.nat (uint.nat i - 1%nat)%nat = ((uint.nat i) - 1)%nat) by word.
             eapply IHxs.
@@ -217,20 +215,20 @@ Section heap.
           }
   Qed.
 
-  Lemma wp_lexicographicCompare (x: Slice.t) (xs: list u64) (y: Slice.t) (ys: list u64) (d: dfrac) :
+  Lemma wp_lexicographicCompare (x: Slice.t) (xs: list u64) (y: Slice.t) (ys: list u64) (dx: dfrac) (dy: dfrac) :
     {{{
-          own_slice_small x uint64T d xs ∗
-          own_slice_small y uint64T d ys ∗
-          ⌜length xs = length ys⌝ 
+        own_slice_small x uint64T dx xs ∗
+        own_slice_small y uint64T dy ys ∗
+        ⌜length xs = length ys⌝
     }}}
       lexicographicCompare x y 
-      {{{
-            r , RET #r;
-            ⌜r = coq_lexicographicCompare xs ys⌝ ∗ 
-            own_slice_small x uint64T d xs ∗
-            own_slice_small y uint64T d ys ∗
-            ⌜length xs = length ys⌝ 
-      }}}.
+    {{{
+        r, RET #r;
+        ⌜r = coq_lexicographicCompare xs ys⌝ ∗ 
+        own_slice_small x uint64T dx xs ∗
+        own_slice_small y uint64T dy ys ∗
+        ⌜length xs = length ys⌝ 
+    }}}.
   Proof.
     iIntros (Φ) "(H1 & H2 & %H3) H5".
     rewrite /lexicographicCompare.
@@ -246,8 +244,8 @@ Section heap.
     iIntros (l) "H8". wp_pures.
     wp_apply (wp_forBreak_cond
                 (λ continue, ∃ (b: bool) (i: w64),
-                    "Hx" ∷ own_slice_small x uint64T d xs ∗
-                    "Hy" ∷ own_slice_small y uint64T d ys ∗
+                    "Hx" ∷ own_slice_small x uint64T dx xs ∗
+                    "Hy" ∷ own_slice_small y uint64T dy ys ∗
                     output ↦[boolT] #b ∗
                     index ↦[uint64T] #i ∗
                     l ↦[uint64T] #(length xs) ∗
@@ -422,13 +420,13 @@ Section heap.
 
   Lemma wp_maxTwoInts (x: w64) (y: w64) :
     {{{
-          True
+        True
     }}}
       CoqSessionServer.maxTwoInts #x #y 
-      {{{
-            r , RET #r;
-            ⌜r = coq_maxTwoInts x y⌝
-      }}}.
+    {{{
+        r, RET #r;
+        ⌜r = coq_maxTwoInts x y⌝
+    }}}.
   Proof.
     iIntros (Φ) "H H1".
     rewrite /maxTwoInts. wp_pures.
@@ -446,17 +444,17 @@ Section heap.
 
   Lemma wp_maxTS (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (d: dfrac) (d': dfrac) :
     {{{
-          own_slice_small x uint64T d xs ∗
-            own_slice_small y uint64T d' ys ∗
-            ⌜length xs = length ys⌝
+        own_slice_small x uint64T d xs ∗
+        own_slice_small y uint64T d' ys ∗
+        ⌜length xs = length ys⌝
     }}}
       CoqSessionServer.maxTS x y 
-      {{{
-            (s': Slice.t), RET slice_val s'; 
-            own_slice s' uint64T (DfracOwn 1) (coq_maxTS xs ys) ∗ 
-            own_slice_small x uint64T d xs ∗
-            own_slice_small y uint64T d' ys 
-      }}}.
+    {{{
+        (s': Slice.t), RET (slice_val s'); 
+        own_slice s' uint64T (DfracOwn 1) (coq_maxTS xs ys) ∗ 
+        own_slice_small x uint64T d xs ∗
+        own_slice_small y uint64T d' ys 
+    }}}.
   Proof.
     iIntros (Φ) "(H & H1 & %H3) H2".
     rewrite /maxTS.
@@ -637,21 +635,21 @@ Section heap.
       rewrite H. iFrame.
   Qed.
 
-  Lemma wp_equalSlices (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64)  (d: dfrac):
-      {{{
-            own_slice_small x uint64T d xs ∗
-            own_slice_small y uint64T d ys ∗
-            ⌜length xs = length ys⌝ 
-      }}}
-        CoqSessionServer.equalSlices x y 
-        {{{
-              r , RET #r;
-              ⌜r = coq_equalSlices xs ys⌝ ∗ 
-              own_slice_small x uint64T d xs ∗
-              own_slice_small y uint64T d ys ∗
-              ⌜length xs = length ys⌝
-        }}}.
-    Proof.
+  Lemma wp_equalSlices (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :
+    {{{
+      own_slice_small x uint64T dx xs ∗
+      own_slice_small y uint64T dy ys ∗
+      ⌜length xs = length ys⌝
+    }}}
+      CoqSessionServer.equalSlices x y 
+    {{{
+        r, RET #r;
+        ⌜r = coq_equalSlices xs ys⌝ ∗
+        own_slice_small x uint64T dx xs ∗
+        own_slice_small y uint64T dy ys ∗
+        ⌜length xs = length ys⌝
+    }}}.
+  Proof.
       iIntros (Φ) "(H1 & H2) H3".
       unfold equalSlices.
       wp_pures.
@@ -665,8 +663,8 @@ Section heap.
       wp_apply (wp_forBreak_cond
                   (λ continue,
                      ∃ (b: bool) (i: w64),
-                       "Hx" ∷ own_slice_small x uint64T d xs ∗
-                       "Hy" ∷ own_slice_small y uint64T d ys ∗
+                       "Hx" ∷ own_slice_small x uint64T dx xs ∗
+                       "Hy" ∷ own_slice_small y uint64T dy ys ∗
                        output ↦[boolT] #b ∗
                        index ↦[uint64T] #i ∗
                        l ↦[uint64T] #(length xs) ∗
@@ -853,13 +851,14 @@ Section heap.
     Qed.
 
     Lemma wp_oneOffVersionVector (x: Slice.t) (xs: list u64) (y: Slice.t) (ys: list u64) dq_x dq_y :
-    {{{
+      {{{
           own_slice_small x uint64T dq_x xs ∗
           own_slice_small y uint64T dq_y ys ∗
           ⌜length xs = length ys⌝
-    }}}
-      CoqSessionServer.oneOffVersionVector x y
-      {{{ (b: bool) , RET #b ;
+      }}}
+        CoqSessionServer.oneOffVersionVector x y
+      {{{
+          b, RET #b ;
           ⌜b = coq_oneOffVersionVector xs ys⌝ ∗
           own_slice_small x uint64T dq_x xs ∗
           own_slice_small y uint64T dq_y ys ∗
@@ -885,10 +884,10 @@ Section heap.
            let (e1, e2) := element in
                  let (output, canApply) := acc in
                  if (canApply && (uint.Z (w64_word_instance.(word.add) e1 (W64 1)) =? uint.Z e2)) then
-                   (output && true, false)
+                   (output, false)
                  else
                    if uint.Z e1 >=? uint.Z e2 then
-                     (output && true, canApply)
+                     (output, canApply)
                    else 
                      (false, canApply)).
     set (loop_init := (true, true)).
@@ -974,8 +973,7 @@ Section heap.
                 simpl. 
                 assert (uint.Z (w64_word_instance.(word.add) x0 (W64 1)) =? uint.Z (w64_word_instance.(word.add) x0 (W64 1))
                         = true) by word.
-                rewrite H12. simpl in H11. rewrite <- H11. simpl.
-                rewrite andb_true_r. auto. }
+                rewrite H12. simpl in H11. rewrite <- H11. simpl. auto. }
               rewrite fold_left_app.
               destruct (fold_left loop_step (zip xs_prev ys_prev) loop_init) as [ind ?].
               unfold loop_step.
@@ -1111,7 +1109,7 @@ Section heap.
                 rewrite H15. 
                 simpl in H11. rewrite <- H11. simpl. assert (uint.Z x0 >=? uint.Z y0 = true)
                                                        by word.
-                rewrite H17. simpl. rewrite H10. simpl. rewrite andb_true_r. auto.
+                rewrite H17. simpl. rewrite H10. simpl. auto.
               }
               rewrite fold_left_app.
               destruct (fold_left loop_step (zip xs_prev ys_prev) loop_init) as [ind ?].
@@ -1245,7 +1243,7 @@ Section heap.
               unfold loop_step.
               simpl in H11. simpl. rewrite <- H11. simpl.
               assert (uint.Z x0 >=? uint.Z y0 = true) by word.
-              rewrite H15. rewrite H10. simpl. rewrite andb_true_r. auto.
+              rewrite H15. rewrite H10. simpl; auto.
             }
             rewrite fold_left_app.
             destruct (fold_left loop_step (zip xs_prev ys_prev) loop_init) as [ind ?].
@@ -1312,7 +1310,5 @@ Section heap.
         destruct (fold_left loop_step (zip xs_prev ys_prev) loop_init) as [ind ?].
         simpl in *. rewrite <- H11. rewrite andb_false_l. auto.
   Qed.
-  *)
-    
-End heap.
 
+End heap.
