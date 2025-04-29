@@ -5,7 +5,6 @@ From Perennial.program_proof.session Require Export versionVector.
 Section heap.
   Context `{hG: !heapGS Σ}.
 
-  (*
   Lemma implies_Sorted :
     forall (l: list Operation.t) (element: Operation.t) (i: u64),
     is_sorted l ->
@@ -98,9 +97,8 @@ Section heap.
                 ** auto.
   Qed.
 
-  Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) 
-    (opv: Slice.t*u64) (n: nat) :
-    (operation_slice s l n ⊢@{_} ⌜∀ i e, l !! i = Some e -> length e.(Operation.VersionVector) = n⌝)%I.
+  Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (n: nat)
+    : (operation_slice s l n ⊢@{iProp Σ} ⌜∀ i e, l !! i = Some e -> length e.(Operation.VersionVector) = n⌝)%I.
   Proof.
     iIntros "H".
     unfold operation_slice. unfold operation_slice'.
@@ -125,27 +123,26 @@ Section heap.
     - eassumption.
     - auto.
   Qed.
-  
-  Lemma wp_BinarySearch (s: Slice.t) (l: list Operation.t)
-    (opv: Slice.t*u64) (needle: Operation.t) (n: nat) :
+
+  Lemma wp_BinarySearch (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (needle: Operation.t) (n: nat) :
     {{{
           operation_slice s l n ∗
           is_operation opv needle n ∗
           ⌜is_sorted l⌝
     }}}
       CoqSessionServer.binarySearch s (operation_val opv)
-      {{{ (i: u64) , RET #i ;
-          operation_slice s l n ∗
-          is_operation opv needle n ∗
-          ⌜is_sorted l⌝ ∗
-          ⌜ ∀ (i': nat), i' < uint.nat i ->
-                         ∀ (x: Operation.t), l !! i' = Some x -> 
-                                             coq_lexicographicCompare (needle.(Operation.VersionVector)) (x.(Operation.VersionVector)) = true⌝ ∗ ⌜∀ (j': nat),
-            uint.nat i ≤ j' →
-            ∀ (y: Operation.t), l !! j' = Some y -> 
-                                coq_lexicographicCompare (y.(Operation.VersionVector)) (needle.(Operation.VersionVector)) = true \/ coq_equalSlices (y.(Operation.VersionVector)) (needle.(Operation.VersionVector)) = true⌝ ∗
-                                ⌜uint.nat i <= length l⌝
-      }}}.
+    {{{ (i: u64), RET #i;
+        operation_slice s l n ∗
+        is_operation opv needle n ∗
+        ⌜is_sorted l⌝ ∗
+        ⌜ ∀ (i': nat), i' < uint.nat i ->
+                        ∀ (x: Operation.t), l !! i' = Some x -> 
+                                            coq_lexicographicCompare (needle.(Operation.VersionVector)) (x.(Operation.VersionVector)) = true⌝ ∗ ⌜∀ (j': nat),
+          uint.nat i ≤ j' →
+          ∀ (y: Operation.t), l !! j' = Some y -> 
+                              coq_lexicographicCompare (y.(Operation.VersionVector)) (needle.(Operation.VersionVector)) = true \/ coq_equalSlices (y.(Operation.VersionVector)) (needle.(Operation.VersionVector)) = true⌝ ∗
+                              ⌜uint.nat i <= length l⌝
+    }}}.
   Proof.
     iIntros (Φ) "(H & H1 & %H2) H4". unfold binarySearch.
     wp_pures.
@@ -310,7 +307,7 @@ Section heap.
               rewrite H14. subst. rewrite H12. iFrame.
             - iDestruct "H1" as "%H14".
               iDestruct "H" as "%H15".
-              iDestruct "H7" as "%H16".              
+              iDestruct "H7" as "%H16".
               iPureIntro.
               split_and!; try word.
               { auto. }
@@ -377,18 +374,17 @@ Section heap.
       + destruct H10. auto.
   Qed.
 
-  Lemma wp_sortedInsert (s: Slice.t) (l: list Operation.t)
-    (opv: Slice.t*u64) (v: Operation.t) (n: nat) :
+  (* Lemma wp_sortedInsert (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (v: Operation.t) (n: nat) :
     {{{
-          operation_slice s l n ∗
-          is_operation opv v n ∗
-          ⌜is_sorted l⌝ 
+        operation_slice s l n ∗
+        is_operation opv v n ∗
+        ⌜is_sorted l⌝
     }}}
       CoqSessionServer.sortedInsert s (operation_val opv)
-      {{{ (ns: Slice.t), RET slice_val (ns);
-          ∃ nxs, operation_slice ns nxs n %I ∗
-                 ⌜nxs = coq_sortedInsert l v⌝
-      }}}.
+    {{{ (ns: Slice.t), RET slice_val (ns);
+        ∃ nxs, operation_slice ns nxs n ∗
+        ⌜nxs = coq_sortedInsert l v⌝
+    }}}.
   Proof. 
     iIntros (Φ) "(H & H1 & %H2) H4". unfold sortedInsert. wp_pures.
     wp_apply (wp_BinarySearch with "[$H $H1]"); auto.
@@ -405,7 +401,7 @@ Section heap.
     unfold slice.len. wp_pures.
     remember i.
     wp_if_destruct.
-    - unfold operation_val. wp_pures. 
+    { unfold operation_val. wp_pures. 
       wp_apply (wp_SliceAppend with "[$]"); auto.
       iIntros (s') "H".
       iApply "H4".
@@ -541,7 +537,12 @@ Section heap.
           { assert (length l <= j') by word. rewrite <- H.
             eassumption. }
           { auto. }
-    - wp_bind (SliceAppendSlice _ _ _).
+    }
+    assert (is_Some (ops !! uint.nat w)) as [x H_x].
+    { eapply list_lookup_lt; word. }
+    iDestruct "H" as "[H H3]". wp_apply (wp_SliceGet with "[$H]"); eauto. iIntros "H". iCombine "H H3" as "H".
+    wp_apply (wp_equalOperations with "[]").
+    { wp_bind (SliceAppendSlice _ _ _).
       wp_apply wp_SliceSkip; try word.
       unfold own_slice.
       unfold slice.own_slice.
@@ -719,6 +720,7 @@ Section heap.
                 ** intros. eapply H6.
                    { assert (uint.nat w <= j') by word. eassumption. }
                    { auto. }
+    }
   Qed.
 
   Lemma another_wp_sortedInsert s l o v n :
@@ -748,7 +750,6 @@ Section heap.
     change (is_sorted (coq_sortedInsert l v)) with (SessionPrelude.isSorted (hsOrd := hsOrd_Operation n) (SessionPrelude.sortedInsert (hsOrd := hsOrd_Operation n) l v)).
     eapply SessionPrelude.sortedInsert_isSorted; eauto.
     split; eauto.
-  Qed.
-  *)
+  Qed. *)
 
 End heap.
