@@ -101,7 +101,7 @@ Module CoqSessionServer.
     end.
 
   Definition coq_receiveGossip (s: Server.t) (r: Message.t) : Server.t :=
-    if (length (r.(Message.S2S_Gossip_Operations)) =? 0)%nat then
+    if (length r.(Message.S2S_Gossip_Operations) =? 0)%nat then
       s
     else
       let focus := coq_mergeOperations s.(Server.PendingOperations) r.(Message.S2S_Gossip_Operations) in
@@ -122,7 +122,7 @@ Module CoqSessionServer.
   Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) : Server.t :=
     let i := r.(Message.S2S_Acknowledge_Gossip_Sending_ServerId) in
     let l := s.(Server.GossipAcknowledgements) in
-    if uint.Z i >=? length l then
+    if (uint.nat i >=? length l)%nat then
       s
     else
       let prevGossipAcknowledgementsValue : u64 :=
@@ -142,7 +142,7 @@ Module CoqSessionServer.
     end.
 
   Definition coq_processClientRequest (s: Server.t) (r: Message.t) : bool * Server.t * Message.t :=
-    if (negb (coq_compareVersionVector s.(Server.VectorClock) r.(Message.C2S_Client_VersionVector))) then
+    if negb (coq_compareVersionVector s.(Server.VectorClock) r.(Message.C2S_Client_VersionVector)) then
       (false, s, (Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0))
     else
       if uint.Z r.(Message.C2S_Client_OperationType) =? 0 then
