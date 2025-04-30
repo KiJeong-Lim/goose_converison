@@ -358,7 +358,7 @@ Section properties.
 
   Definition is_sorted (l: list Operation.t) : Prop :=
     ∀ i j, (i < j)%nat -> ∀ o1 o2, l !! i = Some o1 -> l !! j = Some o2 ->
-    coq_lexicographicCompare o2.(Operation.VersionVector) o1.(Operation.VersionVector) = true \/ coq_equalSlices o2.(Operation.VersionVector) o1.(Operation.VersionVector) = true.
+    coq_lexicographicCompare o2.(Operation.VersionVector) o1.(Operation.VersionVector) = true.
 
 End properties.
 

@@ -5,7 +5,7 @@ From Perennial.program_proof.session Require Export versionVector.
 Section heap.
   Context `{hG: !heapGS Σ}.
 
-  Lemma implies_Sorted :
+  (* Lemma implies_Sorted :
     forall (l: list Operation.t) (element: Operation.t) (i: u64),
     is_sorted l ->
     uint.nat i <= length l ->
@@ -374,7 +374,7 @@ Section heap.
       + destruct H10. auto.
   Qed.
 
-  (* Lemma wp_sortedInsert (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (v: Operation.t) (n: nat) :
+  Lemma wp_sortedInsert (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (v: Operation.t) (n: nat) :
     {{{
         operation_slice s l n ∗
         is_operation opv v n ∗
