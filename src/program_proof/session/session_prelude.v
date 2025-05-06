@@ -79,6 +79,15 @@ Module SessionPrelude.
       - pose proof (IH x0 IN) as (n & EQ & LE). exists (S n). split...
     Qed.
 
+    Lemma lookup_In (xs : list A) (x : A) (n : nat)
+      (LOOKUP : xs !! n = Some x)
+      : In x xs.
+    Proof with try done.
+      revert xs n x LOOKUP; induction xs as [ | x xs IH]; intros [ | n]; simpl; intros...
+      - left; congruence.
+      - enough (In x0 xs) by now right. eapply IH...
+    Qed.
+
   End MORE_LIST_LEMMAS.
 
   Class hsEq (A : Type) {well_formed : A -> Prop} : Type :=

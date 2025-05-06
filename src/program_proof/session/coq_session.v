@@ -389,36 +389,28 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
-  Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) (n: nat)
-    : (operation_slice s l n)%I ⊢@{iProp Σ} (⌜∀ i : nat, ∀ e, l !! i = Some e -> length e.(Operation.VersionVector) = n⌝)%I.
-  Proof.
-    iIntros "H". unfold operation_slice. unfold operation_slice'.
-    iDestruct "H" as "(%ops & H & H1)".
-    iPoseProof (big_sepL2_length with "H1") as "%LEN".
-    iApply big_sepL2_sep in "H1".
-    iDestruct "H1" as "(H1 & H2)".
-    iApply big_sepL2_sep in "H2".
-    iDestruct "H2" as "(H2 & _)".
-    iApply big_sepL2_pure_1 in "H2".
-    iDestruct "H2" as "%claim1".
-    iPureIntro; intros.
-    assert (i < length l)%nat as claim2 by now eapply lookup_lt_Some; eauto.
-    assert (i < length ops)%nat as claim3 by word.
-    pose proof (list_lookup_lt _ _ claim3) as [x H_x].
-    symmetry. eapply claim1; eauto.
-  Qed.
-
   Lemma Forall_Operation_wf l ops (n: nat)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (⌜Forall (Operation_wf n) l⌝)%I.
   Proof.
     revert ops; induction l as [ | hd tl IH]; intros ops.
     - iIntros "H_big_sepL2"; iPureIntro; eauto.
     - iIntros "H_big_sepL2"; iPoseProof (big_sepL2_cons_inv_r with "H_big_sepL2") as "(%hd' & %tl' & -> & H_hd & H_tl)".
-      iDestruct "H_hd" as "(%H1 & %H2 & H3)". iClear "H3".
+      iDestruct "H_hd" as "(%H1 & %H2 & H3)"; iClear "H3".
       iAssert ⌜Forall (Operation_wf n) tl⌝%I as "%YES1".
       { iApply IH; iExact "H_tl". }
       iPureIntro; econstructor; trivial.
       split; [eapply SessionPrelude.Forall_True | done].
+  Qed.
+
+  Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) (n: nat)
+    : (operation_slice s l n)%I ⊢@{iProp Σ} (⌜∀ i : nat, ∀ e, l !! i = Some e -> length e.(Operation.VersionVector) = n⌝)%I.
+  Proof.
+    iIntros "(%ops & H_ops & H)".
+    iPoseProof (Forall_Operation_wf with "H") as "%H_well_formed".
+    pose proof (List.Forall_forall (Operation_wf n) l) as claim.
+    rewrite claim in H_well_formed; iPureIntro; intros i x H_x.
+    enough (WTS : Operation_wf n x) by now red in WTS.
+    eapply H_well_formed; eapply SessionPrelude.lookup_In; eauto.
   Qed.
 
   Lemma pers_is_operation opv o (n: nat)
