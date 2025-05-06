@@ -389,6 +389,25 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
+  Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) (n: nat)
+    : (operation_slice s l n)%I ⊢@{iProp Σ} (⌜∀ i : nat, ∀ e, l !! i = Some e -> length e.(Operation.VersionVector) = n⌝)%I.
+  Proof.
+    iIntros "H". unfold operation_slice. unfold operation_slice'.
+    iDestruct "H" as "(%ops & H & H1)".
+    iPoseProof (big_sepL2_length with "H1") as "%LEN".
+    iApply big_sepL2_sep in "H1".
+    iDestruct "H1" as "(H1 & H2)".
+    iApply big_sepL2_sep in "H2".
+    iDestruct "H2" as "(H2 & _)".
+    iApply big_sepL2_pure_1 in "H2".
+    iDestruct "H2" as "%claim1".
+    iPureIntro; intros.
+    assert (i < length l)%nat as claim2 by now eapply lookup_lt_Some; eauto.
+    assert (i < length ops)%nat as claim3 by word.
+    pose proof (list_lookup_lt _ _ claim3) as [x H_x].
+    symmetry. eapply claim1; eauto.
+  Qed.
+
   Lemma Forall_Operation_wf l ops (n: nat)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (⌜Forall (Operation_wf n) l⌝)%I.
   Proof.
