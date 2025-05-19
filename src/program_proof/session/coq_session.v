@@ -254,7 +254,7 @@ Section properties.
     coq_lexicographicCompare l3 l2 = true ->
     coq_lexicographicCompare l3 l1 = true.
   Proof.
-    rewrite redefine_coq_lexicographicCompare. 
+    rewrite redefine_coq_lexicographicCompare.
     intros. eapply vectorGt_transitive; eauto.
   Qed.
 
@@ -269,19 +269,19 @@ Section properties.
     specialize (claim (conj (Forall_True _) len_eq) (conj (Forall_True _) len_eq')).
     destruct claim as [H_lt | [H_eq | H_gt]].
     - rewrite H_lt. intros NE. split.
-      + congruence.
-      + intros l1_gt_l2. contradiction (ltProp_irreflexivity (hsOrd := hsOrd_vector len) l1 l1); eauto.
-        * eapply eqProp_reflexivity; eauto.
-        * eapply ltProp_transitivity with (y := l2); eauto.
+      { congruence. }
+      intros l1_gt_l2. contradiction (ltProp_irreflexivity (hsOrd := hsOrd_vector len) l1 l1); eauto.
+      + eapply eqProp_reflexivity; eauto.
+      + eapply ltProp_transitivity with (y := l2); eauto.
     - intros NE. contradiction NE. clear NE. rewrite <- vectorEq_true_iff; eauto 2.
       change (eqb (hsEq := hsEq_vector len) l1 l2 = true). rewrite eqb_eq; eauto 2.
     - rewrite H_gt. intros NE. split.
-      + congruence.
-      + intros _. change (ltb (hsOrd := hsOrd_vector len) l1 l2 = false).
-        rewrite ltb_nlt; eauto 2. intros NLT. change (ltb (hsOrd := hsOrd_vector len) l2 l1 = true) in H_gt.
-        rewrite ltb_lt in H_gt; eauto 2. contradiction (ltProp_irreflexivity (hsOrd := hsOrd_vector len) l1 l1); eauto.
-        * eapply eqProp_reflexivity; eauto.
-        * eapply ltProp_transitivity with (y := l2); eauto.
+      { congruence. }
+      intros _. change (ltb (hsOrd := hsOrd_vector len) l1 l2 = false).
+      rewrite ltb_nlt; eauto 2. intros NLT. change (ltb (hsOrd := hsOrd_vector len) l2 l1 = true) in H_gt.
+      rewrite ltb_lt in H_gt; eauto 2. contradiction (ltProp_irreflexivity (hsOrd := hsOrd_vector len) l1 l1); eauto.
+      + eapply eqProp_reflexivity; eauto.
+      + eapply ltProp_transitivity with (y := l2); eauto.
   Qed.
 
   Lemma aux3_lexicographicCompare l1 l2 :
@@ -357,8 +357,14 @@ Section properties.
   Qed.
 
   Definition is_sorted (l: list Operation.t) : Prop :=
-    ∀ i j, (i < j)%nat -> ∀ o1 o2, l !! i = Some o1 -> l !! j = Some o2 ->
+    ∀ i, ∀ j, (i < j)%nat -> ∀ o1, ∀ o2, l !! i = Some o1 -> l !! j = Some o2 ->
     coq_lexicographicCompare o2.(Operation.VersionVector) o1.(Operation.VersionVector) = true.
+
+  Lemma redefine_is_sorted (n : nat) (l : list Operation.t)
+    : is_sorted l = SessionPrelude.isSorted (hsOrd := hsOrd_Operation n) l.
+  Proof.
+    reflexivity.
+  Defined.
 
 End properties.
 
