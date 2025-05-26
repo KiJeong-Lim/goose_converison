@@ -6,7 +6,7 @@
 
 ## prelude
 
-- session_prelude.v (969 lines) [v]
+- session_prelude.v (1220 lines) [v]
 - definitions.v (395 lines) [v]
 - coq_session.v (529 lines) [v]
 
