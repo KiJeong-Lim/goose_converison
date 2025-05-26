@@ -5,136 +5,17 @@ From Perennial.program_proof.session Require Export versionVector.
 Section heap.
   Context `{hG: !heapGS Σ}.
 
-  (* Lemma implies_Sorted :
-    forall (l: list Operation.t) (element: Operation.t) (i: u64),
-    is_sorted l ->
-    uint.nat i <= length l ->
-    (∀ (i': nat), i' < uint.nat i ->
-                  ∀ (x: Operation.t), l !! i' = Some x ->
-                                      coq_lexicographicCompare
-                                        (element.(Operation.VersionVector)) (x.(Operation.VersionVector)) = true) -> 
-    (∀ (j': nat),
-       uint.nat i ≤ j' →
-       ∀ (y: Operation.t), l !! j' = Some y →
-                           coq_lexicographicCompare (y.(Operation.VersionVector))
-                             (element.(Operation.VersionVector)) = true
-                                                                   \/
-                                                                     coq_equalSlices
-                                                                       (y.(Operation.VersionVector))
-                                                                       (element.(Operation.VersionVector)) = true)
-    -> is_sorted ((take (uint.nat i) l) ++ (cons element (drop (uint.nat i) l))).
-  Proof.
-    unfold is_sorted. intros.
-    destruct (decide (j < uint.nat i)).
-    - assert (i0 < (uint.nat i - 1)) by word.
-      rewrite lookup_app_l in H4.
-      + rewrite lookup_app_l in H5.
-        * rewrite lookup_take in H4; try word.
-          rewrite lookup_take in H5; try word.
-          eapply H in H3; try eassumption.
-        * rewrite length_take_le; try word.
-      + rewrite length_take_le; try word.
-    - assert (j >= (uint.nat i - 1)) by word. clear n.
-      destruct (decide (j = (uint.nat i)%nat)).
-      + clear H6. subst.
-        rewrite lookup_app_l in H4.
-        * rewrite lookup_app_r in H5.
-          -- rewrite length_take_le in H5; try word.
-             assert ((uint.nat i - (uint.nat i))%nat = 0%nat) by word.
-             rewrite H6 in H5. rewrite <- head_lookup in H5. simpl in H5.
-             injection H5 as ?. rewrite lookup_take in H4; try word. 
-             assert (i0 < uint.nat i) by word. rewrite <- H5.
-             left. eapply H1; try eassumption.
-          -- rewrite length_take_le; try word.
-        * rewrite length_take_le; try word.
-      + destruct (decide (i0%nat = (uint.nat i))).
-        * assert (j > uint.nat i) by word. rewrite lookup_app_r in H4.
-          -- rewrite lookup_app_r in H5.
-             ++ rewrite e in H4. rewrite length_take_le in H4; try word.
-                assert ((uint.nat i - uint.nat i)%nat = 0%nat) by word.
-                rewrite H8 in H4. rewrite <- head_lookup in H4. simpl in H4.
-                injection H4 as ?. rewrite <- H4.
-                rewrite lookup_cons_ne_0 in H5; try rewrite length_take_le; try word.
-                rewrite lookup_drop in H5. eapply H2.
-                ** assert (uint.nat i <= (uint.nat i + Init.Nat.pred (j - length (take (uint.nat i) l)))%nat)
-                     by word. apply H9. 
-                ** auto. 
-             ++ rewrite length_take_le; try word.
-          -- rewrite length_take_le; try word.
-        * destruct (decide (i0%nat > (uint.nat i))).
-          -- clear n0. clear n.
-             rewrite lookup_app_r in H4; try rewrite length_take_le; try word.
-             rewrite lookup_app_r in H5; try rewrite length_take_le; try word.
-             rewrite lookup_cons_ne_0 in H4; try rewrite length_take_le; try word.
-             rewrite lookup_cons_ne_0 in H5; try rewrite length_take_le; try word.
-             rewrite lookup_drop in H4. rewrite lookup_drop in H5.
-             rewrite length_take_le in H4; try word.
-             rewrite length_take_le in H5; try word.
-             eapply H.
-             ++ assert (Init.Nat.pred (i0 - uint.nat i) <Init.Nat.pred (j - uint.nat i)) by word.
-                assert (uint.nat i + Init.Nat.pred (i0 - uint.nat i) <
-                          uint.nat i + Init.Nat.pred (j - uint.nat i))%nat by word.
-                apply H8.
-             ++ auto.
-             ++ auto.
-          -- assert (i0 < uint.nat i) by word.
-             destruct (decide (j = (uint.nat i - 1)%nat)).
-             ++ rewrite lookup_app_l in H4; try rewrite length_take_le; try word.
-                rewrite lookup_app_l in H5; try rewrite length_take_le; try word.
-                rewrite lookup_take in H4; try word.
-                rewrite lookup_take in H5; try word.
-                eapply H in H3; try eassumption.
-             ++ assert (j > uint.nat i) by word.
-                rewrite lookup_app_l in H4; try rewrite length_take_le; try word.
-                rewrite lookup_app_r in H5; try rewrite length_take_le; try word.
-                rewrite lookup_cons_ne_0 in H5; try rewrite length_take_le;
-                  try word.
-                rewrite lookup_take in H4; try word.
-                rewrite lookup_drop in H5. eapply H.
-                ** assert (i0 < (uint.nat i + Init.Nat.pred (j - length (take (uint.nat i) l)))%nat)%nat by word.
-                   apply H9.
-                ** auto.
-                ** auto.
-  Qed.
-
-  Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (n: nat)
-    : (operation_slice s l n ⊢@{iProp Σ} ⌜∀ i e, l !! i = Some e -> length e.(Operation.VersionVector) = n⌝)%I.
-  Proof.
-    iIntros "H".
-    unfold operation_slice. unfold operation_slice'.
-    iDestruct "H" as "[%ops H]".
-    iDestruct "H" as "(H & H1)".
-    iDestruct (big_sepL2_length with "H1") as "%H".
-    iApply big_sepL2_sep in "H1".
-    iDestruct "H1" as "(H1 & H2)".
-    iApply big_sepL2_sep in "H2".
-    iDestruct "H2" as "(H2 & _)".
-    iApply big_sepL2_pure_1 in "H2".
-    iDestruct "H2" as "%H1".
-    iPureIntro.
-    intros.
-    assert (i < length l)%nat. {
-      eapply lookup_lt_Some.
-      eassumption.
-    }
-    assert (i < length ops)%nat by word.
-    apply list_lookup_lt in H3 as [x H3].
-    symmetry. eapply H1.
-    - eassumption.
-    - auto.
-  Qed.
-
-  Lemma wp_BinarySearch (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (needle: Operation.t) (n: nat) :
+  (* Lemma wp_BinarySearch (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (needle: Operation.t) (n: nat) :
     {{{
-          operation_slice s l n ∗
-          is_operation opv needle n ∗
-          ⌜is_sorted l⌝
-    }}}
-      CoqSessionServer.binarySearch s (operation_val opv)
-    {{{ (i: u64), RET #i;
         operation_slice s l n ∗
         is_operation opv needle n ∗
-        ⌜is_sorted l⌝ ∗
+        ⌜is_sorted l⌝
+    }}}
+      CoqSessionServer.binarySearch (slice_val s) (operation_val opv)
+    {{{
+        (i: u64), RET #i;
+        operation_slice s l n ∗
+        is_operation opv needle n ∗
         ⌜ ∀ (i': nat), i' < uint.nat i ->
                         ∀ (x: Operation.t), l !! i' = Some x -> 
                                             coq_lexicographicCompare (needle.(Operation.VersionVector)) (x.(Operation.VersionVector)) = true⌝ ∗ ⌜∀ (j': nat),
@@ -160,23 +41,23 @@ Section heap.
     unfold is_operation.
     iApply big_sepL2_sep in "H2".
     wp_apply (wp_forBreak_cond
-                (λ continue, ∃ (i j: w64),
-                    operation_slice s l n ∗
-                    is_operation opv needle n ∗
-                    i_l ↦[uint64T] #i ∗
-                    j_l ↦[uint64T] #j ∗
-                    ⌜uint.Z i ≤ uint.Z j ≤ Z.of_nat (length l)⌝ ∗
-                    ⌜∀ (i': nat),
-                   i' < uint.nat i →
-                   ∀ (x: Operation.t), l !! i' = Some x -> coq_lexicographicCompare (needle.(Operation.VersionVector)) (x.(Operation.VersionVector)) = true⌝ ∗
-                                       ⌜∀ (j': nat),
-                   uint.nat j ≤ j' →
-                   ∀ (y: Operation.t), l !! j' = Some y ->
-                                       coq_lexicographicCompare (y.(Operation.VersionVector)) (needle.(Operation.VersionVector)) = true \/ coq_equalSlices (y.(Operation.VersionVector)) (needle.(Operation.VersionVector)) = true⌝ ∗
-                                       ⌜continue = false → i = j⌝ ∗
-                                       ⌜uint.nat i <= length l⌝ 
-                )%I
-               with "[] [H H1 H2 H3 i j]").
+      (λ continue, ∃ (i j: w64),
+          operation_slice s l n ∗
+          is_operation opv needle n ∗
+          i_l ↦[uint64T] #i ∗
+          j_l ↦[uint64T] #j ∗
+          ⌜uint.Z i ≤ uint.Z j ≤ Z.of_nat (length l)⌝ ∗
+          ⌜∀ (i': nat),
+          i' < uint.nat i →
+          ∀ (x: Operation.t), l !! i' = Some x -> coq_lexicographicCompare (needle.(Operation.VersionVector)) (x.(Operation.VersionVector)) = true⌝ ∗
+                              ⌜∀ (j': nat),
+          uint.nat j ≤ j' →
+          ∀ (y: Operation.t), l !! j' = Some y ->
+                              coq_lexicographicCompare (y.(Operation.VersionVector)) (needle.(Operation.VersionVector)) = true \/ coq_equalSlices (y.(Operation.VersionVector)) (needle.(Operation.VersionVector)) = true⌝ ∗
+                              ⌜continue = false → i = j⌝ ∗
+                              ⌜uint.nat i <= length l⌝ 
+      )%I
+    with "[] [H H1 H2 H3 i j]").
     - iIntros (?). iModIntro. iIntros "H1 H2".
       wp_pures. iNamed "H1".
       iDestruct "H1" as "(H & H1 & H3 & H4 & %H5 & %H6 & %H7)".
@@ -374,16 +255,17 @@ Section heap.
       + destruct H10. auto.
   Qed.
 
-  Lemma wp_sortedInsert (s: Slice.t) (l: list Operation.t) (opv: Slice.t*u64) (v: Operation.t) (n: nat) :
+  Lemma wp_sortedInsert s l o v n :
     {{{
         operation_slice s l n ∗
-        is_operation opv v n ∗
-        ⌜is_sorted l⌝
+        is_operation o v n ∗
+        ⌜is_sorted l⌝ 
     }}}
-      CoqSessionServer.sortedInsert s (operation_val opv)
-    {{{ (ns: Slice.t), RET slice_val (ns);
-        ∃ nxs, operation_slice ns nxs n ∗
-        ⌜nxs = coq_sortedInsert l v⌝
+      CoqSessionServer.sortedInsert (slice_val s) (operation_val o)
+    {{{
+        ns, RET (slice_val ns);
+        operation_slice ns (coq_sortedInsert l v) n ∗
+        ⌜is_sorted (coq_sortedInsert l v)⌝
     }}}.
   Proof. 
     iIntros (Φ) "(H & H1 & %H2) H4". unfold sortedInsert. wp_pures.
@@ -721,35 +603,6 @@ Section heap.
                    { assert (uint.nat w <= j') by word. eassumption. }
                    { auto. }
     }
-  Qed.
-
-  Lemma another_wp_sortedInsert s l o v n :
-    {{{
-        operation_slice s l n ∗
-        is_operation o v n ∗
-        ⌜is_sorted l⌝ 
-    }}}
-      CoqSessionServer.sortedInsert (slice_val s) (operation_val o)
-    {{{
-        ns, RET (slice_val ns);
-        operation_slice ns (coq_sortedInsert l v) n ∗
-        ⌜is_sorted (coq_sortedInsert l v)⌝
-    }}}.
-  Proof.
-    pose proof @SessionPrelude.Forall_True as claim1.
-    iIntros "%Φ (H_s & H_o & %H_sorted) HΦ".
-    iDestruct "H_s" as "(%ops & H_s & H_ops)".
-    iPoseProof (pers_big_sepL2_is_operation with "[$H_ops]") as "#H_ops_pers".
-    iDestruct "H_o" as "(%H1_o & %H2_o & H3_o)".
-    wp_apply (wp_sortedInsert with "[$H_s $H_ops $H3_o]"); auto.
-    iIntros "%ns (%nxs & H_ns & ->)".
-    iApply "HΦ".
-    iFrame.
-    iPoseProof (Forall_Operation_wf with "[$H_ops_pers]") as "%claim2".
-    iPureIntro.
-    change (is_sorted (coq_sortedInsert l v)) with (SessionPrelude.isSorted (hsOrd := hsOrd_Operation n) (SessionPrelude.sortedInsert (hsOrd := hsOrd_Operation n) l v)).
-    eapply SessionPrelude.sortedInsert_isSorted; eauto.
-    split; eauto.
   Qed. *)
 
 End heap.

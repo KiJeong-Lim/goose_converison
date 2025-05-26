@@ -8,6 +8,139 @@ Create HintDb session_hints.
 
 Module SessionPrelude.
 
+  Section EQ_EM_implies_EQ_PIRREL.
+
+    Context {A : Type}.
+
+    Definition eq_reflexivity (x1 : A) : x1 = x1 :=
+      @eq_refl A x1.
+
+    Definition eq_symmetry (x1 : A) (x2 : A) (x1_eq_x2 : x1 = x2) : x2 = x1 :=
+      @eq_ind A x1 (fun x : A => x = x1) (@eq_refl A x1) x2 x1_eq_x2.
+
+    Definition eq_transitivity (x1 : A) (x2 : A) (x3 : A) (x1_eq_x2 : x1 = x2) (x2_eq_x3 : x2 = x3) : x1 = x3 :=
+      @eq_ind A x2 (fun x : A => x1 = x) x1_eq_x2 x3 x2_eq_x3.
+
+    Lemma eq_round_trip (x : A) (y : A)
+      (x_eq_y : x = y)
+      : eq_transitivity y x y (eq_symmetry x y x_eq_y) x_eq_y = eq_reflexivity y.
+    Proof.
+      destruct x_eq_y; reflexivity.
+    Defined.
+
+    Variable x : A.
+
+    Section ABSTRACT_FORM.
+
+      Variable eq_encoder : forall y : A, x = y -> x = y.
+
+      Let eq_decoder (y : A) : x = y -> x = y :=
+        eq_transitivity x x y (eq_symmetry x x (eq_encoder x (eq_reflexivity x))).
+
+      Lemma eq_decoder_correct (y : A)
+        (x_eq_y : x = y)
+        : eq_decoder y (eq_encoder y x_eq_y) = x_eq_y.
+      Proof.
+        unfold eq_decoder. destruct x_eq_y. rewrite eq_round_trip. reflexivity.
+      Defined.
+
+      Hypothesis indistinguishable : forall y : A, forall H_eq1 : x = y, forall H_eq2 : x = y, eq_encoder y H_eq1 = eq_encoder y H_eq2.
+
+      Lemma eq_pirrel_from_eq_em (y : A)
+        (H_eq1 : x = y)
+        (H_eq2 : x = y)
+        : H_eq1 = H_eq2.
+      Proof using indistinguishable.
+        rewrite <- eq_decoder_correct with (x_eq_y := H_eq1). rewrite <- eq_decoder_correct with (x_eq_y := H_eq2). f_equal. eapply indistinguishable.
+      Defined.
+
+    End ABSTRACT_FORM.
+
+    Hypothesis eq_em : forall y : A, x = y \/ ~ x = y.
+
+    Let eq_encoder (y : A) (x_eq_y : x = y) : x = y :=
+      match eq_em y with
+      | or_introl H_eq => H_eq
+      | or_intror H_ne => False_ind (x = y) (H_ne x_eq_y)
+      end.
+
+    Lemma eq_encoder_good
+      (x_eq_x : x = x)
+      : eq_encoder x x_eq_x = eq_encoder x (eq_reflexivity x).
+    Proof using eq_em eq_encoder.
+      unfold eq_encoder. destruct (eq_em x) as [H_eq | H_ne]; [reflexivity | contradiction (H_ne x_eq_x)].
+    Defined.
+
+    Theorem eq_em_implies_eq_pirrel (y : A)
+      (EQ1 : x = y)
+      (EQ2 : x = y)
+      : EQ1 = EQ2.
+    Proof using eq_em eq_encoder.
+      revert y EQ1 EQ2. eapply eq_pirrel_from_eq_em with (eq_encoder := eq_encoder). intros. destruct H_eq2. eapply eq_encoder_good.
+    Defined.
+
+  End EQ_EM_implies_EQ_PIRREL.
+
+  Section NAT_LEMMA.
+
+    Open Scope nat_scope.
+
+    Lemma nat_le_0_n {n : nat}
+      : (0 <= n).
+    Proof.
+      induction n as [ | n IH].
+      - eapply le_n.
+      - eapply le_S. exact IH.
+    Defined.
+
+    Lemma nat_le_n_n {n : nat}
+      : (n <= n).
+    Proof.
+      eapply le_n.
+    Defined.
+
+    Lemma le_gt_dec (n : nat) (m : nat)
+      : { n <= m } + { n > m }.
+    Proof.
+      revert m. induction n as [ | n IH].
+      - left. word.
+      - destruct m as [ | m]; simpl.
+        + right. word.
+        + pose proof (IH m) as [LE | GT].
+          * left. word.
+          * right. word.
+    Qed.
+
+    Lemma case_le_n {n : nat} (phi : n <= n -> Prop)
+      (phi_le_n : phi (@le_n n))
+      : forall H_le : n <= n, phi H_le.
+    Proof.
+      intros H_le. refine ((fun claim : forall EQ : n = n, phi (eq_ind n (fun m' : nat => n <= m') H_le n EQ) => claim eq_refl) (match H_le in le _ m return forall H_obs : m = n, phi (@eq_ind _ _ (fun m' : nat => n <= m') H_le _ H_obs) with @le_n _ => fun H_obs: n = n => _ | @le_S _ m' H_le' => fun H_obs: S m' = n => _ end)).
+      - rewrite -> eq_em_implies_eq_pirrel with (EQ1 := H_obs) (EQ2 := eq_refl); try word. exact (phi_le_n).
+      - lia.
+    Qed.
+
+    Lemma case_le_S {n : nat} {m : nat} (H_le : m <= n) (phi : m <= S n -> Prop)
+      (phi_le_S : forall H_le' : m <= n, phi (@le_S m n H_le'))
+      : forall H_lt : m <= S n, phi H_lt.
+    Proof.
+      intros H_lt. refine ((fun claim : forall EQ : S n = S n, phi (eq_ind (S n) (fun n' : nat => m <= n') H_lt (S n) EQ) => claim eq_refl) (match H_lt in le _ n' return forall H_obs : n' = S n, phi (@eq_ind _ _ (fun n' => m <= n') H_lt _ H_obs) with @le_n _ => fun H_obs : m = S n => _ | @le_S _ m' H_le' => fun H_obs : S m' = S n => _ end)).
+      - lia.
+      - assert (m' = n) as H_eq by now apply f_equal with (f := pred) in H_obs. subst m'. rewrite -> eq_em_implies_eq_pirrel with (EQ1 := H_obs) (EQ2 := eq_refl); try word. exact (phi_le_S H_le').
+    Qed.
+
+    Theorem le_proof_irrel {n : nat} {m : nat}
+      (LE1 : (n <= m)%nat)
+      (LE2 : (n <= m)%nat)
+      : LE1 = LE2.
+    Proof.
+      assert (m = (m - n) + n)%nat as claim by lia. remember (m - n)%nat as k eqn: H_eq in claim. clear H_eq. revert n m LE1 LE2 claim. induction k as [ | k IH]; simpl.
+      - intros. subst m. induction LE1 using case_le_n. induction LE2 using case_le_n. reflexivity.
+      - intros. subst m. assert (n <= k + n) as LE by lia. induction LE1 using (case_le_S LE). induction LE2 using (case_le_S LE). eapply f_equal. eapply IH. reflexivity.
+    Qed.
+
+  End NAT_LEMMA.
+
   Section MORE_LIST_LEMMAS.
 
     Context {A : Type}.
@@ -86,6 +219,17 @@ Module SessionPrelude.
       revert xs n x LOOKUP; induction xs as [ | x xs IH]; intros [ | n]; simpl; intros...
       - left; congruence.
       - enough (In x0 xs) by now right. eapply IH...
+    Qed.
+
+    Lemma lookup_Some (xs : list A) (i : nat)
+      (RANGE : (i < length xs)%nat)
+      : { x : A | xs !! i = Some x }.
+    Proof.
+      revert i RANGE; induction xs as [ | x xs IH].
+      - simpl. intros; exfalso; word.
+      - intros [ | i] ?; simpl in *.
+        + exists x; trivial.
+        + eapply IH; word.
     Qed.
 
   End MORE_LIST_LEMMAS.
@@ -624,6 +768,114 @@ Module SessionPrelude.
       }
       { simpl in *; subst xs... }
     Qed.
+
+    Inductive binarySearchLoop_spec (needle : A) (xs : list A) (i : nat) (j : nat) : nat -> Prop :=
+      | binarySearchLoop_spec_break
+        (BREAK : (i >= j)%nat)
+        : binarySearchLoop_spec needle xs i j i
+      | binarySearchLoop_spec_conti res x
+        (CONTINUE : (i < j)%nat)
+        (mid := (i + (j - i) `div` 2)%nat)
+        (LOOKUP : xs !! mid = Some x)
+        (i' := if ltb x needle then (mid + 1)%nat else i)
+        (j' := if ltb x needle then j else mid)
+        (LOOP : binarySearchLoop_spec needle xs i' j' res)
+        : binarySearchLoop_spec needle xs i j res.
+
+    Lemma binarySearchLoop_exists_uniquely (needle : A) (xs : list A) (i : nat) (j : nat) (i_BOUND : (i <= j)%nat) (j_BOUND : (j <= length xs)%nat)
+      : { res : nat | binarySearchLoop_spec needle xs i j res /\ (forall res', binarySearchLoop_spec needle xs i j res' -> res = res') }.
+    Proof.
+      remember (j - i)%nat as l eqn: H_l. assert (j = l + i)%nat as -> by word. clear H_l i_BOUND. revert i j_BOUND. induction (lt_wf l) as [l _ IH]. intros. set (l + i)%nat as j in *.
+      assert ({ i >= j } + { i < j })%nat as [GE | LT].
+      { subst j. generalize (l + i)%nat as j. clear. induction i as [ | i IH], j as [ | j]; simpl; try first [left; word | right; word]. specialize IH with (j := j). destruct IH as [IH | IH]; [left | right]; word. }
+      - exists i. split.
+        { econstructor 1; trivial. }
+        { intros res' H_res'. inversion H_res'; try word. }
+      - set (i + (j - i) `div` 2)%nat as mid.
+        assert (mid < length xs)%nat as H_mid.
+        { enough (mid < j)%nat by word. pose proof (Nat.div_mod (j - i)%nat 2%nat). pose proof (Nat.mod_bound_pos (j - i)%nat 2%nat). word. }
+        pose proof (lookup_Some xs mid H_mid) as [x H_x].
+        set (i' := if ltb x needle then (mid + 1)%nat else i). set (j' := if ltb x needle then j else mid).
+        assert ((j' - i') < l)%nat as MEASURE.
+        { destruct (ltb x needle) as [ | ]; subst i' j' j mid; try word. replace (l + i - i)%nat with l in * by word. pose proof (Nat.div_mod l 2%nat). pose proof (Nat.mod_bound_pos l 2%nat). word. }
+        assert (j' - i' + i' <= length xs)%nat as BOUND.
+        { subst i' j'. destruct (ltb x needle) as [ | ]; word. }
+        pose proof (IH (j' - i')%nat MEASURE i' BOUND) as [res [H_res UNIQUE]].
+        assert (j' = j' - i' + i')%nat as MOTTO.
+        { enough (i' <= j') by word. destruct (ltb x needle) as [ | ]; try word. subst i' j'. pose proof (Nat.div_mod (j - i)%nat 2%nat). pose proof (Nat.mod_bound_pos (j - i)%nat 2%nat). word. }
+        exists res. replace (j' - i' + i')%nat with j' in H_res. split; [econstructor 2; eauto | intros res' H_res'; eapply UNIQUE; rewrite <- MOTTO; inversion H_res'; subst; [word | ]].
+        enough (i' = i'0 /\ j' = j'0) as [? ?] by congruence. assert (mid = mid0) as H_mid1 by word. assert (x0 = x) as <- by congruence. destruct (ltb x0 needle); split; try word.
+    Qed.
+
+    Definition binarySearchLoop (needle : A) (xs : list A) (i : nat) (j : nat) (i_BOUND : (i <= j)%nat) (j_BOUND : (j <= length xs)%nat) : nat :=
+      proj1_sig (binarySearchLoop_exists_uniquely needle xs i j i_BOUND j_BOUND).
+
+    Lemma binarySearchLoop_break (needle : A) (xs : list A) (i : nat) (j : nat) (i_BOUND : (i <= j)%nat) (j_BOUND : (j <= length xs)%nat)
+      (BREAK : (i >= j)%nat)
+      : binarySearchLoop needle xs i j i_BOUND j_BOUND = i.
+    Proof.
+      unfold binarySearchLoop. destruct (binarySearchLoop_exists_uniquely needle xs i j i_BOUND j_BOUND) as [res [H_res UNIQUE]]; simpl.
+      eapply UNIQUE. econstructor 1; trivial.
+    Qed.
+
+    Lemma binarySearchLoop_continue (needle : A) (xs : list A) (i : nat) (j : nat) (i_BOUND : (i <= j)%nat) (j_BOUND : (j <= length xs)%nat) (x : A)
+      (CONTINUE : (i < j)%nat)
+      (mid := (i + (j - i) `div` 2)%nat)
+      (LOOKUP : xs !! mid = Some x)
+      (i' := if ltb x needle then (mid + 1)%nat else i)
+      (j' := if ltb x needle then j else mid)
+      : { STEP : (i' <= j' /\ j' <= length xs)%nat | binarySearchLoop needle xs i j i_BOUND j_BOUND = binarySearchLoop needle xs i' j' (proj1 STEP) (proj2 STEP) }.
+    Proof.
+      unfold binarySearchLoop. destruct (binarySearchLoop_exists_uniquely needle xs i j i_BOUND j_BOUND) as [res [H_res UNIQUE]]; simpl.
+      assert (i' <= j')%nat as H_i'. { destruct (ltb x needle) as [ | ]; try word. pose proof (Nat.div_mod (j - i)%nat 2%nat). pose proof (Nat.mod_bound_pos (j - i)%nat 2%nat). word. }
+      assert (j' <= length xs)%nat as H_j'. { destruct (ltb x needle) as [ | ]; try word. pose proof (Nat.div_mod (j - i)%nat 2%nat). pose proof (Nat.mod_bound_pos (j - i)%nat 2%nat). word. }
+      exists (conj H_i' H_j'). eapply UNIQUE. econstructor 2; eauto. fold mid. fold i'. fold j'.
+      destruct (binarySearchLoop_exists_uniquely needle xs i' j' (proj1 (conj H_i' H_j')) (proj2 (conj H_i' H_j'))) as [res' [H_res' UNIQUE']]; trivial.
+    Qed.
+
+    Definition binarySearchLoop' (needle : A) (xs : list A) (i : nat) (j : nat) : option nat :=
+      match le_gt_dec i j, le_gt_dec j (length xs) with
+      | left i_BOUND, left j_BOUND => Some (binarySearchLoop needle xs i j i_BOUND j_BOUND)
+      | _, _ => None
+      end.
+
+    #[local] Opaque Nat.div.
+
+    Lemma unfold_binarySearchLoop' (needle : A) (xs : list A) (i : nat) (j : nat) :
+      binarySearchLoop' needle xs i j =
+      match le_gt_dec i j, le_gt_dec j (length xs) with
+      | left _, left _ =>
+        if ltb i j
+        then
+          let mid := (i + (j - i) `div` 2)%nat in
+          match xs !! mid with
+          | Some x =>
+            let i' := if ltb x needle then (mid + 1)%nat else i in
+            let j' := if ltb x needle then j else mid in
+            binarySearchLoop' needle xs i' j'
+          | None => None
+          end
+        else Some i
+      | _, _ => None
+      end.
+    Proof.
+      unfold binarySearchLoop' at 1. destruct (le_gt_dec i j) as [i_BOUND | i_BOUND], (le_gt_dec j (length xs)) as [j_BOUND | j_BOUND]; trivial.
+      destruct (ltb i j) as [ | ] eqn: H_OBS.
+      - rewrite ltb_lt in H_OBS; trivial. do 2 red in H_OBS.
+        assert (i + (j - i) `div` 2 < length xs)%nat as BOUND.
+        { pose proof (Nat.div_mod (j - i)%nat 2%nat). pose proof (Nat.mod_bound_pos (j - i)%nat 2%nat). word. }
+        pose proof (lookup_Some _ _ BOUND) as [x H_x]. rewrite H_x.
+        pose proof (binarySearchLoop_continue needle xs i j i_BOUND j_BOUND x H_OBS) as claim. simpl in claim. specialize (claim H_x).
+        destruct claim as [[YES1 YES2] EQ]. rewrite EQ. unfold binarySearchLoop'. simpl.
+        set (if hsOrd .(ltb) x needle then (i + (j - i) `div` 2 + 1)%nat else i)%nat as i'.
+        set (if hsOrd .(ltb) x needle then j else (i + (j - i) `div` 2)%nat)%nat as j'.
+        destruct (le_gt_dec i' j') as [LE' | GT'], (le_gt_dec j' (length xs)) as [LE'' | GT'']; try word.
+        f_equal. f_equal; eapply le_proof_irrel.
+      - rewrite ltb_nlt in H_OBS; trivial. simpl ltProp in H_OBS. f_equal. eapply binarySearchLoop_break. word.
+    Qed.
+
+    Definition binarySearch (needle : A) (xs : list A) : nat :=
+      binarySearchLoop needle xs 0%nat (length xs) nat_le_0_n nat_le_n_n.
 
   End SORTED.
 
