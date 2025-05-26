@@ -40,23 +40,16 @@ Section heap.
     with "[] [H1 H4 H2 H5 H6]").
     - iIntros (?). iModIntro. iIntros "H1 H2". iNamed "H1". iDestruct "H1" as "(H3 & H4 & H5 & %H6 & %H7 & %H8 & %H9 & %H10 & %H11 & %H12)". wp_pures. wp_load. wp_load. wp_if_destruct.
       + wp_pures. wp_load. assert ((uint.nat i < length xs)%nat) by word.
-        apply list_lookup_lt in H. destruct H. wp_apply (wp_SliceGet with "[$Hx]").
-        * iPureIntro. apply H.
-        * iIntros "Hx". wp_pures. wp_load.
-          assert ((uint.nat i < length ys)%nat) by word.
-          eapply list_lookup_lt in H0. destruct H0.
-          wp_apply (wp_SliceGet with "[$Hy]").
-          { iPureIntro. eassumption. }
-          iIntros "Hy". wp_pures. case_bool_decide.
-          { wp_pures. wp_store. iModIntro. iApply "H2". iExists false. iExists i. iFrame. iPureIntro. repeat split; try eauto.
-            - intros. rewrite H in H3. rewrite H0 in H4. inversion H3. inversion H4. word.
-            - intros. left. exists x0. exists x1. split; auto. split; auto. apply Z.ltb_lt in H1. auto.
-          }
-          { wp_pures. wp_load. wp_pures. wp_store. iModIntro. iApply "H2". iExists b. iExists (w64_word_instance.(word.add) i (W64 1)). iFrame. iPureIntro. repeat split; word || auto.
-            intros. assert (i' <= uint.Z (i)). { rewrite word.unsigned_add in H2. word. } destruct (decide (uint.nat i = i')).
-            - subst. rewrite H0 in H4. rewrite H in H3. inversion H4. inversion H3. word.
-            - assert (i' < uint.nat i) by word. eapply H9; try eassumption. word.
-          }
+        apply list_lookup_lt in H. destruct H. wp_apply (wp_SliceGet with "[$Hx]"). { iPureIntro. apply H. } iIntros "Hx". wp_pures. wp_load.
+        assert ((uint.nat i < length ys)%nat) by word.
+        eapply list_lookup_lt in H0. destruct H0. wp_apply (wp_SliceGet with "[$Hy]"). { iPureIntro. eassumption. } iIntros "Hy". wp_pures. case_bool_decide.
+        * wp_pures. wp_store. iModIntro. iApply "H2". iExists false. iExists i. iFrame. iPureIntro. repeat split; try eauto.
+          { intros. rewrite H in H3. rewrite H0 in H4. inversion H3. inversion H4. word. }
+          { intros. left. exists x0. exists x1. split; auto. split; auto. apply Z.ltb_lt in H1. auto. }
+        * wp_pures. wp_load. wp_pures. wp_store. iModIntro. iApply "H2". iExists b. iExists (w64_word_instance.(word.add) i (W64 1)). iFrame. iPureIntro. repeat split; word || auto.
+          intros. assert (i' <= uint.Z (i)). { rewrite word.unsigned_add in H2. word. } destruct (decide (uint.nat i = i')).
+          { subst. rewrite H0 in H4. rewrite H in H3. inversion H4. inversion H3. word. }
+          { assert (i' < uint.nat i) by word. eapply H9; try eassumption. word. }
       + iModIntro. iApply "H2". iExists b. iExists i. iFrame. iPureIntro. repeat split; auto. intros. apply Znot_lt_ge in Heqb0. right. destruct H11; auto. split; auto. word.
     - iExists true. iExists (W64 0). rewrite Hsz. assert (#(W64 (uint.nat x.(Slice.sz))) = #x.(Slice.sz)) by now rewrite w64_to_nat_id. rewrite H. iDestruct "H2" as "[H2 H3]". iFrame. iPureIntro. repeat (split; (word || auto)).
     - iIntros "H". iNamed "H". iDestruct "H" as "(H1 & H2 & H8 & %H5 & %H6 & %H7 & %H8 & %H9 & %H10 & %H11)". wp_pures. wp_load. iModIntro. iApply "H3". iFrame. iPureIntro. clear Hsz.
@@ -282,9 +275,9 @@ Section heap.
 
   Lemma wp_equalSlices (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :
     {{{
-      own_slice_small x uint64T dx xs ∗
-      own_slice_small y uint64T dy ys ∗
-      ⌜length xs = length ys⌝
+        own_slice_small x uint64T dx xs ∗
+        own_slice_small y uint64T dy ys ∗
+        ⌜length xs = length ys⌝
     }}}
       CoqSessionServer.equalSlices x y 
     {{{
