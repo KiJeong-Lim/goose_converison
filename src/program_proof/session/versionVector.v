@@ -565,3 +565,11 @@ Section heap.
   Qed.
 
 End heap.
+
+#[global] Opaque CoqSessionServer.compareVersionVector.
+#[global] Opaque CoqSessionServer.lexicographicCompare.
+#[global] Opaque CoqSessionServer.maxTwoInts.
+#[global] Opaque CoqSessionServer.maxTS.
+#[global] Opaque CoqSessionServer.equalSlices.
+#[global] Opaque CoqSessionServer.oneOffVersionVector.
+#[global] Opaque CoqSessionServer.equalOperations.

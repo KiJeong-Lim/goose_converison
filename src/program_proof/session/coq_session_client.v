@@ -55,7 +55,6 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
-  (*
   Lemma wp_maxTS (n: nat) (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :
     {{{
         own_slice_small x uint64T dx xs ∗
@@ -80,10 +79,10 @@ Section heap.
     f_equal; eapply IH; word.
   Qed.
 
-  Lemma wp_read (c: Client.t) (serverId: u64) (n: nat) cv :
+  Lemma wp_read (P_c: Client.t -> Prop) (c: Client.t) (serverId: u64) (n: nat) cv :
     {{{
         is_client cv c n ∗
-        ⌜CLIENT_INVARIANT c⌝
+        ⌜CLIENT_INVARIANT P_c c⌝
     }}}
       CoqSessionClient.read (client_val cv) (#serverId)
     {{{
@@ -340,10 +339,10 @@ Section heap.
     }
   Qed.
 
-  Lemma wp_write (c: Client.t) (serverId: u64) (value: u64) (n: nat) cv :
+  Lemma wp_write (P_c: Client.t -> Prop) (c: Client.t) (serverId: u64) (value: u64) (n: nat) cv :
     {{{
         is_client cv c n ∗
-        ⌜CLIENT_INVARIANT c⌝
+        ⌜CLIENT_INVARIANT P_c c⌝
     }}}
       CoqSessionClient.write (client_val cv) (#serverId) (#value)
     {{{
@@ -600,11 +599,11 @@ Section heap.
     }
   Qed.
 
-  Lemma wp_processRequest (c: Client.t) (requestType: u64) (serverId: u64) (value: u64) (ackMessage: Message.t) (n: nat) cv msgv :
+  Lemma wp_processRequest (c: Client.t) (requestType: u64) (serverId: u64) (value: u64) (ackMessage: Message.t) (n: nat) cv msgv c_Id c_NumberOfServers c_SessionSemantic :
     {{{
         is_client cv c n ∗
         is_message msgv ackMessage n n n ∗
-        ⌜CLIENT_INVARIANT c⌝
+        ⌜CLIENT_INVARIANT (fun _c => _c.(Client.Id) = c_Id /\ _c.(Client.NumberOfServers) = c_NumberOfServers /\ _c.(Client.SessionSemantic) = c_SessionSemantic) c⌝
     }}}
       CoqSessionClient.processRequest (client_val cv) (#requestType) (#serverId) (#value) (message_val msgv)
     {{{
@@ -612,10 +611,10 @@ Section heap.
         is_client cv' (coq_processRequest c requestType serverId value ackMessage).1 n ∗
         is_message msgv' (coq_processRequest c requestType serverId value ackMessage).2 n (if (uint.Z requestType =? 0)%Z || (uint.Z requestType =? 1)%Z then n else 0%nat) 0%nat ∗
         is_message msgv ackMessage n n n ∗
-        ⌜CLIENT_INVARIANT (coq_processRequest c requestType serverId value ackMessage).1⌝
+        ⌜CLIENT_INVARIANT (fun _c => _c.(Client.Id) = c_Id /\ _c.(Client.NumberOfServers) = c_NumberOfServers /\ _c.(Client.SessionSemantic) = c_SessionSemantic) (coq_processRequest c requestType serverId value ackMessage).1⌝
     }}}.
   Proof.
-    TypeVector.des cv. TypeVector.des msgv. iIntros "%Φ (H_is_client & H_is_message & %H_invariant) HΦ".
+    set (fun _c => _c.(Client.Id) = c_Id /\ _c.(Client.NumberOfServers) = c_NumberOfServers /\ _c.(Client.SessionSemantic) = c_SessionSemantic) as P_c. TypeVector.des cv. TypeVector.des msgv. iIntros "%Φ (H_is_client & H_is_message & %H_invariant) HΦ".
     iDestruct "H_is_client" as "(%H1 & %H2 & -> & H3 & %H4 & H5 & %H6 & %H7)". iDestruct "H_is_message" as "(%H11 & %H12 & %H13 & %H14 & %H15 & H16 & %H17 & %H18 & %H19 & H20 & %H21 & %H22 & %H23 & %H24 & %H25 & %H26 & H27 & %H28 & %H29 & %H30)".
     simplNotation; simpl; subst; rewrite /CoqSessionClient.processRequest.
     iPoseProof (own_slice_small_sz with "[$H3]") as "%LENGTH1".
@@ -623,7 +622,7 @@ Section heap.
     wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%nc H_nc".
     wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. } iIntros "%msg H_msg".
     wp_pures. wp_if_destruct.
-    { wp_apply (wp_read c serverId (uint.nat c.(Client.NumberOfServers)) with "[H3 H5]"). { iFrame. simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
+    { wp_apply (wp_read P_c c serverId (uint.nat c.(Client.NumberOfServers)) with "[H3 H5]"). { iFrame. simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
       replace (message_val msgv) with (message_into_val.(to_val) msgv) by reflexivity.
       wp_pures; eapply (tac_wp_store_ty _ _ _ _ _ _ []%list); [repeat econstructor; eauto | tc_solve | let l := msg in iAssumptionCore | reflexivity | simpl].
       wp_pures. wp_load.
@@ -634,7 +633,7 @@ Section heap.
       iFrame; simplNotation; simpl. iPureIntro; tauto.
     }
     wp_pures. wp_if_destruct.
-    { wp_apply (wp_write c serverId value (uint.nat c.(Client.NumberOfServers)) with "[H3 H5]"). { iFrame. simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
+    { wp_apply (wp_write P_c c serverId value (uint.nat c.(Client.NumberOfServers)) with "[H3 H5]"). { iFrame. simplNotation; simpl; iPureIntro. tauto. } iIntros "%msgv [H_is_client H_msgv]".
       replace (message_val msgv) with (message_into_val.(to_val) msgv) by reflexivity.
       wp_pures; eapply (tac_wp_store_ty _ _ _ _ _ _ []%list); [repeat econstructor; eauto | tc_solve | let l := msg in iAssumptionCore | reflexivity | simpl].
       wp_pures. wp_load.
@@ -802,6 +801,9 @@ Section heap.
       iPureIntro; tauto.
     }
   Qed.
-  *)
 
 End heap.
+
+#[global] Opaque CoqSessionClient.read.
+#[global] Opaque CoqSessionClient.write.
+#[global] Opaque CoqSessionClient.processRequest.

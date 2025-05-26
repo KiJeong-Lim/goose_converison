@@ -5,29 +5,6 @@ Proof files are in `goose_converison/src/program_proof/session`
 First run git `submodule update --init --recursive`
 To compile dependencies for proofs do (`make src/program_proof/session/versionVector.required_vos`) for respective files  
 
-## Completed equivalence proofs:
-1. compareVersionVector
-2. lexiographicCompare
-3. maxTwoInts
-4. maxTS
-5. oneOffVersionVector
-6. equalSlices
-7. equalOperations
-8. binarySearch
-9. sortedInsert
-10. mergeOperations 
-11. deleteAtIndexOperation
-12. deleteAtIndexMessage 
-13. getDataFromOperationLog
-14. acknowledgeGossip
-15. getGossipOperations
-16. receiveGossip
-17. processClientRequest
-18. server.processRequest
-19. write
-20. read
-21. client.processRequest
-
 # Verifying concurrent, crash-safe systems with Perennial
 
 [![CI](https://github.com/mit-pdos/perennial/actions/workflows/ci.yml/badge.svg)](https://github.com/mit-pdos/perennial/actions/workflows/ci.yml)
