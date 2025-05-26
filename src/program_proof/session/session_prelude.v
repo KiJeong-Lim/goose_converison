@@ -877,6 +877,16 @@ Module SessionPrelude.
     Definition binarySearch (needle : A) (xs : list A) : nat :=
       binarySearchLoop needle xs 0%nat (length xs) nat_le_0_n nat_le_n_n.
 
+    Theorem binarySearch_spec (x : A) (xs : list A) (x_wf : well_formed x) (xs_wf : Forall well_formed xs)
+      (SORTED : isSorted xs)
+      (NOT_IN := forallb (fun x' => negb (eqb x' x)) xs)
+      : ∃ prefix, ∃ suffix, xs = prefix ++ (if NOT_IN then [] else [x]) ++ suffix /\
+        (∀ n : nat, ∀ x' : A, prefix !! n = Some x' -> ltb x' x = true) /\
+        (∀ n : nat, ∀ x' : A, suffix !! n = Some x' -> ltb x x' = true) /\
+        length prefix = binarySearch x xs.
+    Proof.
+    Admitted.
+
   End SORTED.
 
   Section VECTOR.
