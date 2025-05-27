@@ -10,6 +10,12 @@ Module SessionPrelude.
 
   Section MORE_LIST_LEMMAS.
 
+    Lemma lookup_map {A : Type} {B : Type} (f : A -> B) (xs : list A) (i : nat)
+      : map f xs !! i = match xs !! i with Some x => Some (f x) | None => None end.
+    Proof.
+      revert i. induction xs as [ | x xs IH], i as [ | i]; simpl in *; try congruence; eauto.
+    Qed.
+
     Context {A : Type}.
 
     Lemma list_ext (xs : list A) (ys : list A)
