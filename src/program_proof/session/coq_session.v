@@ -249,6 +249,38 @@ Section properties.
 
   #[local] Hint Resolve @Forall_True : core.
 
+  Lemma aux0_equalSlices l1 l2 :
+    length l1 = length l2 ->
+    coq_equalSlices l1 l2 = true ->
+    l1 = l2.
+  Proof.
+    rewrite redefine_coq_equalSlices. intros. rewrite <- vectorEq_true_iff; eauto 2.
+  Qed.
+
+  Lemma aux1_equalSlices l1 l2 :
+    length l1 = length l2 ->
+    coq_equalSlices l1 l2 = false ->
+    l1 ≠ l2.
+  Proof.
+    rewrite redefine_coq_equalSlices. intros. rewrite <- vectorEq_true_iff; eauto 2.
+    rewrite H0; congruence.
+  Qed.
+
+  Lemma aux2_equalSlices l1 l2 b :
+    length l1 = length l2 ->
+    coq_equalSlices l1 l2 = b ->
+    coq_equalSlices l2 l1 = b.
+  Proof.
+    rewrite redefine_coq_equalSlices. intros. subst b. eapply (eqb_comm (hsEq_A := hsEq_vector (length l1))); eauto.
+  Qed.
+
+  Lemma aux3_equalSlices l :
+    coq_equalSlices l l = true.
+  Proof.
+    change (coq_equalSlices l l) with (eqb (hsEq := hsEq_vector (length l)) l l).
+    rewrite eqb_eq; eauto 2. eapply eqProp_reflexivity; eauto 2.
+  Qed.
+
   Lemma aux0_lexicographicCompare l1 l2 l3 :
     coq_lexicographicCompare l2 l1 = true ->
     coq_lexicographicCompare l3 l2 = true ->
@@ -285,7 +317,7 @@ Section properties.
   Qed.
 
   Lemma aux3_lexicographicCompare l1 l2 :
-    length l1 = length l2 -> 
+    length l1 = length l2 ->
     coq_lexicographicCompare l2 l1 = false ->
     coq_lexicographicCompare l1 l2 = false ->
     l1 = l2.
@@ -313,44 +345,23 @@ Section properties.
     intros. eapply vectorEq_implies_not_vectorGt; eauto 2.
   Qed.
 
-  Lemma aux0_equalSlices l1 l2 :
+  Lemma aux6_lexicographicCompare l1 l2 :
     length l1 = length l2 ->
-    coq_equalSlices l1 l2 = true ->
-    l1 = l2.
+    coq_lexicographicCompare l1 l2 = false ->
+    (coq_lexicographicCompare l2 l1 = true \/ l1 = l2).
   Proof.
-    rewrite redefine_coq_equalSlices. intros. rewrite <- vectorEq_true_iff; eauto 2.
-  Qed.
-
-  Lemma aux1_equalSlices l1 l2 :
-    length l1 = length l2 ->
-    coq_equalSlices l1 l2 = false ->
-    l1 ≠ l2.
-  Proof.
-    rewrite redefine_coq_equalSlices. intros. rewrite <- vectorEq_true_iff; eauto 2.
-    rewrite H0; congruence.
-  Qed.
-
-  Lemma aux2_equalSlices l1 l2 b :
-    length l1 = length l2 ->
-    coq_equalSlices l1 l2 = b ->
-    coq_equalSlices l2 l1 = b.
-  Proof.
-    rewrite redefine_coq_equalSlices. intros. subst b. eapply (eqb_comm (hsEq_A := hsEq_vector (length l1))); eauto.
-  Qed.
-
-  Lemma aux3_equalSlices l :
-    coq_equalSlices l l = true.
-  Proof.
-    change (coq_equalSlices l l) with (eqb (hsEq := hsEq_vector (length l)) l l).
-    rewrite eqb_eq; eauto 2. eapply eqProp_reflexivity; eauto 2.
+    rewrite redefine_coq_lexicographicCompare. intros.
+    pose proof (ltProp_trichotomy (hsOrd := hsOrd_vector (length l2)) l1 l2) as [H_lt | [H_eq | H_gt]]; eauto.
+    - rewrite <- eqb_eq in H_eq; eauto 2. simpl in *. right; eapply aux0_equalSlices; trivial.
+    - rewrite <- ltb_lt in H_gt; eauto 2. simpl in *. congruence.
   Qed.
 
   Lemma coq_equalOperations_comm o1 o2
     : coq_equalOperations o1 o2 = coq_equalOperations o2 o1.
   Proof.
     unfold coq_equalOperations. replace Z.eqb with (SessionPrelude.eqb (hsEq := hsEq_Z)) by reflexivity. rewrite eqb_comm; eauto.
-    destruct (hsEq_Z .(eqb) (uint.Z o2 .(Operation.Data)) (uint.Z o1 .(Operation.Data))) as [ | ] eqn: H_obs; rewrite eqb_obs in H_obs; eauto.
-    - do 2 rewrite andb_true_r. simpl in H_obs. generalize (o1 .(Operation.VersionVector)) as v1. generalize (o2 .(Operation.VersionVector)) as v2.
+    destruct (eqb (uint.Z o2.(Operation.Data)) (uint.Z o1.(Operation.Data))) as [ | ] eqn: H_obs; rewrite eqb_obs in H_obs; eauto.
+    - do 2 rewrite andb_true_r. simpl in H_obs. generalize (o1.(Operation.VersionVector)) as v1. generalize (o2.(Operation.VersionVector)) as v2.
       induction v2 as [ | v2_hd v2_tl IH], v1 as [ | v1_hd v1_tl]; simpl; eauto.
       rewrite IH. replace Z.eqb with (SessionPrelude.eqb (hsEq := hsEq_Z)) by reflexivity. rewrite eqb_comm; eauto.
     - do 2 rewrite andb_false_r. reflexivity.

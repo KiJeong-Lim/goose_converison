@@ -6,69 +6,66 @@ Module Operation.
     struct.t Operation = (slice.T uint64T * (uint64T * unitT))%ht.
   Proof. reflexivity. Qed.
 
-  Record t :=
-    mk {
-        VersionVector: list u64 ;
-        Data:          u64 ;
-      }.
+  Record t := mk
+    { VersionVector: list u64
+    ; Data:          u64
+    }.
 
 End Operation.
 
 Module Message.
 
-  Record t := mk {
-                  MessageType: u64 ;
+  Record t := mk
+    { MessageType:  u64
 
-                  C2S_Client_Id:            u64;
-	          C2S_Server_Id:            u64;
-	          C2S_Client_OperationType: u64;
-	          C2S_Client_Data:          u64;
-	          C2S_Client_VersionVector: list u64;
-
-	          S2S_Gossip_Sending_ServerId:   u64;
-	          S2S_Gossip_Receiving_ServerId: u64;
-	          S2S_Gossip_Operations:         list Operation.t;
-	          S2S_Gossip_Index:              u64;
-
-	          S2S_Acknowledge_Gossip_Sending_ServerId:   u64;
-	          S2S_Acknowledge_Gossip_Receiving_ServerId: u64;
-	          S2S_Acknowledge_Gossip_Index:              u64;
-
-	          S2C_Client_OperationType: u64;    
-	          S2C_Client_Data:          u64;
-	          S2C_Client_VersionVector: list u64;
-                  S2C_Server_Id:            u64;
-	          S2C_Client_Number:        u64;
-                }.
+    ; C2S_Client_Id:            u64
+    ; C2S_Server_Id:            u64
+    ; C2S_Client_OperationType: u64
+    ; C2S_Client_Data:          u64
+    ; C2S_Client_VersionVector: list u64
+    
+    ; S2S_Gossip_Sending_ServerId:   u64
+    ; S2S_Gossip_Receiving_ServerId: u64
+    ; S2S_Gossip_Operations:         list Operation.t
+    ; S2S_Gossip_Index:              u64
+    
+    ; S2S_Acknowledge_Gossip_Sending_ServerId:   u64
+    ; S2S_Acknowledge_Gossip_Receiving_ServerId: u64
+    ; S2S_Acknowledge_Gossip_Index:              u64
+    
+    ; S2C_Client_OperationType: u64
+    ; S2C_Client_Data:          u64
+    ; S2C_Client_VersionVector: list u64
+    ; S2C_Server_Id:            u64
+    ; S2C_Client_Number:        u64
+    }.
 
 End Message.
 
 Module Server.
 
-  Record t :=
-    mk {
-        Id:                     u64 ;
-	NumberOfServers:        u64 ;
-	UnsatisfiedRequests:    list Message.t ;
-	VectorClock:            list u64 ;
-	OperationsPerformed:    list Operation.t ;
-	MyOperations:           list Operation.t ;
-	PendingOperations:      list Operation.t ;
-	GossipAcknowledgements: list u64 ;
-      }.
+  Record t := mk
+    { Id:                     u64
+    ; NumberOfServers:        u64
+    ; UnsatisfiedRequests:    list Message.t
+    ; VectorClock:            list u64
+    ; OperationsPerformed:    list Operation.t
+    ; MyOperations:           list Operation.t
+    ; PendingOperations:      list Operation.t
+    ; GossipAcknowledgements: list u64
+    }.
 
 End Server.
 
 Module Client.
 
-  Record t :=
-    mk {
-        Id: u64 ;
-        NumberOfServers: u64 ;
-        WriteVersionVector: list u64 ;
-        ReadVersionVector: list u64 ;
-        SessionSemantic: u64 ;
-      }.
+  Record t := mk
+    { Id:                 u64
+    ; NumberOfServers:    u64
+    ; WriteVersionVector: list u64
+    ; ReadVersionVector:  list u64
+    ; SessionSemantic:    u64
+    }.
   
 End Client.
 
