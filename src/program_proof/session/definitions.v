@@ -6,7 +6,7 @@ Module Operation.
     struct.t Operation = (slice.T uint64T * (uint64T * unitT))%ht.
   Proof. reflexivity. Qed.
 
-  Record t := mk
+  Record t : Type := mk
     { VersionVector: list u64
     ; Data:          u64
     }.
@@ -15,7 +15,7 @@ End Operation.
 
 Module Message.
 
-  Record t := mk
+  Record t : Type := mk
     { MessageType:  u64
 
     ; C2S_Client_Id:            u64
@@ -44,7 +44,7 @@ End Message.
 
 Module Server.
 
-  Record t := mk
+  Record t : Type := mk
     { Id:                     u64
     ; NumberOfServers:        u64
     ; UnsatisfiedRequests:    list Message.t
@@ -59,7 +59,7 @@ End Server.
 
 Module Client.
 
-  Record t := mk
+  Record t : Type := mk
     { Id:                 u64
     ; NumberOfServers:    u64
     ; WriteVersionVector: list u64

@@ -6,9 +6,9 @@
 
 ## prelude
 
-- session_prelude.v (1220 lines) [v]
-- definitions.v (395 lines) [v]
-- coq_session.v (529 lines) [v]
+- session_prelude.v (1077 lines) [v]
+- definitions.v (392 lines) [v]
+- coq_session.v (547 lines) [v]
 
 ## equivalence proofs:
 

@@ -16,7 +16,35 @@ Module SessionPrelude.
       revert i. induction xs as [ | x xs IH], i as [ | i]; simpl in *; try congruence; eauto.
     Qed.
 
+    Lemma map_take {A : Type} {B : Type} (f : A -> B) (xs : list A) (n : nat)
+      : map f (take n xs) = take n (map f xs).
+    Proof.
+      revert n. induction xs as [ | x xs IH], n as [ | n]; simpl; intros; try congruence.
+    Qed.
+
+    Lemma map_drop {A : Type} {B : Type} (f : A -> B) (xs : list A) (n : nat)
+      : map f (drop n xs) = drop n (map f xs).
+    Proof.
+      revert n. induction xs as [ | x xs IH], n as [ | n]; simpl; intros; try congruence.
+    Qed.
+
     Context {A : Type}.
+
+    Lemma lookup_one (x1 : A) (i : nat)
+      : forall x, [x1] !! i = Some x <-> (x1 = x /\ i = 0%nat).
+    Proof.
+      intros x; split.
+      - destruct i as [ | i]; simpl in *; intros EQ; try now split. split; congruence.
+      - now intros [-> ->].
+    Qed.
+
+    Lemma lookup_app (xs1 : list A) (xs2 : list A) (i : nat)
+      : forall x, (xs1 ++ xs2) !! i = Some x <-> (if Nat.ltb i (length xs1) then xs1 !! i = Some x else xs2 !! (i - length xs1)%nat = Some x).
+    Proof.
+      intros x. destruct (Nat.ltb _ _) as [ | ] eqn: H_OBS; [rewrite Nat.ltb_lt in H_OBS | rewrite Nat.ltb_nlt in H_OBS].
+      - rewrite lookup_app_l; try word. reflexivity.
+      - rewrite lookup_app_r; try word. reflexivity.
+    Qed.
 
     Lemma list_ext (xs : list A) (ys : list A)
       (LENGTH : length xs = length ys)
@@ -603,6 +631,69 @@ Module SessionPrelude.
             - contradiction H_OBS2.
             - contradiction H_OBS1.
           }
+    Qed.
+
+    Lemma sortedInsert_unique (l : list A) (i : A) (l_wf : Forall well_formed l) (i_wf : well_formed i) prefix suffix
+      (SORTED : isSorted l)
+      (NOT_IN := forallb (fun j => negb (eqb j i)) l)
+      (APPEND : l = prefix ++ suffix)
+      (PREFIX : ∀ n : nat, ∀ x : A, prefix !! n = Some x -> ltb x i = true)
+      (SUFFIX : ∀ n : nat, ∀ x : A, suffix !! n = Some x -> if NOT_IN then ltb i x = true else ltb i x = true \/ eqb i x = true)
+      : sortedInsert l i = prefix ++ (if NOT_IN then [i] else []) ++ suffix.
+    Proof.
+      remember l as l' eqn: H_l' in NOT_IN. subst NOT_IN. destruct (forallb (λ j : A, negb (hsEq .(eqb) j i)) l') as [ | ] eqn: H_In.
+      - assert (SUBLIST : forall x, In x l -> In x l') by now subst l'.
+        rewrite forallb_spec in H_In. clear H_l'; revert i SORTED i_wf l' SUBLIST H_In prefix suffix PREFIX SUFFIX APPEND.
+        induction l_wf as [ | x1 xs x1_wf xs_wf IH]; intros x0; intros; simpl in *.
+        + destruct prefix, suffix; simpl in *; try congruence.
+        + destruct (ltb x0 x1) as [ | ] eqn: H_ltb; [rewrite ltb_lt in H_ltb | rewrite ltb_nlt in H_ltb]; trivial.
+          { destruct prefix as [ | x2 xs2].
+            - simpl in *. congruence.
+            - pose proof (PREFIX 0%nat x2 eq_refl) as claim1. pose proof (SUBLIST x1 (or_introl eq_refl)) as claim2.
+              assert (head (x1 :: xs) = head ((x2 :: xs2) ++ suffix)) as claim3 by now f_equal. simpl in claim3. assert (x1 = x2) as <- by congruence.
+              contradiction (ltProp_irreflexivity x1 x1); trivial; [eapply eqProp_reflexivity | eapply ltProp_transitivity with (y := x0)]; trivial. rewrite ltb_lt in claim1; trivial.
+          }
+          destruct (eqb x1 x0) as [ | ] eqn: H_eqb.
+          { rewrite <- negb_false_iff in H_eqb. rewrite H_In in H_eqb; try congruence. eapply SUBLIST. now left. }
+          { rewrite eqb_neq in H_eqb; trivial. destruct prefix as [ | x2 xs2]; simpl in *.
+            - assert (claim1 : ltb x0 x1 = true). { eapply SUFFIX with (n := 0%nat). now rewrite <- APPEND. }
+              rewrite ltb_lt in claim1; trivial. contradiction H_ltb.
+            - assert (x1 = x2) as <- by congruence. f_equal. eapply IH; eauto; try congruence.
+              + eapply isSorted_middle_1 with (xs := []); simpl; exact SORTED.
+              + intros n x H_x. eapply PREFIX with (n := S n). simpl; trivial.
+          }
+      - subst l'. simpl in *. rewrite forallb_spec in H_In. destruct H_In as (x & IN & H_EQ). rewrite negb_false_iff in H_EQ.
+        revert i i_wf prefix suffix PREFIX SUFFIX SORTED APPEND x IN H_EQ. induction l_wf as [ | x1 xs x1_wf xs_wf IH]; intros x0; intros; simpl in *; try tauto.
+        destruct (ltb x0 x1) as [ | ] eqn: H_ltb.
+        { destruct IN as [<- | IN].
+          - rewrite ltb_lt in H_ltb; trivial. contradiction (ltProp_irreflexivity x0 x1); trivial. rewrite eqb_eq in H_EQ; trivial. eapply eqProp_symmetry; trivial.
+          - pose proof (proj1 (List.Forall_forall well_formed xs) xs_wf x IN) as x_wf. destruct prefix as [ | x2 xs2].
+            + simpl in *. apply In_lookup in IN. destruct IN as (n & LOOKUP & LT). rewrite eqb_eq in H_EQ; trivial. contradiction (ltProp_irreflexivity x0 x).
+              * eapply eqProp_symmetry; trivial.
+              * rewrite ltb_lt in H_ltb; trivial. eapply ltProp_transitivity with (y := x1); trivial. rewrite <- ltb_lt; trivial. eapply SORTED with (i := 0%nat) (j := S n); trivial. word.
+            + simpl in *. assert (x2 = x1) as -> by congruence. apply f_equal with (f := tail) in APPEND; simpl in *. subst xs.
+              contradiction (ltProp_irreflexivity x1 x1); trivial.
+              * eapply eqProp_reflexivity; trivial.
+              * rewrite ltb_lt in H_ltb; trivial. eapply ltProp_transitivity with (y := x0); trivial. rewrite <- ltb_lt; trivial. eapply PREFIX with (n := 0%nat). reflexivity.
+        }
+        destruct (eqb x1 x0) as [ | ] eqn: H_eqb.
+        { trivial. }
+        { destruct prefix as [ | x2 xs2]; simpl in *.
+          - destruct IN as [<- | IN].
+            + congruence.
+            + pose proof (proj1 (List.Forall_forall well_formed xs) xs_wf x IN) as x_wf.
+              apply SessionPrelude.In_lookup in IN. destruct IN as (n & LOOKUP & H_n). rewrite eqb_eq in H_EQ; trivial. contradiction (ltProp_irreflexivity x0 x).
+              * eapply eqProp_symmetry; trivial.
+              * pose proof (ltProp_trichotomy x0 x1 i_wf x1_wf) as [? | [? | ?]].
+                { eapply ltProp_transitivity with (y := x1); trivial. rewrite <- ltb_lt; trivial. eapply SORTED with (i := 0%nat) (j := S n); trivial. word. }
+                { rewrite eqb_neq in H_eqb; trivial. contradiction H_eqb. eapply eqProp_transitivity with (y := x); trivial. eapply eqProp_symmetry; trivial. eapply eqProp_transitivity with (y := x0); trivial. }
+                { rewrite ltb_nlt in H_ltb; trivial. rewrite eqb_neq in H_eqb; trivial. pose proof (SUFFIX 0%nat x1) as claim1. rewrite <- APPEND in claim1. simpl in claim1. specialize (claim1 eq_refl). rewrite ltb_lt in claim1; trivial. rewrite eqb_eq in claim1; trivial. destruct claim1; try tauto. contradiction H_eqb. eapply eqProp_symmetry; trivial. }
+          - destruct IN as [<- | IN].
+            + congruence.
+            + assert (x1 = x2) as <- by congruence. f_equal. eapply IH; eauto; try congruence.
+              * intros n x2 H_x2. eapply PREFIX with (n := S n); trivial.
+              * eapply isSorted_middle_1 with (xs := []). simpl. exact SORTED.
+        }
     Qed.
 
     Lemma sortedInsert_isSorted l i (l_wf : Forall well_formed l) (i_wf : well_formed i)

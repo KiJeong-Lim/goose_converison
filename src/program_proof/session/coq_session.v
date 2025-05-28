@@ -406,6 +406,13 @@ Section heap.
 
   Context `{hG: !heapGS Σ}.
 
+  Lemma Operation_wf_INTRO o opv (n : nat)
+    : (is_operation opv o n)%I ⊢@{iProp Σ} (⌜Operation_wf n o⌝)%I.
+  Proof.
+    iIntros "H_hd". iDestruct "H_hd" as "(%H1 & %H2 & H3)"; iClear "H3".
+    iPureIntro; split; [eapply SessionPrelude.Forall_True | done].
+  Qed.
+
   Lemma Forall_Operation_wf l ops (n: nat)
     : ([∗ list] opv;o ∈ ops;l, is_operation opv o n)%I ⊢@{iProp Σ} (⌜Forall (Operation_wf n) l⌝)%I.
   Proof.
