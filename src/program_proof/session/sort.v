@@ -139,12 +139,12 @@ Section heap.
     { replace operation_val with operation_into_val.(to_val) by reflexivity. iDestruct "H_s" as "(%ops & H_s & H_ops)". iPoseProof (big_sepL2_length with "[$H_ops]") as "%H_ops_len". iPoseProof (own_slice_sz with "[$H_s]") as "%H_s_sz". iPoseProof (Forall_Operation_wf with "H_ops") as "%claim2". iPoseProof (Operation_wf_INTRO with "[$H_n]") as "%claim3".
       wp_apply (wp_SliceAppend with "[$H_s]"). iIntros "%s' H_s'". iApply "HΦ". replace (coq_sortedInsert l v) with (l ++ [v]).
       - iFrame. simpl. iPureIntro. split; trivial. rewrite <- H_s_sz in H_pos. rewrite -> H_ops_len in H_pos. destruct H_pos. destruct (forallb _) as [ | ] eqn: H_OBS.
-        + pose proof (@f_equal (list (list u64)) nat length _ _ VECTOR) as H_length. rewrite length_map in H_length. rewrite length_app in H_length.
+        + pose proof ( @f_equal (list (list u64)) nat length _ _ VECTOR) as H_length. rewrite length_map in H_length. rewrite length_app in H_length.
           assert (length suffix = 0%nat) as H_suffix_len by word. destruct suffix; simpl in *; try word. clear H_suffix_len H_length SUFFIX. rewrite app_nil_r in VECTOR.
           intros i j LT o1 o2 H_o1 H_o2. rewrite SessionPrelude.lookup_app in H_o2. destruct (Nat.ltb j (length l)) as [ | ] eqn: H_ltb; [rewrite Nat.ltb_lt in H_ltb | rewrite Nat.ltb_nlt in H_ltb].
           * rewrite SessionPrelude.lookup_app in H_o1. replace (i <? length l)%nat with true in H_o1 by now symmetry; rewrite Nat.ltb_lt; word. eapply SORTED with (i := i) (j := j); trivial.
           * rewrite SessionPrelude.lookup_one in H_o2. destruct H_o2 as [<- H_eq_0]. eapply PREFIX. rewrite <- VECTOR. rewrite in_map_iff. exists o1. split; trivial. rewrite SessionPrelude.lookup_app in H_o1. replace (Nat.ltb i (length l)) with true in H_o1 by now symmetry; rewrite Nat.ltb_lt; word. eapply SessionPrelude.lookup_In; eassumption.
-        + pose proof (@f_equal (list (list u64)) nat length _ _ VECTOR) as H_length. rewrite length_map in H_length. rewrite length_app in H_length. simpl in H_length. word.
+        + pose proof ( @f_equal (list (list u64)) nat length _ _ VECTOR) as H_length. rewrite length_map in H_length. rewrite length_app in H_length. simpl in H_length. word.
       - rewrite -> redefine_coq_sortedInsert with (len := n). pose proof (SessionPrelude.sortedInsert_unique (well_formed := Operation_wf n) l v claim2 claim3 l [] SORTED) as claim4. simpl in claim4. rewrite app_nil_r in claim4. specialize (claim4 eq_refl). destruct H_pos. change SessionPrelude.vectorGt with coq_lexicographicCompare in *. change SessionPrelude.vectorEq with coq_equalSlices in *.
         assert (length l = length prefix) as claim5 by word. destruct (forallb _) as [ | ] eqn: H_forallb; rewrite SessionPrelude.forallb_spec in H_forallb.
         + rewrite app_nil_r in claim4. symmetry. eapply claim4.
@@ -154,7 +154,7 @@ Section heap.
         + destruct H_forallb as (x & IN & H_in). rewrite -> negb_false_iff in H_in. pose proof (COPY := VECTOR). apply f_equal with (f := length) in COPY. rewrite length_app in COPY. rewrite length_map in COPY. simpl in *. word.
     }
     iDestruct "H_s" as "(%ops & H_s & H_ops)". iPoseProof (own_slice_cap_wf with "[H_s]") as "%H_cap". { iDestruct "H_s" as "[H1_s H2_s]". iExact "H2_s". } iPoseProof (big_sepL2_length with "[$H_ops]") as "%H_ops_len". iPoseProof (own_slice_sz with "[$H_s]") as "%H_s_sz". iPoseProof (Forall_Operation_wf with "H_ops") as "%claim2". iPoseProof (Operation_wf_INTRO with "[$H_n]") as "%claim3". destruct H_pos. assert (uint.nat pos < length l)%nat as claim4. { destruct (forallb _) as [ | ]; apply f_equal with (f := length) in VECTOR; rewrite length_map in VECTOR; simpl in *; rewrite length_app in VECTOR; try word. }
-    pose proof (COPY := claim4). apply SessionPrelude.lookup_Some in COPY. destruct COPY as (x & LOOKUP). iPoseProof (big_sepL2_flip with "[$H_ops]") as "H_ops". iPoseProof (big_sepL2_middle_split' _ LOOKUP with "[$H_ops]") as "(%v' & %prefix' & %suffix' & [%H_ops %H_len] & H_v' & H_prefix' & H_suffix')". iDestruct "H_s" as "[H1_s H2_s]".
+    pose proof (COPY := claim4). apply SessionPrelude.lookup_Some in COPY. destruct COPY as (x & LOOKUP). iPoseProof (big_sepL2_flip with "[$H_ops]") as "H_ops". iPoseProof (big_sepL2_middle_split _ LOOKUP with "[$H_ops]") as "(%v' & %prefix' & %suffix' & [%H_ops %H_len] & H_v' & H_prefix' & H_suffix')". iDestruct "H_s" as "[H1_s H2_s]".
     assert (ops !! uint.nat pos = Some v') by now rewrite H_ops; rewrite -> lookup_app_r; try word; replace (uint.nat pos - length prefix')%nat with 0%nat by word; trivial. wp_apply (wp_SliceGet with "[$H1_s]"); eauto. iIntros "H1_s". wp_apply (wp_equalOperations with "[$H_v' $H_n]"). iIntros "[H_v' H_n]". wp_if_destruct.
     { iModIntro. iApply "HΦ". replace (coq_sortedInsert l v) with l.
       - iFrame. iSplitR "".
@@ -174,23 +174,27 @@ Section heap.
             { unfold getOperationVersionVector in VIEW. replace (v.(Operation.VersionVector)) with (y.(Operation.VersionVector)) by congruence. right. eapply aux3_equalSlices. }
             { left. eapply SUFFIX. eapply SessionPrelude.lookup_In; eassumption. }
     }
-    { wp_apply (wp_SliceSkip); try word. wp_apply slice.wp_SliceSingleton; eauto. iIntros "%s1 H_s1". replace [operation_val o] with (@list.untype _ _ operation_into_val [o]) by reflexivity. iPoseProof (slice_small_split _ pos with "[$H1_s]") as "[H_s1_prefix H_s1_suffix]"; try word. wp_apply (wp_SliceAppendSlice with "[$H_s1 $H_s1_suffix]"). { repeat econstructor; eauto. }
-      iIntros "%s2 H_s2". iDestruct "H_s2" as "[[H1_s2 H2_s2] H3_s2]". wp_pures. wp_apply (wp_SliceTake); try word. wp_apply (wp_SliceAppendSlice with "[H_s1_prefix H3_s2 H1_s2 H2_s]"). { repeat econstructor; eauto. } { iFrame. iApply own_slice_cap_take; try word. iFrame. } iIntros "%s3 H_s3". wp_pures. iModIntro. iApply "HΦ". iSplitR "".
-      - rename v' into o', x into v'. iRename "H_n" into "H_v". iDestruct "H_s3" as "[H1_s3 H2_s3]". pose proof (SessionPrelude.sortedInsert_unique (well_formed := Operation_wf n) l v claim2 claim3 (take (uint.nat pos) l) (drop (uint.nat pos) l) SORTED) as claim5. simpl in claim5. rewrite take_drop in claim5. specialize (claim5 eq_refl). change SessionPrelude.vectorEq with coq_equalSlices in *. change SessionPrelude.vectorGt with coq_lexicographicCompare in *. change SessionPrelude.sortedInsert with coq_sortedInsert in *. destruct (forallb _) as [ | ] eqn: H_forallb; rewrite SessionPrelude.forallb_spec in H_forallb.
-        + rewrite claim5.
-          { iExists (prefix' ++ [o] ++ [o'] ++ suffix'). iSplitR "H_prefix' H_suffix' H_v H_v'".
-            - admit.
-            - admit.
+    { wp_apply (wp_SliceSkip); try word. wp_apply slice.wp_SliceSingleton; eauto. iIntros "%s1 H_s1". replace [operation_val o] with ( @list.untype _ _ operation_into_val [o]) by reflexivity. iPoseProof (slice_small_split _ pos with "[$H1_s]") as "[H_s1_prefix H_s1_suffix]"; try word. wp_apply (wp_SliceAppendSlice with "[$H_s1 $H_s1_suffix]"). { repeat econstructor; eauto. } rename v' into o', x into v'. iRename "H_n" into "H_v". assert (drop (uint.nat pos) l = v' :: drop (uint.nat pos + 1)%nat l) as claim6. { eapply SessionPrelude.app_cancel_l with (prefix := take (uint.nat pos) l). rewrite take_drop. replace (uint.nat pos + 1)%nat with (S (uint.nat pos)) by word. rewrite take_drop_middle; trivial. } 
+      iIntros "%s2 H_s2". iDestruct "H_s2" as "[[H1_s2 H2_s2] H3_s2]". wp_pures. wp_apply (wp_SliceTake); try word. wp_apply (wp_SliceAppendSlice with "[H_s1_prefix H3_s2 H1_s2 H2_s]"). { repeat econstructor; eauto. } { iFrame. iApply own_slice_cap_take; try word. iFrame. } iIntros "%s3 [H_s3 H1_s2]". wp_pures. iModIntro. iApply "HΦ". iSplitR "".
+      - iDestruct "H_s3" as "[H1_s3 H2_s3]". pose proof (SessionPrelude.sortedInsert_unique (well_formed := Operation_wf n) l v claim2 claim3 (take (uint.nat pos) l) (drop (uint.nat pos) l) SORTED) as claim5. simpl in claim5. rewrite take_drop in claim5. specialize (claim5 eq_refl). change SessionPrelude.vectorEq with coq_equalSlices in *. change SessionPrelude.vectorGt with coq_lexicographicCompare in *. change SessionPrelude.sortedInsert with coq_sortedInsert in *. destruct (forallb _) as [ | ] eqn: H_forallb; rewrite SessionPrelude.forallb_spec in H_forallb.
+        + assert (prefix' = take (uint.nat pos) ops) as ->.
+          { rewrite H_ops. eapply SessionPrelude.list_ext.
+            - rewrite length_take. rewrite length_app; simpl. word.
+            - intros i x y [H_x H_y]. rewrite lookup_take in H_y; cycle 1. { rewrite <- H_len. eapply lookup_lt_is_Some_1. exists x; trivial. } rewrite lookup_app_l in H_y; cycle 1. { eapply lookup_lt_is_Some_1; trivial. } congruence.
           }
-          { admit. }
-          { admit. }
-        + rewrite claim5.
-          { iExists (prefix' ++ [o] ++ suffix'). iSplitR "H_prefix' H_suffix' H_v H_v'".
-            - admit.
-            - admit.
-          }
-          { admit. }
-          { admit. }
+          assert (suffix' = drop (uint.nat pos + 1)%nat ops) as ->.
+          { rewrite <- take_drop with (l := ops) (i := uint.nat pos) in H_ops at 1. apply SessionPrelude.app_cancel_l in H_ops. rewrite <- drop_drop. rewrite H_ops. reflexivity. }
+          assert (drop (uint.nat pos) ops = o' :: drop (uint.nat pos + 1)%nat ops) as claim7.
+          { eapply SessionPrelude.app_cancel_l with (prefix := take (uint.nat pos) ops). rewrite take_drop; trivial. }
+          rewrite claim5.
+          * iExists (take (uint.nat pos) ops ++ [o] ++ drop (uint.nat pos) ops). iFrame. iSplitL "H_prefix'".
+            { iApply big_sepL2_flip. iFrame. }
+            simpl. iSplitR "H_suffix' H_v'".
+            { simpl. eauto. }
+            { iApply big_sepL2_flip. rewrite claim7. rewrite claim6. simpl. iFrame. }
+          * intros m y H_y. eapply PREFIX. pose proof (SessionPrelude.lookup_map getOperationVersionVector (take (uint.nat pos) l) m) as VIEW. rewrite H_y in VIEW. apply SessionPrelude.lookup_In in VIEW. rewrite SessionPrelude.map_take in VIEW. rewrite VECTOR in VIEW. rewrite take_app in VIEW. replace (take (uint.nat pos - length prefix) suffix) with ( @nil (list w64)) in VIEW; cycle 1. { symmetry. eapply nil_length_inv. rewrite length_take; word. } rewrite app_nil_r in VIEW. rewrite <- take_drop with (l := prefix) (i := uint.nat pos). rewrite in_app_iff. left; trivial.
+          * intros m y H_y. eapply SUFFIX. pose proof (SessionPrelude.lookup_map getOperationVersionVector (drop (uint.nat pos) l) m) as VIEW. rewrite H_y in VIEW. apply SessionPrelude.lookup_In in VIEW. rewrite SessionPrelude.map_drop in VIEW. rewrite VECTOR in VIEW. rewrite drop_app in VIEW. replace (drop (uint.nat pos) prefix) with ( @nil (list w64)) in VIEW; cycle 1. { symmetry. eapply nil_length_inv. rewrite length_drop; word. } rewrite app_nil_l in VIEW. rewrite <- take_drop with (l := suffix) (i := (uint.nat pos - length prefix)%nat). rewrite in_app_iff. right; trivial.
+        + (* We have "l !! uint.nat pos = Some v'", "coq_equalOperations v' v = false", "map getOperationVersionVector l = prefix ++ [getOperationVersionVector v] ++ suffix" ==> CONTRADICTION. *)
       - iPureIntro. change (SessionPrelude.isSorted (well_formed := Operation_wf n) (SessionPrelude.sortedInsert (well_formed := Operation_wf n) l v)). eapply SessionPrelude.sortedInsert_isSorted; trivial.
     }
   Admitted.
