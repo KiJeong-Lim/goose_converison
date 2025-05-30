@@ -64,16 +64,13 @@ Instance Similarity_nat : Similarity nat nat :=
 
 (** End BasicInstances_of_Similarity. *)
 
-Definition MAX_BOUND : Z :=
-  2 ^ 64 - 2.
-
 #[global]
 Instance Similarity_u64 : Similarity u64 nat :=
-  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
+  fun n => fun n' => (uint.nat n = n')%nat /\ (uint.Z n >= 0 /\ uint.Z n <= CONSTANT)%Z.
 
 Lemma Similarity_u64_range (n : u64) (n' : nat)
   (n_corres : n =~= n')
-  : (uint.Z n >= 0 /\ uint.Z n <= MAX_BOUND)%Z.
+  : (uint.Z n >= 0 /\ uint.Z n <= CONSTANT)%Z.
 Proof.
   do 2 red in n_corres. word.
 Qed.
@@ -244,7 +241,6 @@ Proof.
   do 2 red in n_corres |- *. (destruct (uint.Z n =? 0)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (n' =? 0)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']); word.
 Qed.
 
-(*
 Module Operation'.
 
   Record t : Set :=
@@ -383,6 +379,7 @@ End Client'.
 Instance Similarity_Client : Similarity Client.t Client'.t :=
   Client'.corres.
 
+(*
 Module NatImplServer.
 
   Fixpoint coq_compareVersionVector (v1 : list nat) (v2 : list nat) : bool :=
@@ -649,13 +646,13 @@ Module NatImplServer.
       destruct e1_corres as [<- [? ?]], e2_corres as [<- [? ?]]; (destruct canApply as [ | ]; subst canApply'; simpl in * ); (destruct output as [ | ]; subst output'); simpl in *.
       + (destruct (uint.Z (w64_word_instance .(word.add) e1 (W64 1)) =? uint.Z e2)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat e1 + 1 =? uint.nat e2)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']).
         { eauto with *. }
-        { contradiction H_OBS'. enough (uint.Z e1 + 1 = uint.Z e2)%Z by word. rewrite <- H_OBS. unfold MAX_BOUND in *. word. }
-        { contradiction H_OBS. enough (uint.nat e1 + 1 = uint.nat e2)%nat by word. rewrite <- H_OBS'. unfold MAX_BOUND in *. word. }
+        { contradiction H_OBS'. enough (uint.Z e1 + 1 = uint.Z e2)%Z by word. rewrite <- H_OBS. unfold CONSTANT in *. word. }
+        { contradiction H_OBS. enough (uint.nat e1 + 1 = uint.nat e2)%nat by word. rewrite <- H_OBS'. unfold CONSTANT in *. word. }
         { rewrite Z.geb_leb; (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.leb_le in H_OBS1 | rewrite Nat.leb_gt in H_OBS1]); (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1'; [rewrite Z.leb_le in H_OBS1' | rewrite Z.leb_gt in H_OBS1']); eauto with *. }
       + (destruct (uint.Z (w64_word_instance .(word.add) e1 (W64 1)) =? uint.Z e2)%Z as [ | ] eqn: H_OBS; [rewrite Z.eqb_eq in H_OBS | rewrite Z.eqb_neq in H_OBS]); (destruct (uint.nat e1 + 1 =? uint.nat e2)%nat as [ | ] eqn: H_OBS'; [rewrite Nat.eqb_eq in H_OBS' | rewrite Nat.eqb_neq in H_OBS']).
         { econstructor; reflexivity. }
-        { contradiction H_OBS'. enough (uint.Z e1 + 1 = uint.Z e2)%Z by word. rewrite <- H_OBS. unfold MAX_BOUND in *. word. }
-        { contradiction H_OBS. enough (uint.nat e1 + 1 = uint.nat e2)%nat by word. rewrite <- H_OBS'. unfold MAX_BOUND in *. word. }
+        { contradiction H_OBS'. enough (uint.Z e1 + 1 = uint.Z e2)%Z by word. rewrite <- H_OBS. unfold CONSTANT in *. word. }
+        { contradiction H_OBS. enough (uint.nat e1 + 1 = uint.nat e2)%nat by word. rewrite <- H_OBS'. unfold CONSTANT in *. word. }
         { rewrite Z.geb_leb; (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.leb_le in H_OBS1 | rewrite Nat.leb_gt in H_OBS1]); (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1'; [rewrite Z.leb_le in H_OBS1' | rewrite Z.leb_gt in H_OBS1']); eauto with *. }
       + rewrite Z.geb_leb; (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1; [rewrite Z.leb_le in H_OBS1 | rewrite Z.leb_gt in H_OBS1]); (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1'; [rewrite Nat.leb_le in H_OBS1' | rewrite Nat.leb_gt in H_OBS1']); eauto with *.
       + rewrite Z.geb_leb; (destruct (uint.Z e2 <=? uint.Z e1)%Z as [ | ] eqn: H_OBS1; [rewrite Z.leb_le in H_OBS1 | rewrite Z.leb_gt in H_OBS1]); (destruct (uint.nat e2 <=? uint.nat e1)%nat as [ | ] eqn: H_OBS1'; [rewrite Nat.leb_le in H_OBS1' | rewrite Nat.leb_gt in H_OBS1']); eauto with *.
@@ -751,7 +748,7 @@ Module NatImplServer.
     eapply match_option_corres.
     - eapply last_corres; eauto.
     - intros x x' x_corres; destruct x_corres; eauto.
-    - do 2 red; unfold MAX_BOUND; word.
+    - do 2 red; unfold CONSTANT; word.
   Qed.
 
   #[global] Hint Resolve coq_getDataFromOperationLog_corres : session_hints.
@@ -792,7 +789,7 @@ Module NatImplServer.
       + eapply coq_maxTwoInts_corres; trivial. eapply match_option_corres; trivial.
         * eapply list_lookup_corres; trivial. do 2 red in S2S_Acknowledge_Gossip_Sending_ServerId_corres |- *; word.
         * intros y y' y_corres. eauto.
-        * do 2 red; unfold MAX_BOUND; word.
+        * do 2 red; unfold CONSTANT; word.
   Qed.
 
   #[global] Hint Resolve coq_acknowledgeGossip_corres : session_hints.
@@ -816,12 +813,12 @@ Module NatImplServer.
     - eapply negb_corres. destruct s_corres, m_corres; eapply coq_compareVersionVector_corres; trivial.
     - econstructor; simpl.
       + econstructor; simpl; trivial. reflexivity.
-      + econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
+      + econstructor; simpl; trivial; do 2 red; unfold CONSTANT; word.
     - eapply ite_corres.
       { destruct m_corres; do 2 red in C2S_Client_OperationType_corres |- *. destruct (m' .(Message'.C2S_Client_OperationType) =? 0)%nat as [ | ] eqn: H_OBS; [rewrite Nat.eqb_eq in H_OBS; rewrite Z.eqb_eq | rewrite Nat.eqb_neq in H_OBS; rewrite Z.eqb_neq]; word. }
       { econstructor; simpl.
         - econstructor; simpl; trivial. reflexivity.
-        - destruct s_corres, m_corres; econstructor; simpl; trivial; try (do 2 red; unfold MAX_BOUND; word); trivial. eapply coq_getDataFromOperationLog_corres; trivial.
+        - destruct s_corres, m_corres; econstructor; simpl; trivial; try (do 2 red; unfold CONSTANT; word); trivial. eapply coq_getDataFromOperationLog_corres; trivial.
       }
       { assert (
           <[uint.nat (s .(Server.Id)):=W64 (match s .(Server.VectorClock) !! uint.nat s .(Server.Id) with Some v => uint.Z v | None => 0 end + 1)%Z]> s .(Server.VectorClock) =~= <[s' .(Server'.Id):=(match s' .(Server'.VectorClock) !! s' .(Server'.Id) with Some v => v | None => 0 end + 1)%nat]> s' .(Server'.VectorClock)
@@ -832,14 +829,14 @@ Module NatImplServer.
             { eapply list_lookup_corres; trivial. do 2 red in Id_corres |- *; word. }
             revert YES1. set (x := s .(Server.VectorClock) !! uint.nat s .(Server.Id)). set (x' := s' .(Server'.VectorClock) !! s' .(Server'.Id)).
             intros YES1. destruct YES1.
-            + do 2 red; unfold MAX_BOUND; word.
+            + do 2 red; unfold CONSTANT; word.
             + do 2 red in x_corres |- *. admit.
         }
         econstructor; simpl.
         - econstructor; simpl.
           + reflexivity.
           + destruct s_corres, m_corres; econstructor; simpl; trivial; eapply coq_sortedInsert_corres; trivial; econstructor; simpl; trivial.
-        - destruct s_corres, m_corres; econstructor; simpl; trivial; try (do 2 red; unfold MAX_BOUND; word); trivial.
+        - destruct s_corres, m_corres; econstructor; simpl; trivial; try (do 2 red; unfold CONSTANT; word); trivial.
       }
   Admitted.
 
@@ -878,7 +875,7 @@ Module NatImplServer.
         destruct YES1; trivial.
       + econstructor; simpl; try reflexivity. econstructor; simpl.
         * eapply coq_receiveGossip_corres; econstructor; simpl; trivial. do 2 red; word.
-        * econstructor 2; eauto. econstructor; simpl; trivial; try (do 2 red; unfold MAX_BOUND; word); trivial.
+        * econstructor 2; eauto. econstructor; simpl; trivial; try (do 2 red; unfold CONSTANT; word); trivial.
         assert (CoqSessionServer.coq_receiveGossip s m =~= coq_receiveGossip s' m') as YES1.
         { eapply coq_receiveGossip_corres; econstructor; simpl; trivial. do 2 red; word. }
         destruct YES1; trivial.
@@ -894,7 +891,7 @@ Module NatImplServer.
               assert (length (CoqSessionServer.coq_getGossipOperations s index) = length (coq_getGossipOperations s' index')) as CLAIM.
               { eapply list_corres_length. eapply coq_getGossipOperations_corres; [econstructor; simpl; trivial | do 2 red; word]. }
               rewrite CLAIM; trivial.
-          - eapply app_corres; trivial. econstructor 2; eauto. econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+          - eapply app_corres; trivial. econstructor 2; eauto. econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
             + eapply coq_getGossipOperations_corres; trivial. econstructor; simpl; trivial.
             + admit.
         }
@@ -954,23 +951,23 @@ Module NatImplClient.
     intros c c' c_corres serverId serverId' serverId_corres; unfold CoqSessionClient.coq_read, coq_read.
     destruct c_corres; do 2 red in SessionSemantic_corres.
     destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]]; destruct (c' .(Client'.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n']]]]]]; try word.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
       eapply replicate_corres; trivial.
       + do 2 red in NumberOfServers_corres |- *; word.
-      + do 2 red; unfold MAX_BOUND; word.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      + do 2 red; unfold CONSTANT; word.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
       eapply replicate_corres; trivial.
       + do 2 red in NumberOfServers_corres |- *; word.
-      + do 2 red; unfold MAX_BOUND; word.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      + do 2 red; unfold CONSTANT; word.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
       eapply replicate_corres; trivial.
       + do 2 red in NumberOfServers_corres |- *; word.
-      + do 2 red; unfold MAX_BOUND; word.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      + do 2 red; unfold CONSTANT; word.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
       eapply coq_maxTS_corres; trivial.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
   Qed.
 
   #[global] Hint Resolve coq_read_corres : session_hints.
@@ -981,23 +978,23 @@ Module NatImplClient.
     intros c c' c_corres serverId serverId' serverId_corres value value' value_corres; unfold CoqSessionClient.coq_write, coq_write.
     destruct c_corres; do 2 red in SessionSemantic_corres.
     destruct (uint.nat c .(Client.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n]]]]]]; destruct (c' .(Client'.SessionSemantic)) as [ | [ | [ | [ | [ | [ | n']]]]]]; try word.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
       eapply replicate_corres; trivial.
       + do 2 red in NumberOfServers_corres |- *; word.
-      + do 2 red; unfold MAX_BOUND; word.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      + do 2 red; unfold CONSTANT; word.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
       eapply replicate_corres; trivial.
       + do 2 red in NumberOfServers_corres |- *; word.
-      + do 2 red; unfold MAX_BOUND; word.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      + do 2 red; unfold CONSTANT; word.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
       eapply replicate_corres; trivial.
       + do 2 red in NumberOfServers_corres |- *; word.
-      + do 2 red; unfold MAX_BOUND; word.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+      + do 2 red; unfold CONSTANT; word.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
       eapply coq_maxTS_corres; trivial.
-    - econstructor; simpl; try (do 2 red; unfold MAX_BOUND; word); trivial.
+    - econstructor; simpl; try (do 2 red; unfold CONSTANT; word); trivial.
   Qed.
 
   #[global] Hint Resolve coq_write_corres : session_hints.
@@ -1015,10 +1012,10 @@ Module NatImplClient.
       + econstructor; simpl; trivial.
       + eapply coq_write_corres; trivial. econstructor; simpl; trivial.
     - do 2 red in S2C_Client_OperationType_corres. destruct (uint.nat ackMessage .(Message.S2C_Client_OperationType)) as [ | [ | x]] eqn: H_OBS1; destruct (ackMessage' .(Message'.S2C_Client_OperationType)) as [ | [ | x']] eqn: H_OBS1'; try word.
-      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
-      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
-      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
-    - econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold MAX_BOUND; word.
+      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold CONSTANT; word.
+      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold CONSTANT; word.
+      + econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold CONSTANT; word.
+    - econstructor; simpl; trivial; econstructor; simpl; trivial; do 2 red; unfold CONSTANT; word.
   Qed.
 
   #[global] Hint Resolve coq_processRequest_corres : session_hints.

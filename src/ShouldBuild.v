@@ -16,6 +16,8 @@ From Perennial.goose_lang Require
 .
 
 From Perennial.goose_lang.ffi Require async_disk async_disk_equiv.
+
+(* ***************************************************************
 From Perennial.program_proof Require
      lockmap_proof
      jrnl_replication.jrnl_replication_proof
@@ -116,6 +118,8 @@ From New.proof Require go_etcd_io.etcd.client.v3.concurrency.
 
 (* FIXME: add back in. *)
 (* From Perennial.program_proof.pav Require should_build. *)
+
+*************************************************************** *)
 
 (* session *)
 From Perennial.program_proof.session Require coq_session.

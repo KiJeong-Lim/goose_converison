@@ -1,6 +1,17 @@
 From Perennial.program_proof.session Require Export session_prelude.
 From Perennial.program_proof.session Require Export definitions.
 
+Definition CONSTANT : Z :=
+  2 ^ 64 - 2.
+
+Lemma CONSTANT_unfold
+  : CONSTANT = 2 ^ 64 - 2.
+Proof.
+  reflexivity.
+Qed.
+
+#[global] Opaque CONSTANT.
+
 Module CoqSessionServer.
 
   Include Goose.github_com.session.server.
@@ -197,25 +208,28 @@ Module CoqSessionServer.
 
   Definition coq_processClientRequest (s: Server.t) (r: Message.t) : bool * Server.t * Message.t :=
     if negb (coq_compareVersionVector s.(Server.VectorClock) r.(Message.C2S_Client_VersionVector)) then
-      (false, s, (Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0))
+      (false, s, Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0)
     else
       if uint.Z r.(Message.C2S_Client_OperationType) =? 0 then
         let S2C_Client_Data := coq_getDataFromOperationLog s.(Server.OperationsPerformed) in
         let S2C_Client_VersionVector := s.(Server.VectorClock) in
         let S2C_Client_Number := r.(Message.C2S_Client_Id) in
         let S2C_Server_Id := s.(Server.Id) in
-        (true, s, (Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 0 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number))
+        (true, s, Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 0 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)
       else
         let v := match s.(Server.VectorClock) !! uint.nat s.(Server.Id) with Some v => uint.Z v | None => 0 end in
-        let VectorClock := <[uint.nat s.(Server.Id) := W64 (v + 1)]> s.(Server.VectorClock) in
-        let OperationsPerformed := coq_sortedInsert s.(Server.OperationsPerformed) (Operation.mk VectorClock r.(Message.C2S_Client_Data)) in
-        let MyOperations := coq_sortedInsert s.(Server.MyOperations) (Operation.mk VectorClock r.(Message.C2S_Client_Data)) in
-        let S2C_Client_OperationType := 1 in
-        let S2C_Client_Data := 0 in
-        let S2C_Client_VersionVector := VectorClock in
-        let S2C_Client_Number := r.(Message.C2S_Client_Id) in
-        let S2C_Server_Id := s.(Server.Id) in
-        (true, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed MyOperations s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), (Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 1 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)).
+        if (v <=? CONSTANT)%Z && (length s.(Server.MyOperations) <=? CONSTANT)%Z then
+          let VectorClock := <[uint.nat s.(Server.Id) := W64 (v + 1)]> s.(Server.VectorClock) in
+          let OperationsPerformed := coq_sortedInsert s.(Server.OperationsPerformed) (Operation.mk VectorClock r.(Message.C2S_Client_Data)) in
+          let MyOperations := coq_sortedInsert s.(Server.MyOperations) (Operation.mk VectorClock r.(Message.C2S_Client_Data)) in
+          let S2C_Client_OperationType := 1 in
+          let S2C_Client_Data := 0 in
+          let S2C_Client_VersionVector := VectorClock in
+          let S2C_Client_Number := r.(Message.C2S_Client_Id) in
+          let S2C_Server_Id := s.(Server.Id) in
+          (true, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed MyOperations s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 1 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)
+        else
+          (false, s, Message.mk 0 0 0 0 0 [] 0 0 [] 0 0 0 0 0 0 [] 0 0).
 
   Definition coq_processRequest (server: Server.t) (request: Message.t) : Server.t * list Message.t :=
     match uint.nat request.(Message.MessageType) with
@@ -289,11 +303,11 @@ Section properties.
 
   #[global]
   Instance hsEq_Operation (len : nat) : hsEq Operation.t (well_formed := Operation_wf len) :=
-    hsEq_preimage _.
+    hsEq_preimage getOperationVersionVector.
 
   #[global]
   Instance hsOrd_Operation (len : nat) : hsOrd Operation.t (hsEq := hsEq_Operation len) :=
-    hsOrd_preimage _.
+    hsOrd_preimage getOperationVersionVector.
 
   Lemma redefine_coq_sortedInsert (len : nat) :
     coq_sortedInsert = sortedInsert (hsOrd := hsOrd_Operation len).
@@ -435,14 +449,11 @@ End properties.
 
 Module INVARIANT.
 
-  Definition MAX : Z :=
-    2 ^ 64 - 2.
-
   Variant WEAK_SERVER_INVARIANT (EXTRA: Server.t -> Prop) (s: Server.t) : Prop :=
     | WEAK_SERVER_INVARIANT_INTRO
       (PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations))
       (OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed))
-      (VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= MAX)%Z)
+      (VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= CONSTANT)%Z)
       (EXTRA_SERVER_INVARIANT: EXTRA s)
       : WEAK_SERVER_INVARIANT EXTRA s.
 
@@ -451,8 +462,8 @@ Module INVARIANT.
     { PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations)
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
-    ; VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= MAX)%Z
-    ; MyOperation_length: (Z.of_nat (length s.(Server.MyOperations)) <= MAX)%Z
+    ; VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= CONSTANT)%Z
+    ; MyOperation_length: (Z.of_nat (length s.(Server.MyOperations)) <= CONSTANT)%Z
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
     ; EXTRA_SERVER_INVARIANT: EXTRA s
     }.
