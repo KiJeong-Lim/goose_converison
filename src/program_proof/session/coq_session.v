@@ -392,20 +392,20 @@ End properties.
 
 Module INVARIANT.
 
-  Record SERVER (P: Server.t -> Prop) (s: Server.t) : Prop :=
+  Record SERVER (EXTRA: Server.t -> Prop) (s: Server.t) : Prop :=
     SERVER_INVARIANT_INTRO
     { PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations)
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
-    ; EXTRA_SERVER_INVARIANT: P s
+    ; EXTRA_SERVER_INVARIANT: EXTRA s
     }.
 
-  Record CLIENT (P: Client.t -> Prop) (c: Client.t) : Prop :=
+  Record CLIENT (EXTRA: Client.t -> Prop) (c: Client.t) : Prop :=
     CLIENT_INVARIANT_INTRO
     { SessionSemantic_ge_0: (uint.Z c.(Client.SessionSemantic) >= 0)%Z
     ; SessionSemantic_le_5: (uint.Z c.(Client.SessionSemantic) <= 5)%Z
-    ; EXTRA_CLIENT_INVARIANT: P c
+    ; EXTRA_CLIENT_INVARIANT: EXTRA c
     }.
 
 End INVARIANT.
