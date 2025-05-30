@@ -130,7 +130,7 @@ Module CoqSessionServer.
               Server.PendingOperations := server.(Server.PendingOperations);
               Server.GossipAcknowledgements := server.(Server.GossipAcknowledgements);
             |}
-          else
+          else if negb (coq_compareVersionVector server.(Server.VectorClock) elem.(Operation.VersionVector)) then
             {|
               Server.Id := server.(Server.Id);
               Server.NumberOfServers := server.(Server.NumberOfServers);
@@ -141,6 +141,8 @@ Module CoqSessionServer.
               Server.PendingOperations := server.(Server.PendingOperations);
               Server.GossipAcknowledgements := server.(Server.GossipAcknowledgements);
             |}
+          else
+            server
         in
         fold_left loop_step focus server
       in
@@ -433,6 +435,13 @@ End properties.
 
 Module INVARIANT.
 
+  Variant WEAK_SERVER_INVARIANT (EXTRA: Server.t -> Prop) (s: Server.t) : Prop :=
+    | WEAK_SERVER_INVARIANT_INTRO
+      (PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations))
+      (OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed))
+      (EXTRA_SERVER_INVARIANT: EXTRA s)
+      : WEAK_SERVER_INVARIANT EXTRA s.
+
   Record SERVER (EXTRA: Server.t -> Prop) (s: Server.t) : Prop :=
     SERVER_INVARIANT_INTRO
     { PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations)
@@ -451,6 +460,7 @@ Module INVARIANT.
 
 End INVARIANT.
 
+Notation WEAK_SERVER_INVARIANT := INVARIANT.WEAK_SERVER_INVARIANT.
 Notation SERVER_INVARIANT := INVARIANT.SERVER.
 Notation CLIENT_INVARIANT := INVARIANT.CLIENT.
 
