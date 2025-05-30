@@ -1,5 +1,5 @@
 From Perennial.program_proof.session Require Export session_prelude coq_session.
-From Perennial.program_proof.session Require Export versionVector processClientRequest gossip.
+From Perennial.program_proof.session Require Export versionVector sort gossip.
 
 Section heap.
 

@@ -121,10 +121,9 @@ From New.proof Require go_etcd_io.etcd.client.v3.concurrency.
 From Perennial.program_proof.session Require coq_session.
 From Perennial.program_proof.session Require definitions.
 From Perennial.program_proof.session Require session_prelude.
-From Perennial.program_proof.session Require sort.
 From Perennial.program_proof.session Require versionVector.
-From Perennial.program_proof.session Require processClientRequest.
-From Perennial.program_proof.session Require processRequest.
+From Perennial.program_proof.session Require sort.
 From Perennial.program_proof.session Require gossip.
+From Perennial.program_proof.session Require processRequest.
 From Perennial.program_proof.session Require coq_session_client.
 From Perennial.program_proof.session Require nat_equivalence.
