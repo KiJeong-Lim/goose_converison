@@ -154,7 +154,7 @@ Definition sortedInsert: val :=
     (if: (slice.len "s") = "index"
     then SliceAppend (struct.t Operation) "s" "value"
     else
-      (if: equalOperations (SliceGet (struct.t Operation) "s" "index") "value"
+      (if: equalSlices (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) "s" "index")) (struct.get Operation "VersionVector" "value")
       then "s"
       else
         let: "right" := SliceAppendSlice (struct.t Operation) (SliceSingleton "value") (SliceSkip (struct.t Operation) "s" "index") in

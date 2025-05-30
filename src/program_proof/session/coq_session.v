@@ -65,6 +65,17 @@ Module CoqSessionServer.
   Definition coq_equalOperations (o1: Operation.t) (o2: Operation.t) : bool :=
     coq_equalSlices o1.(Operation.VersionVector) o2.(Operation.VersionVector) && (uint.Z o1.(Operation.Data) =? uint.Z (o2.(Operation.Data))).
 
+  Definition getOperationVersionVector (op: Operation.t) : list u64 :=
+    op.(Operation.VersionVector).
+
+  Variant binarySearch_spec (needle: Operation.t) (l: list Operation.t) (n: nat) (r: nat) : Prop :=
+    | binarySearch_spec_intro prefix suffix
+      (LENGTH: r = length prefix)
+      (VECTOR: map getOperationVersionVector l = if forallb (fun x => negb (coq_equalSlices x.(Operation.VersionVector) needle.(Operation.VersionVector))) l then prefix ++ suffix else prefix ++ [getOperationVersionVector needle] ++ suffix)
+      (PREFIX: ∀ op, In op prefix -> coq_lexicographicCompare needle.(Operation.VersionVector) op = true)
+      (SUFFIX: ∀ op, In op suffix -> coq_lexicographicCompare op needle.(Operation.VersionVector) = true)
+      : binarySearch_spec needle l n r.
+
   Fixpoint coq_sortedInsert (l: list Operation.t) (i: Operation.t) : list Operation.t :=
     match l with
     | [] => [i]

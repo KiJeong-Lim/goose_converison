@@ -150,7 +150,7 @@ func sortedInsert(s []Operation, value Operation) []Operation {
 	index := binarySearch(s, value)
 	if uint64(len(s)) == index {
 		return append(s, value)
-	} else if equalOperations(s[index], value) {
+	} else if equalSlices(s[index].VersionVector, value.VersionVector) {
 		return s
 	} else {
 		right := append([]Operation{value}, s[index:]...)
