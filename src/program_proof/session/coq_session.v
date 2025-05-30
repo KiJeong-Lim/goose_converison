@@ -443,7 +443,6 @@ Module INVARIANT.
       (PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations))
       (OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed))
       (VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= MAX)%Z)
-      (MyOperation_length: (Z.of_nat (length s.(Server.MyOperations)) <= MAX)%Z)
       (EXTRA_SERVER_INVARIANT: EXTRA s)
       : WEAK_SERVER_INVARIANT EXTRA s.
 
