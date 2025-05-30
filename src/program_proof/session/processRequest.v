@@ -27,7 +27,7 @@ Section heap.
     simplNotation. subst. rewrite /processClientRequest.
     wp_pures. wp_pures. wp_apply wp_ref_to. { repeat econstructor; eauto. }
     iIntros "%reply H_reply". wp_pures. wp_apply (wp_compareVersionVector with "[$H4 $H16]"); auto.
-    iIntros "%r (-> & H4 & [H16 %TMP])". clear TMP. wp_if_destruct.
+    iIntros "%r (H4 & H16 & %H_r)". subst r. wp_if_destruct.
     - wp_load. wp_pures. iModIntro.
       pose (b := false).
       set (ns := (s .(Server.Id), s .(Server.NumberOfServers), t4, t3, t2, t1, t0, t)).
@@ -49,7 +49,7 @@ Section heap.
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
         wp_apply (wp_getDataFromOperationLog with "[$H6]"). iIntros "%r (-> & H6)".
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
-        wp_apply (wp_NewSlice). iIntros "%s1 H_s1". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with ( @nil u64 ) by reflexivity.
+        wp_apply (wp_NewSlice). iIntros "%s1 H_s1". replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with ( @nil u64) by reflexivity.
         wp_apply (wp_SliceAppendSlice with "[$H_s1 $H4]"); auto. clear s1. iIntros "%s1 [H_s1 H4]". simpl.
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
         wp_apply (wp_storeField_struct with "[H_reply]"). { repeat econstructor; eauto. } { iExact "H_reply". } iIntros "H_reply". wp_pures.
@@ -61,7 +61,7 @@ Section heap.
         replace (Φ (#true, (#s .(Server.Id), (#s .(Server.NumberOfServers), (t4, (t3, (t2, (t1, (t0, (t, #())))))))), (#(W64 4), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T uint64T), (zero_val uint64T, (zero_val uint64T, (zero_val (slice.T (slice.T uint64T * (uint64T * unitT)%ht)), (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (zero_val uint64T, (#(W64 0), (#(coq_getDataFromOperationLog s .(Server.OperationsPerformed)), (s1, (#s .(Server.Id), (#msg .(Message.C2S_Client_Id), #())))))))))))))))))))%V) with (Φ (#b, server_val ns, message_val nm)%V) by f_equal.
         unfold server_val, message_val. iApply "HΦ". subst b ns nm.
         unfold coq_processClientRequest; rewrite Heqb; simpl.
-        assert ((uint.nat msg .(Message.C2S_Client_OperationType) =? 0) = true) as H_OBS1.
+        assert ((uint.Z msg .(Message.C2S_Client_OperationType) =? 0)%Z = true) as H_OBS1.
         { rewrite Z.eqb_eq. word. }
         rewrite H_OBS1; simpl. unfold is_message; simplNotation; simpl. rewrite Z.eqb_eq in H_OBS1.
         iSplitL "". { done. }

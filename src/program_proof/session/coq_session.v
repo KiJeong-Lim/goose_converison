@@ -435,10 +435,15 @@ End properties.
 
 Module INVARIANT.
 
+  Definition MAX : Z :=
+    2 ^ 64 - 2.
+
   Variant WEAK_SERVER_INVARIANT (EXTRA: Server.t -> Prop) (s: Server.t) : Prop :=
     | WEAK_SERVER_INVARIANT_INTRO
       (PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations))
       (OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed))
+      (VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= MAX)%Z)
+      (MyOperation_length: (Z.of_nat (length s.(Server.MyOperations)) <= MAX)%Z)
       (EXTRA_SERVER_INVARIANT: EXTRA s)
       : WEAK_SERVER_INVARIANT EXTRA s.
 
@@ -447,6 +452,8 @@ Module INVARIANT.
     { PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations)
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
+    ; VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= MAX)%Z
+    ; MyOperation_length: (Z.of_nat (length s.(Server.MyOperations)) <= MAX)%Z
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
     ; EXTRA_SERVER_INVARIANT: EXTRA s
     }.

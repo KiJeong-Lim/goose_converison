@@ -3,14 +3,13 @@
 ## goose
 
 - server.v
-- server2.v (deprecated)
 - client.v
 
 ## prelude
 
 - session_prelude.v (1077 lines) [v]
 - definitions.v (392 lines) [v]
-- coq_session.v (609 lines) [v]
+- coq_session.v (616 lines) [v]
 
 ## equivalence proofs
 
