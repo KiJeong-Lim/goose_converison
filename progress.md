@@ -3,7 +3,6 @@
 ## goose
 
 - server.v
-- server2.v (deprecated)
 - client.v
 
 ## prelude
