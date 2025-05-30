@@ -183,24 +183,25 @@ func receiveGossip(server Server, request Message) Server {
 		return server
 	}
 
+	var s = server
 	var i = uint64(0)
 
 	for i < uint64(len(request.S2S_Gossip_Operations)) {
-		if oneOffVersionVector(server.VectorClock, request.S2S_Gossip_Operations[i].VersionVector) {
-			server.OperationsPerformed = sortedInsert(server.OperationsPerformed, request.S2S_Gossip_Operations[i])
-			server.VectorClock = maxTS(server.VectorClock, request.S2S_Gossip_Operations[i].VersionVector)
-		} else if !compareVersionVector(server.VectorClock, request.S2S_Gossip_Operations[i].VersionVector) {
-			server.PendingOperations = sortedInsert(server.PendingOperations, request.S2S_Gossip_Operations[i])
+		if oneOffVersionVector(s.VectorClock, request.S2S_Gossip_Operations[i].VersionVector) {
+			s.OperationsPerformed = sortedInsert(s.OperationsPerformed, request.S2S_Gossip_Operations[i])
+			s.VectorClock = maxTS(s.VectorClock, request.S2S_Gossip_Operations[i].VersionVector)
+		} else if !compareVersionVector(s.VectorClock, request.S2S_Gossip_Operations[i].VersionVector) {
+			s.PendingOperations = sortedInsert(s.PendingOperations, request.S2S_Gossip_Operations[i])
 		}
 		i = i + 1
 	}
 
 	i = uint64(0)
 	var seen = make([]uint64, 0)
-	for i < uint64(len(server.PendingOperations)) {
-		if oneOffVersionVector(server.VectorClock, server.PendingOperations[i].VersionVector) {
-			server.OperationsPerformed = sortedInsert(server.OperationsPerformed, server.PendingOperations[i])
-			server.VectorClock = maxTS(server.VectorClock, server.PendingOperations[i].VersionVector)
+	for i < uint64(len(s.PendingOperations)) {
+		if oneOffVersionVector(s.VectorClock, s.PendingOperations[i].VersionVector) {
+			s.OperationsPerformed = sortedInsert(s.OperationsPerformed, s.PendingOperations[i])
+			s.VectorClock = maxTS(s.VectorClock, s.PendingOperations[i].VersionVector)
 			seen = append(seen, i)
 		}
 		i = i + 1
@@ -209,18 +210,18 @@ func receiveGossip(server Server, request Message) Server {
 	i = uint64(0)
 	var j = uint64(0)
 	var output = make([]Operation, 0)
-	for i < uint64(len(server.PendingOperations)) {
+	for i < uint64(len(s.PendingOperations)) {
 		if j < uint64(len(seen)) && i == seen[j] {
 			j = j + 1
 		} else {
-			output = append(output, server.PendingOperations[i])
+			output = append(output, s.PendingOperations[i])
 		}
 		i = i + 1
 	}
 
-	server.PendingOperations = output
+	s.PendingOperations = output
 
-	return server
+	return s
 }
 
 func acknowledgeGossip(server Server, request Message) Server {

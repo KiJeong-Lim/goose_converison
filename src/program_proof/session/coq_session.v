@@ -111,24 +111,65 @@ Module CoqSessionServer.
     | None => 0
     end.
 
-  Definition coq_receiveGossip (s: Server.t) (r: Message.t) : Server.t :=
-    if (length r.(Message.S2S_Gossip_Operations) =? 0)%nat then
-      s
+  Definition coq_receiveGossip (server: Server.t) (request: Message.t) : Server.t :=
+    if (length request.(Message.S2S_Gossip_Operations) =? 0)%nat then
+      server
     else
-      let focus := coq_mergeOperations s.(Server.PendingOperations) r.(Message.S2S_Gossip_Operations) in
-      let loop_init : nat * Server.t :=
-        (0%nat, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) focus s.(Server.GossipAcknowledgements))
+      let first_loop_output : Server.t :=
+        let focus := request.(Message.S2S_Gossip_Operations) in
+        let loop_step (acc: Server.t) (elem: Operation.t) : Server.t :=
+          let server := acc in
+          if coq_oneOffVersionVector server.(Server.VectorClock) elem.(Operation.VersionVector) then
+            {|
+              Server.Id := server.(Server.Id);
+              Server.NumberOfServers := server.(Server.NumberOfServers);
+              Server.UnsatisfiedRequests := server.(Server.UnsatisfiedRequests);
+              Server.VectorClock := coq_maxTS server.(Server.VectorClock) elem.(Operation.VersionVector);
+              Server.OperationsPerformed := coq_sortedInsert server.(Server.OperationsPerformed) elem;
+              Server.MyOperations := server.(Server.MyOperations);
+              Server.PendingOperations := server.(Server.PendingOperations);
+              Server.GossipAcknowledgements := server.(Server.GossipAcknowledgements);
+            |}
+          else
+            {|
+              Server.Id := server.(Server.Id);
+              Server.NumberOfServers := server.(Server.NumberOfServers);
+              Server.UnsatisfiedRequests := server.(Server.UnsatisfiedRequests);
+              Server.VectorClock := server.(Server.VectorClock);
+              Server.OperationsPerformed := coq_sortedInsert server.(Server.OperationsPerformed) elem;
+              Server.MyOperations := server.(Server.MyOperations);
+              Server.PendingOperations := server.(Server.PendingOperations);
+              Server.GossipAcknowledgements := server.(Server.GossipAcknowledgements);
+            |}
+        in
+        fold_left loop_step focus server
       in
-      let loop_step (acc: nat * Server.t) (e: Operation.t) : nat * Server.t :=
-        let '(i, s) := acc in
-        if coq_oneOffVersionVector s.(Server.VectorClock) e.(Operation.VersionVector) then
-          let OperationsPerformed := coq_mergeOperations s.(Server.OperationsPerformed) [e] in
-          let VectorClock := coq_maxTS s.(Server.VectorClock) e.(Operation.VersionVector) in
-          let PendingOperations := coq_deleteAtIndexOperation s.(Server.PendingOperations) i in
-          (i, Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) VectorClock OperationsPerformed s.(Server.MyOperations) PendingOperations s.(Server.GossipAcknowledgements))
-        else ((i + 1)%nat, s)
+      let server := first_loop_output in
+      let second_loop_output : Server.t * nat * list nat :=
+        let focus := server.(Server.PendingOperations) in
+        let loop_step (acc: Server.t * nat * list nat) (elem: Operation.t) : Server.t * nat * list nat :=
+          let '(server, i, seen) := acc in
+            if coq_oneOffVersionVector server.(Server.VectorClock) elem.(Operation.VersionVector) then
+              (Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) (coq_maxTS server.(Server.VectorClock) elem.(Operation.VersionVector)) (coq_sortedInsert server.(Server.OperationsPerformed) elem) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements), (i + 1)%nat, seen ++ [i])
+            else
+              (server, (i + 1)%nat, seen)
+        in
+        fold_left loop_step focus (server, 0%nat, [])
       in
-      snd (fold_left loop_step focus loop_init).
+      let '(server, _, seen) := second_loop_output in
+      let third_loop_output : nat * nat * list Operation.t :=
+        let focus := server.(Server.PendingOperations) in
+        let loop_step (acc: nat * nat * list Operation.t) (elem: Operation.t) : nat * nat * list Operation.t :=
+          let '(i, j, output) := acc in
+          match seen !! j with
+          | Some i' => if (i =? i')%nat then ((i + 1)%nat, (j + 1)%nat, output) else ((i + 1)%nat, j, output ++ [elem])
+          | None => ((i + 1)%nat, j, output ++ [elem])
+          end
+        in
+        fold_left loop_step focus (0%nat, 0%nat, [])
+      in
+      let '(_, _, output) := third_loop_output in
+      Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) output server.(Server.GossipAcknowledgements).
 
   Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) : Server.t :=
     let i := r.(Message.S2S_Acknowledge_Gossip_Sending_ServerId) in
