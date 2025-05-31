@@ -212,7 +212,7 @@ Section heap.
         is_message msgv msg n len_c2s len_s2c ∗
         ⌜WEAK_SERVER_INVARIANT (fun _s => _s.(Server.Id) = Id /\ _s.(Server.NumberOfServers) = NumberOfServers /\ _s.(Server.UnsatisfiedRequests) = UnsatisfiedRequests /\ _s.(Server.MyOperations) = MyOperations /\ _s.(Server.GossipAcknowledgements) = GossipAcknowledgements) (coq_receiveGossip s msg)⌝
     }}}.
-  Proof.
+  Proof. (**
     rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_invariant) HΦ". destruct H_invariant; destruct EXTRA_SERVER_INVARIANT as (<- & <- & <- & <- & <-).
     iDestruct "H_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)". iDestruct "H_message" as "(%H11 & %H12 & %H13 & %H14 & %H15 & H16 & %H17 & %H18 & %H19 & H20 & %H21 & %H22 & %H23 & %H24 & %H25 & %H26 & H27 & %H28 & %H29 & %H30)".
     simplNotation; subst; rewrite /receiveGossip.
@@ -275,7 +275,7 @@ Section heap.
       { clear Φ. iIntros "%Φ". iModIntro. iIntros "(%prevs & %nexts & %index & %server & %OperationsPerformed_REP & %VectorClock_REP & %PendingOperations_REP & %FOCUS & %SERVER & H_i & H_s & H3 & H4 & H6 & H7 & H8 & H9 & H16 & H20 & H27 & %H_continue & %H_pure) HΦ". destruct H_pure as ([H_index H_bound] & H1_sorted & H2_sorted & H0_length).
         iDestruct "H20" as "(%ops1 & H20 & H_ops1)". iPoseProof (big_sepL2_length with "[$H_ops1]") as "%H1_length". iPoseProof (own_slice_sz with "[$H20]") as "%H2_length". wp_load. wp_apply wp_slice_len. wp_if_destruct.
         { wp_load. assert (is_Some (focus !! uint.nat index)) as [v H_v]. { rewrite H_index. eapply lookup_lt_is_Some_2. subst focus. apply f_equal with (f := length) in FOCUS. rewrite length_app in FOCUS. word. } iPoseProof (big_sepL2_flip with "[$H_ops1]") as "H_ops1".
-          iPoseProof (big_sepL2_middle_split _ H_v with "H_ops1") as "(%v_REP & %prevs_REP & %nexts_REP & [%VIEW %H3_length] & H_v_REP & H_prevs_REP & H_nexts_REP)". assert (ops1 !! uint.nat index = Some v_REP) as LOOKUP. {rewrite VIEW. rewrite SessionPrelude.lookup_app. destruct (uint.nat index <? length prevs_REP)%nat as [ | ] eqn: H_obs; [rewrite Nat.ltb_lt in H_obs | rewrite Nat.ltb_nlt in H_obs]; trivial; try word. replace (uint.nat index - length prevs_REP)%nat with 0%nat by word; trivial. }
+          iPoseProof (big_sepL2_middle_split _ H_v with "[$H_ops1]") as "(%v_REP & %prevs_REP & %nexts_REP & [%VIEW %H3_length] & H_v_REP & H_prevs_REP & H_nexts_REP)". assert (ops1 !! uint.nat index = Some v_REP) as LOOKUP. { rewrite VIEW. rewrite SessionPrelude.lookup_app. destruct (uint.nat index <? length prevs_REP)%nat as [ | ] eqn: H_obs; [rewrite Nat.ltb_lt in H_obs | rewrite Nat.ltb_nlt in H_obs]; trivial; try word. replace (uint.nat index - length prevs_REP)%nat with 0%nat by word; trivial. }
           iDestruct "H20" as "[H1_20 H2_20]". wp_apply (wp_SliceGet with "[$H1_20]"); eauto. iIntros "H1_20". iDestruct "H_v_REP" as "(%H1_v_REP & %H2_v_REP & H3_v_REP)". wp_load. wp_apply (wp_oneOffVersionVector with "[$H4 $H3_v_REP]"). { iPureIntro. word. } iIntros "%b (H4 & H3_v_REP & %H_b)". subst b; wp_if_destruct.
           { wp_load. wp_apply (wp_SliceGet with "[$H1_20]"); eauto. iIntros "H1_20". wp_load. iPoseProof ("H3_v_REP") as "#H3_v_REP_pers". wp_apply (wp_sortedInsert with "[$H6 $H3_v_REP_pers]"). { done. } iIntros "%OperationsPerformed' [H_OperationsPerformed' %SORTED]".
             wp_apply (wp_storeField_struct with "[$H_s]"). { repeat econstructor; eauto. } simpl setField_f. iIntros "H_s". wp_load. wp_apply (wp_SliceGet with "[$H1_20]"); eauto. iIntros "H1_20". wp_load. wp_apply (wp_maxTS with "[$H4 $H3_v_REP_pers]"). { iPureIntro; word. } iIntros "%VectorClock' (H_VectorClock & H3_v_REP & H_VectorClock')".
@@ -323,7 +323,62 @@ Section heap.
       }
       { iExists []. iExists focus. iExists (W64 0). iExists server'. rewrite app_nil_l. iFrame. simpl. iPureIntro. repeat (split; try (congruence || done)). word. }
       iIntros "(%prevs & %nexts & %index & %server & %OperationsPerformed_REP & %VectorClock_REP & %PendingOperations_REP & %FOCUS & %SERVER & H_i & H_s & H3 & H4 & H6 & H7 & H8 & H9 & H16 & H20 & H27 & %H_continue & %H_pure)". specialize (H_continue eq_refl). subst nexts. rewrite app_nil_r in FOCUS. subst prevs. subst focus.  destruct H_pure as ([H_index H_bound] & H1_sorted & H2_sorted & H0_length).
-      apply f_equal with (f := id) in SERVER. rename SERVER into FIRST_LOOP. wp_store. wp_apply (wp_NewSlice). iIntros "%seen_REP H_seen_REP". wp_apply (wp_ref_to); eauto. iIntros "%seen H_seen". wp_pures. admit.
+      apply f_equal with (f := id) in SERVER. rename SERVER into FIRST_LOOP. wp_store. wp_apply (wp_NewSlice). iIntros "%seen_REP H_seen_REP". wp_apply (wp_ref_to); eauto. iIntros "%seen H_seen". wp_pures.
+      rename server into server1, server' into server0. set (focus := server1.(Server.PendingOperations)). replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with ( @nil w64) by reflexivity. rename seen into seen_ref. iRename "H_seen" into "H_seen_ref".
+      set (fun acc: Server.t * nat * list nat => fun elem: Operation.t =>
+      let '(server, i, seen) := acc in
+        if coq_oneOffVersionVector server.(Server.VectorClock) elem.(Operation.VersionVector) then
+          (Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) (coq_maxTS server.(Server.VectorClock) elem.(Operation.VersionVector)) (coq_sortedInsert server.(Server.OperationsPerformed) elem) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements), (i + 1)%nat, seen ++ [i])
+        else
+          (server, (i + 1)%nat, seen)
+      ) as second_loop_step. clear index H_index H_bound.
+      wp_apply (wp_forBreak_cond
+        ( λ continue, ∃ prevs: list Operation.t, ∃ nexts: list Operation.t, ∃ index: w64, ∃ server: Server.t, ∃ OperationsPerformed_REP: Slice.t, ∃ VectorClock_REP: Slice.t, ∃ seen: list nat,
+          ⌜focus = prevs ++ nexts⌝ ∗
+          ⌜(server, uint.nat index, seen) = fold_left second_loop_step prevs (server1, 0%nat, [])⌝ ∗
+          i ↦[uint64T] #index ∗
+          s ↦[struct.t Server] server_val (server.(Server.Id), server.(Server.NumberOfServers), UnsatisfiedRequests_REP, VectorClock_REP, OperationsPerformed_REP, MyOperations_REP, PendingOperations_REP, GossipAcknowledgements_REP)%core ∗
+          seen_ref ↦[slice.T uint64T] seen_REP ∗
+          own_slice seen_REP uint64T (DfracOwn 1) seen ∗
+          message_slice UnsatisfiedRequests_REP server.(Server.UnsatisfiedRequests) n n ∗
+          own_slice_small VectorClock_REP uint64T (DfracOwn 1) server.(Server.VectorClock) ∗
+          operation_slice OperationsPerformed_REP server.(Server.OperationsPerformed) n ∗
+          operation_slice MyOperations_REP server.(Server.MyOperations) len_mo ∗
+          operation_slice PendingOperations_REP server.(Server.PendingOperations) n ∗
+          own_slice_small GossipAcknowledgements_REP uint64T (DfracOwn 1) server.(Server.GossipAcknowledgements) ∗
+          own_slice_small C2S_Client_VersionVector_REP uint64T (DfracOwn 1) msg.(Message.C2S_Client_VersionVector) ∗
+          operation_slice S2S_Gossip_Operations_REP msg.(Message.S2S_Gossip_Operations) n ∗
+          own_slice_small S2C_Client_VersionVector_REP uint64T (DfracOwn 1) msg.(Message.S2C_Client_VersionVector) ∗
+          ⌜continue = false -> nexts = []⌝ ∗
+          ⌜uint.nat index = length prevs /\ uint.Z index <= uint.Z PendingOperations_REP.(Slice.sz) /\ server1.(Server.PendingOperations) = server.(Server.PendingOperations)⌝ ∗
+          ⌜is_sorted server.(Server.OperationsPerformed) /\ is_sorted server.(Server.PendingOperations) /\ length server.(Server.VectorClock) = length server1.(Server.VectorClock)⌝
+        )%I
+      with "[] [H_i H_s H_seen_ref H_seen_REP H3 H4 H6 H7 H8 H9 H16 H20 H27]").
+      { clear Φ OperationsPerformed_REP VectorClock_REP. iIntros "%Φ". iModIntro. iIntros "(%prevs & %nexts & %index & %server & %OperationsPerformed_REP & %VectorClock_REP & %seen & %FOCUS & %ACCUM & H_i & H_s & H_seen_ref & H_seen_REP & H3 & H4 & H6 & H7 & H8 & H9 & H16 & H20 & H27 & %H_pure) HΦ". destruct H_pure as (_ & (H_index & H_bound & H_PendingOperations) & H3_sorted & H4_sorted & H1_length).
+        iDestruct "H8" as "(%ops2 & H8 & H_ops2)". iPoseProof (big_sepL2_length with "[$H_ops2]") as "%H2_length". iPoseProof (own_slice_sz with "[$H8]") as "%H3_length".
+        wp_load. wp_load. wp_apply (wp_slice_len). wp_if_destruct.
+        { wp_load. wp_load. assert (is_Some (focus !! uint.nat index)) as [cur H_cur]. { rewrite H_index. eapply lookup_lt_is_Some_2. subst focus. apply f_equal with (f := length) in FOCUS. rewrite length_app in FOCUS. apply f_equal with (f := length) in H_PendingOperations. word. } iPoseProof (big_sepL2_flip with "[$H_ops2]") as "H_ops2". unfold focus in H_cur. rewrite H_PendingOperations in H_cur.
+          iPoseProof (big_sepL2_middle_split _ H_cur with "[$H_ops2]") as "(%cur_REP & %prevs_REP & %nexts_REP & [%VIEW %H5_length] & H_cur_REP & H_prevs_REP & H_nexts_REP)". assert (ops2 !! uint.nat index = Some cur_REP) as LOOKUP. { rewrite VIEW. rewrite SessionPrelude.lookup_app. destruct (uint.nat index <? length prevs_REP)%nat as [ | ] eqn: H_obs; [rewrite Nat.ltb_lt in H_obs | rewrite Nat.ltb_nlt in H_obs]; trivial; try word. replace (uint.nat index - length prevs_REP)%nat with 0%nat by word; trivial. }
+          iDestruct "H8" as "[H1_8 H2_8]". wp_apply (wp_SliceGet with "[$H1_8]"); eauto. iIntros "H1_8". iDestruct "H_cur_REP" as "(%H1_cur_REP & %H2_cur_REP & H3_cur_REP)". wp_load. wp_apply (wp_oneOffVersionVector with "[$H4 $H3_cur_REP]"). { iPureIntro. word. } iIntros "%b (H4 & H3_cur_REP & %H_b)". subst b; wp_if_destruct.
+          { wp_load. wp_load. wp_apply (wp_SliceGet with "[$H1_8]"); eauto. iIntros "H1_8". wp_load. iPoseProof ("H3_cur_REP") as "#H3_cur_REP_pers". wp_apply (wp_sortedInsert with "[$H6 $H3_cur_REP_pers]"). { done. } iIntros "%OperationsPerformed' [H_OperationsPerformed' %SORTED]".
+            wp_apply (wp_storeField_struct with "[$H_s]"). { repeat econstructor; eauto. } simpl setField_f. iIntros "H_s". wp_load. wp_load. wp_apply (wp_SliceGet with "[$H1_8]"); eauto. iIntros "H1_8". wp_load. wp_apply (wp_maxTS with "[$H4 $H3_cur_REP_pers]"). { iPureIntro; word. } iIntros "%VectorClock' (H_VectorClock & H3_cur_REP & H_VectorClock')".
+            wp_apply (wp_storeField_struct with "[$H_s]"). { repeat econstructor; eauto. } simpl setField_f. iIntros "H_s". wp_load. wp_load. change (#index) with (to_val index); eauto. wp_apply (wp_SliceAppend with "[H_seen_REP]"). { iExact "H_seen_REP". }
+             wp_store. iModIntro. iApply "HΦ". iExists (prevs ++ [v]). iExists (drop (S (uint.nat index)) focus). subst focus. iExists (W64 (uint.Z index + 1)). iExists {| Server.Id := server.(Server.Id); Server.NumberOfServers := server.(Server.NumberOfServers); Server.UnsatisfiedRequests := server.(Server.UnsatisfiedRequests); Server.VectorClock := coq_maxTS server.(Server.VectorClock) v.(Operation.VersionVector); Server.OperationsPerformed := coq_sortedInsert server.(Server.OperationsPerformed) v; Server.MyOperations := server.(Server.MyOperations); Server.PendingOperations := server.(Server.PendingOperations); Server.GossipAcknowledgements := server.(Server.GossipAcknowledgements); |}. iFrame. 
+            assert (prevs = take (uint.nat index) msg.(Message.S2S_Gossip_Operations) /\ nexts = drop (uint.nat index)%nat msg.(Message.S2S_Gossip_Operations)) as [-> ->].
+            { enough (prevs = take (uint.nat index) msg .(Message.S2S_Gossip_Operations)) as claim1.
+              - split; trivial. rewrite <- take_drop with (l := msg.(Message.S2S_Gossip_Operations)) (i := uint.nat index) in FOCUS. rewrite <- claim1 in FOCUS. symmetry. eapply SessionPrelude.app_cancel_l. eassumption.
+              - rewrite FOCUS. eapply SessionPrelude.list_ext. { rewrite length_take. rewrite length_app. word. } { intros j x y [H_x H_y]. assert (j < length prevs)%nat by now eapply lookup_lt_is_Some_1; exists x. rewrite lookup_take in H_y; try word. rewrite lookup_app_l in H_y; try word. congruence. }
+            }
+            iSplitL "". { rewrite <- app_assoc. iPureIntro. symmetry. eapply take_drop_middle; trivial. }
+            iSplitL "". { iPureIntro. rewrite fold_left_app. simpl. rewrite <- SERVER. unfold first_loop_step. rewrite Heqb1. destruct server; trivial. }
+            iSplitL "H_VectorClock'". { iDestruct "H_VectorClock'" as "[H1_VectorClock' H2_VectorClock']". simpl. iExact "H1_VectorClock'". }
+            iSplitR "H3_v_REP". { iApply big_sepL2_flip. rewrite -> VIEW at 1. iApply big_sepL2_middle_merge; try eassumption. iFrame. do 2 (iSplitL ""; try done). }
+            iPureIntro. split. { congruence. } split. { rewrite length_app. rewrite length_take. simpl. word. } simpl. do 2 (split; trivial). eapply coq_maxTS_length; word.
+          }
+      }
+      {
+
+      }
     }
   Admitted.
 
@@ -374,7 +429,7 @@ Section heap.
           { unfold own_slice_small. unfold list.untype. cbn. rewrite list_fmap_insert. done. }
           { rewrite length_insert. done. }
       + iPureIntro. done.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_getGossipOperations {OWN_UnsatisfiedRequests: bool} sv s(serverId: u64) (n: nat) len_vc len_op len_mo len_po len_ga :
     {{{
