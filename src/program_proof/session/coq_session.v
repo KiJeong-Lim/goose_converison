@@ -125,7 +125,7 @@ Module CoqSessionServer.
   Definition coq_getDataFromOperationLog (l: list Operation.t) : u64 :=
     match last l with
     | Some v => v.(Operation.Data)
-    | None => 0
+    | None => W64 0
     end.
 
   Definition coq_receiveGossip (server: Server.t) (request: Message.t) : Server.t :=
@@ -188,7 +188,16 @@ Module CoqSessionServer.
         fold_left loop_step focus (0%nat, 0%nat, [])
       in
       let '(_, _, output) := third_loop_output in
-      Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) output server.(Server.GossipAcknowledgements).
+      {|
+        Server.Id := server.(Server.Id);
+        Server.NumberOfServers := server.(Server.NumberOfServers);
+        Server.UnsatisfiedRequests := server.(Server.UnsatisfiedRequests);
+        Server.VectorClock := server.(Server.VectorClock);
+        Server.OperationsPerformed := server.(Server.OperationsPerformed);
+        Server.MyOperations := server.(Server.MyOperations);
+        Server.PendingOperations := output;
+        Server.GossipAcknowledgements := server.(Server.GossipAcknowledgements);
+      |}.
 
   Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) : Server.t :=
     let i := uint.nat (r.(Message.S2S_Acknowledge_Gossip_Sending_ServerId)) in
