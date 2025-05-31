@@ -2,7 +2,6 @@ From Perennial.program_proof.session Require Export session_prelude coq_session.
 From Perennial.program_proof.session Require Export versionVector sort gossip.
 
 Section heap.
-
   Context `{hG: !heapGS Σ}.
 
   Lemma wp_processClientRequest {OWN_UnsatisfiedRequests: bool} UnsatisfiedRequests GossipAcknowledgements sv s msgv msg (n: nat) (m: nat) len_po len_ga len_s2c :

@@ -52,7 +52,6 @@ End CoqSessionClient.
 Export CoqSessionClient.
 
 Section heap.
-
   Context `{hG: !heapGS Σ}.
 
   Lemma wp_maxTS (n: nat) (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :

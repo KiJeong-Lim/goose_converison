@@ -153,9 +153,9 @@ Module CoqSessionServer.
               Server.NumberOfServers := server.(Server.NumberOfServers);
               Server.UnsatisfiedRequests := server.(Server.UnsatisfiedRequests);
               Server.VectorClock := server.(Server.VectorClock);
-              Server.OperationsPerformed := coq_sortedInsert server.(Server.OperationsPerformed) elem;
+              Server.OperationsPerformed := server.(Server.OperationsPerformed);
               Server.MyOperations := server.(Server.MyOperations);
-              Server.PendingOperations := server.(Server.PendingOperations);
+              Server.PendingOperations := coq_sortedInsert server.(Server.PendingOperations) elem;
               Server.GossipAcknowledgements := server.(Server.GossipAcknowledgements);
             |}
           else
@@ -496,7 +496,6 @@ Notation SERVER_INVARIANT := INVARIANT.SERVER.
 Notation CLIENT_INVARIANT := INVARIANT.CLIENT.
 
 Section heap.
-
   Context `{hG: !heapGS Σ}.
 
   Lemma Operation_wf_INTRO o opv (n : nat)
