@@ -10,6 +10,12 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma CONSTANT_minus_1
+  : CONSTANT - 1 = 18446744073709551613.
+Proof.
+  reflexivity.
+Qed.
+
 #[global] Opaque CONSTANT.
 
 Module CoqSessionServer.
@@ -79,13 +85,13 @@ Module CoqSessionServer.
   Definition getOperationVersionVector (op: Operation.t) : list u64 :=
     op.(Operation.VersionVector).
 
-  Variant binarySearch_spec (needle: Operation.t) (l: list Operation.t) (n: nat) (r: nat) : Prop :=
+  Variant binarySearch_spec (needle: Operation.t) (l: list Operation.t) (n: nat) (RESULT: nat) : Prop :=
     | binarySearch_spec_intro prefix suffix
-      (LENGTH: r = length prefix)
+      (LENGTH: RESULT = length prefix)
       (VECTOR: map getOperationVersionVector l = if forallb (fun x => negb (coq_equalSlices x.(Operation.VersionVector) needle.(Operation.VersionVector))) l then prefix ++ suffix else prefix ++ [getOperationVersionVector needle] ++ suffix)
       (PREFIX: ∀ op, In op prefix -> coq_lexicographicCompare needle.(Operation.VersionVector) op = true)
       (SUFFIX: ∀ op, In op suffix -> coq_lexicographicCompare op needle.(Operation.VersionVector) = true)
-      : binarySearch_spec needle l n r.
+      : binarySearch_spec needle l n RESULT.
 
   Fixpoint coq_sortedInsert (l: list Operation.t) (i: Operation.t) : list Operation.t :=
     match l with
@@ -185,19 +191,19 @@ Module CoqSessionServer.
       Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) output server.(Server.GossipAcknowledgements).
 
   Definition coq_acknowledgeGossip (s: Server.t) (r: Message.t) : Server.t :=
-    let i := r.(Message.S2S_Acknowledge_Gossip_Sending_ServerId) in
+    let i := uint.nat (r.(Message.S2S_Acknowledge_Gossip_Sending_ServerId)) in
     let l := s.(Server.GossipAcknowledgements) in
-    if (uint.nat i >=? length l)%nat then
+    if (i >=? length l)%nat then
       s
     else
       let prevGossipAcknowledgementsValue : u64 :=
-        match s.(Server.GossipAcknowledgements) !! uint.nat i with
+        match s.(Server.GossipAcknowledgements) !! i with
         | Some x => x
-        | None => 0
+        | None => W64 0
         end
       in
       let newGossipAcknowledgements := coq_maxTwoInts prevGossipAcknowledgementsValue r.(Message.S2S_Acknowledge_Gossip_Index) in
-      let gossipAcknowledgements := <[uint.nat i := newGossipAcknowledgements]> l in
+      let gossipAcknowledgements := <[i := newGossipAcknowledgements]> l in
       Server.mk s.(Server.Id) s.(Server.NumberOfServers) s.(Server.UnsatisfiedRequests) s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) gossipAcknowledgements.
 
   Definition coq_getGossipOperations (s: Server.t) (serverId: u64) : list Operation.t :=
@@ -444,6 +450,14 @@ Section properties.
   Proof.
     reflexivity.
   Defined.
+
+  Lemma coq_maxTS_length n xs ys
+    (LEN1 : length xs = n)
+    (LEN2 : length ys = n)
+    : length (coq_maxTS xs ys) = n.
+  Proof.
+    revert xs ys LEN1 LEN2; induction n as [ | n IH], xs as [ | x xs], ys as [ | y ys]; simpl in *; intros; try congruence; f_equal; eapply IH; word.
+  Qed.
 
 End properties.
 
