@@ -18,6 +18,9 @@ Qed.
 
 #[global] Opaque CONSTANT.
 
+Definition getOperationVersionVector (op: Operation.t) : list u64 :=
+  op.(Operation.VersionVector).
+
 Module CoqSessionServer.
 
   Include Goose.github_com.session.server.
@@ -82,9 +85,6 @@ Module CoqSessionServer.
   Definition coq_equalOperations (o1: Operation.t) (o2: Operation.t) : bool :=
     coq_equalSlices o1.(Operation.VersionVector) o2.(Operation.VersionVector) && (uint.Z o1.(Operation.Data) =? uint.Z (o2.(Operation.Data))).
 
-  Definition getOperationVersionVector (op: Operation.t) : list u64 :=
-    op.(Operation.VersionVector).
-
   Variant binarySearch_spec (needle: Operation.t) (l: list Operation.t) (n: nat) (RESULT: nat) : Prop :=
     | binarySearch_spec_intro prefix suffix
       (LENGTH: RESULT = length prefix)
@@ -104,17 +104,6 @@ Module CoqSessionServer.
       else
         h :: coq_sortedInsert t i
     end.
-
-  Definition coq_mergeOperations (l1: list Operation.t) (l2: list Operation.t) : list Operation.t :=
-    let output := fold_left coq_sortedInsert l2 l1 in
-    let loop_step (acc: nat * list Operation.t) (element: Operation.t) : nat * list Operation.t :=
-      let (index, acc) := acc in
-      match output !! (index + 1)%nat with
-      | Some v => if coq_equalOperations element v then ((index + 1)%nat, acc) else ((index + 1)%nat, acc ++ [element])
-      | None => ((index + 1)%nat, acc ++ [element])
-      end
-    in
-    snd (fold_left loop_step output (0%nat, [])).
 
   Definition coq_deleteAtIndexOperation (o: list Operation.t) (index: nat) : list Operation.t :=
     take index o ++ drop (index + 1)%nat o.
@@ -259,19 +248,20 @@ Module CoqSessionServer.
     | 1%nat =>
       let server := coq_receiveGossip server request in
       let focus := server.(Server.UnsatisfiedRequests) in
-      let loop_init : nat * (Server.t * list Message.t) :=
-        (0%nat, (server, [Message.mk 2 0 0 0 0 [] 0 0 [] 0 (server.(Server.Id)) (request.(Message.S2S_Gossip_Sending_ServerId)) (request.(Message.S2S_Gossip_Index)) 0 0 [] 0 0]))
+      let loop_init : nat * Server.t * list Message.t :=
+        (0%nat, server, [Message.mk 2 0 0 0 0 [] 0 0 [] 0 (server.(Server.Id)) (request.(Message.S2S_Gossip_Sending_ServerId)) (request.(Message.S2S_Gossip_Index)) 0 0 [] 0 0])
       in
-      let loop_step (acc: nat * (Server.t * list Message.t)) (element: Message.t) : nat * (Server.t * list Message.t) :=
-        let '(i, (s, outGoingRequests)) := acc in
+      let loop_step (acc: nat * Server.t * list Message.t) (element: Message.t) : nat * Server.t * list Message.t :=
+        let '(i, s, outGoingRequests) := acc in
         let '(succeeded, s, reply) := coq_processClientRequest s element in
         if succeeded then
           let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
-          (i, (Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply]))
+          (i, Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply])
         else
-          ((i + 1)%nat, (s, outGoingRequests))
+          ((i + 1)%nat, s, outGoingRequests)
       in
-      snd (fold_left loop_step focus loop_init)
+      let '(_, server, outGoingRequests) := fold_left loop_step focus loop_init in
+      (server, outGoingRequests)
     | 2%nat => (coq_acknowledgeGossip server request, [])
     | 3%nat =>
       let loop_step (acc: list Message.t) (index: u64) : list Message.t :=
