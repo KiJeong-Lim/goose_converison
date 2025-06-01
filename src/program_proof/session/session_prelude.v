@@ -544,6 +544,14 @@ Module SessionPrelude.
           h :: sortedInsert t i
       end.
 
+    Lemma Forall_sortedInsert (P : A -> Prop) l i
+      (H_l : Forall P l)
+      (H_i : P i)
+      : Forall P (sortedInsert l i).
+    Proof.
+      induction H_l; simpl; eauto. destruct (ltb i x) as [ | ]; eauto. destruct (eqb x i); eauto.
+    Qed.
+
     Lemma sortedInsert_spec (l : list A) (i : A) (l_wf : Forall well_formed l) (i_wf : well_formed i)
       (SORTED : isSorted l)
       (NOT_IN := forallb (fun j => negb (eqb j i)) l)
