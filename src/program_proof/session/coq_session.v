@@ -21,6 +21,18 @@ Qed.
 Definition getOperationVersionVector (op: Operation.t) : list u64 :=
   op.(Operation.VersionVector).
 
+Lemma OperationVersionVector_dec (v1: list u64) (v2: list u64)
+  : {v1 = v2} + {v1 ≠ v2}.
+Proof.
+  pose proof (w64_eq_dec) as H; do 2 red in H. decide equality.
+Qed.
+
+Lemma Operation_dec (op1: Operation.t) (op2: Operation.t)
+  : {op1 = op2} + {op1 ≠ op2}.
+Proof.
+  pose proof (w64_eq_dec) as H; do 2 red in H. pose proof (OperationVersionVector_dec) as H'. decide equality.
+Qed.
+
 Module CoqSessionServer.
 
   Include Goose.github_com.session.server.

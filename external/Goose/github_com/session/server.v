@@ -215,8 +215,11 @@ Definition receiveGossip: val :=
       let: "output" := ref_to (slice.T (struct.t Operation)) (NewSlice (struct.t Operation) #0) in
       Skip;;
       (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.get Server "PendingOperations" (![struct.t Server] "s")))); (λ: <>, Skip) := λ: <>,
-        (if: ((![uint64T] "j") < (slice.len (![slice.T uint64T] "seen"))) && ((![uint64T] "i") = (SliceGet uint64T (![slice.T uint64T] "seen") (![uint64T] "j")))
-        then "j" <-[uint64T] ((![uint64T] "j") + #1)
+        (if: (![uint64T] "j") < (slice.len (![slice.T uint64T] "seen"))
+        then
+          (if: (![uint64T] "i") = (SliceGet uint64T (![slice.T uint64T] "seen") (![uint64T] "j"))
+          then "j" <-[uint64T] ((![uint64T] "j") + #1)
+          else "output" <-[slice.T (struct.t Operation)] (SliceAppend (struct.t Operation) (![slice.T (struct.t Operation)] "output") (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i"))))
         else "output" <-[slice.T (struct.t Operation)] (SliceAppend (struct.t Operation) (![slice.T (struct.t Operation)] "output") (SliceGet (struct.t Operation) (struct.get Server "PendingOperations" (![struct.t Server] "s")) (![uint64T] "i"))));;
         "i" <-[uint64T] ((![uint64T] "i") + #1);;
         Continue);;

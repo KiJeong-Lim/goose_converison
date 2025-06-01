@@ -211,8 +211,12 @@ func receiveGossip(server Server, request Message) Server {
 	var j = uint64(0)
 	var output = make([]Operation, 0)
 	for i < uint64(len(s.PendingOperations)) {
-		if j < uint64(len(seen)) && i == seen[j] {
-			j = j + 1
+		if j < uint64(len(seen)) {
+			if (i == seen[j]) {
+				j = j + 1
+			} else {
+				output = append(output, s.PendingOperations[i])
+			}
 		} else {
 			output = append(output, s.PendingOperations[i])
 		}
@@ -220,7 +224,6 @@ func receiveGossip(server Server, request Message) Server {
 	}
 
 	s.PendingOperations = output
-
 	return s
 }
 

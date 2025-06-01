@@ -9,7 +9,7 @@
 
 - session_prelude.v (1077 lines) [v]
 - definitions.v (392 lines) [v]
-- coq_session.v (648 lines) [v]
+- coq_session.v (650 lines) [v]
 
 ## equivalence proofs
 
