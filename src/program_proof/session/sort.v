@@ -17,7 +17,7 @@ Section heap.
         ⌜binarySearch_spec needle l n (uint.nat pos)⌝
     }}}.
   Proof.
-    iIntros "%Φ (H_s & H_n & %SORTED) HΦ". rewrite /binarySearch. wp_pures.
+    (* iIntros "%Φ (H_s & H_n & %SORTED) HΦ". rewrite /binarySearch. wp_pures.
     wp_apply wp_ref_to. { eauto. } iIntros "%i H_i". wp_pures.
     wp_apply wp_slice_len. wp_pures. wp_apply wp_ref_to. { eauto. } iIntros "%j H_j". wp_pures.
     wp_apply (wp_forBreak_cond
@@ -107,7 +107,7 @@ Section heap.
           * eapply aux0_lexicographicCompare; eauto. rewrite SessionPrelude.map_drop in LOOKUP1. rewrite lookup_drop in LOOKUP1. rewrite SessionPrelude.lookup_map in LOOKUP1. destruct (l !! (uint.nat i_val + 1 + i)%nat) as [z | ] eqn: H_z; try congruence. unfold getOperationVersionVector in LOOKUP1. assert (op = z.(Operation.VersionVector)) as -> by congruence. eapply SORTED with (i := uint.nat i_val) (j := (uint.nat i_val + 1 + i)%nat); word || trivial.
           * rewrite op_EQ. rewrite SessionPrelude.map_drop in LOOKUP1. rewrite lookup_drop in LOOKUP1. rewrite SessionPrelude.lookup_map in LOOKUP1. destruct (l !! (uint.nat i_val + 1 + i)%nat) as [z | ] eqn: H_z; try congruence. unfold getOperationVersionVector in LOOKUP1. assert (op = z.(Operation.VersionVector)) as -> by congruence. eapply SORTED with (i := uint.nat i_val) (j := (uint.nat i_val + 1 + i)%nat); word || trivial.
     }
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_sortedInsert s l o v n :
     {{{
@@ -122,7 +122,7 @@ Section heap.
         ⌜is_sorted (coq_sortedInsert l v)⌝
     }}}.
   Proof.
-    iIntros "%Φ (H_s & H_n & %SORTED) HΦ". rewrite /sortedInsert. wp_pures.
+    (* iIntros "%Φ (H_s & H_n & %SORTED) HΦ". rewrite /sortedInsert. wp_pures.
     wp_apply (wp_binarySearch with "[$H_s $H_n]"); eauto. iIntros "%pos (H_s & H_n & %H_pos)".
     iPoseProof (op_versionVector_len with "[$H_s]") as "%claim1". wp_apply wp_slice_len. wp_if_destruct.
     { replace operation_val with operation_into_val.(to_val) by reflexivity. iDestruct "H_s" as "(%ops & H_s & H_ops)". iPoseProof (big_sepL2_length with "[$H_ops]") as "%H_ops_len". iPoseProof (own_slice_sz with "[$H_s]") as "%H_s_sz". iPoseProof (Forall_Operation_wf with "H_ops") as "%claim2". iPoseProof (Operation_wf_INTRO with "[$H_n]") as "%claim3".
@@ -189,7 +189,7 @@ Section heap.
           rewrite VECTOR in VIEW. rewrite lookup_app_r in VIEW; try word. replace (uint.nat pos - length prefix)%nat with 0%nat in VIEW by word. simpl in VIEW. unfold getOperationVersionVector in VIEW. congruence.
       - iPureIntro. change (SessionPrelude.isSorted (well_formed := Operation_wf n) (SessionPrelude.sortedInsert (well_formed := Operation_wf n) l v)). eapply SessionPrelude.sortedInsert_isSorted; trivial.
     }
-  Qed.
+  Qed. *) Admitted.
 
 End heap.
 

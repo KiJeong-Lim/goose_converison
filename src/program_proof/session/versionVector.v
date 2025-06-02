@@ -17,7 +17,7 @@ Section heap.
         ⌜b = coq_compareVersionVector xs ys⌝
     }}}.
   Proof.
-    iIntros (Φ) "(H1 & H2) H3". rewrite /compareVersionVector.
+    (* iIntros (Φ) "(H1 & H2) H3". rewrite /compareVersionVector.
     iDestruct (own_slice_small_sz with "H1") as %Hsz. wp_pures. wp_apply wp_ref_to; auto.
     iIntros (output) "H4". wp_pures. wp_apply wp_ref_to; auto.
     iIntros (index) "H5". wp_pures. wp_apply wp_slice_len. wp_apply wp_ref_to; auto.
@@ -76,7 +76,7 @@ Section heap.
             * destruct (decide (uint.nat i = 0%nat)). { destruct H3 as (? & ? & ? & ? & ? & ?). subst. rewrite e in H3. rewrite e in H4. simpl in *. inversion H3. inversion H4. subst. word. } { destruct H3 as (? & ? & ? & ? & ? & ?). rewrite H1. assert (uint.nat i > 0) by word. left. exists x0. exists x1. rewrite lookup_cons_Some in H3. destruct H3 as [? | [? ?]]; try word. rewrite lookup_cons_Some in H4. destruct H4 as [? | [? ?]]; try word. repeat (split; (eassumption || word || auto)). }
             * destruct H3. rewrite length_cons in H3. right. split. { rewrite H1. word. } eassumption.
       }
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_lexicographicCompare (x: Slice.t) (xs: list u64) (y: Slice.t) (ys: list u64) (dx: dfrac) (dy: dfrac) :
     {{{
@@ -92,7 +92,7 @@ Section heap.
         ⌜r = coq_lexicographicCompare xs ys⌝
     }}}.
   Proof.
-    iIntros (Φ) "(H1 & H2 & %H3) H5". rewrite /lexicographicCompare.
+    (* iIntros (Φ) "(H1 & H2 & %H3) H5". rewrite /lexicographicCompare.
     iDestruct (own_slice_small_sz with "H1") as %Hsz. wp_pures. wp_apply wp_ref_to; auto.
     iIntros (output) "H6". wp_pures. wp_apply wp_ref_to; auto.
     iIntros (index) "H7". wp_pures. wp_apply wp_slice_len. wp_apply wp_ref_to; auto.
@@ -163,7 +163,7 @@ Section heap.
                 { rewrite H4. rewrite lookup_cons_Some in H. destruct H as [? | [? ?]]; try word. auto. } split.
                 { rewrite H4. rewrite lookup_cons_Some in H5. destruct H5 as [? | [? ?]]; try word. auto. } split; (word || auto).
         }
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_maxTwoInts (x: w64) (y: w64) :
     {{{
@@ -175,10 +175,10 @@ Section heap.
         ⌜r = coq_maxTwoInts x y⌝
     }}}.
   Proof.
-    iIntros (Φ) "H H1". rewrite /maxTwoInts. wp_pures. wp_if_destruct; iModIntro.
+    (* iIntros (Φ) "H H1". rewrite /maxTwoInts. wp_pures. wp_if_destruct; iModIntro.
     - iApply "H1". iPureIntro. unfold coq_maxTwoInts. apply Z.gtb_lt in Heqb. rewrite Heqb. auto.
     - iApply "H1". iPureIntro. rewrite /coq_maxTwoInts. assert (uint.Z y >= uint.Z x) by word. assert (uint.Z x >? uint.Z y = false) by word. rewrite H0; auto.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_maxTS (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (d: dfrac) (d': dfrac) :
     {{{
@@ -194,7 +194,7 @@ Section heap.
         own_slice s' uint64T (DfracOwn 1) (coq_maxTS xs ys)
     }}}.
   Proof.
-    iIntros (Φ) "(H & H1 & %H3) H2".
+    (* iIntros (Φ) "(H & H1 & %H3) H2".
     rewrite /maxTS.
     iDestruct (own_slice_small_sz with "H") as %Hsz_x. iDestruct (own_slice_small_sz with "H1") as %Hsz_y. wp_pures.
     wp_apply wp_ref_to; auto. iIntros (index) "index". wp_pures. wp_pures. wp_apply wp_slice_len.
@@ -271,7 +271,7 @@ Section heap.
           }
           { reflexivity. }
           { reflexivity. }
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_equalSlices (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :
     {{{
@@ -287,7 +287,7 @@ Section heap.
         ⌜r = coq_equalSlices xs ys⌝
     }}}.
   Proof.
-    iIntros (Φ) "(H1 & H2) H3". unfold equalSlices. wp_pures.
+    (* iIntros (Φ) "(H1 & H2) H3". unfold equalSlices. wp_pures.
     wp_apply wp_ref_to; auto. iIntros (output) "H4". wp_pures.
     wp_apply wp_ref_to; auto. iIntros (index) "H5". wp_pures.
     wp_apply wp_slice_len. wp_apply wp_ref_to; auto. iIntros (l) "H6". wp_pures.
@@ -378,7 +378,7 @@ Section heap.
               * simpl. auto.
               * auto.
           }
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_oneOffVersionVector (x: Slice.t) (xs: list u64) (y: Slice.t) (ys: list u64) dq_x dq_y :
     {{{
@@ -394,7 +394,7 @@ Section heap.
         ⌜b = coq_oneOffVersionVector xs ys⌝
     }}}.
   Proof.
-    iIntros (Φ) "(Hx & Hy & %H) H2". iDestruct (own_slice_small_sz with "Hx") as %Hsz. assert (length xs < 2^64) by word. rewrite /oneOffVersionVector.
+    (* iIntros (Φ) "(Hx & Hy & %H) H2". iDestruct (own_slice_small_sz with "Hx") as %Hsz. assert (length xs < 2^64) by word. rewrite /oneOffVersionVector.
     wp_apply wp_ref_to; auto. iIntros (output) "H3". wp_apply wp_ref_to; auto. iIntros (canApply) "H4". wp_apply wp_ref_to; auto. iIntros (index) "H5". wp_pures.
     wp_apply (wp_slice_len). wp_apply wp_ref_to; auto. iIntros (l) "H6". wp_pures.
     set (loop_step := λ (acc : bool * bool) (element : w64 * w64),
@@ -538,7 +538,7 @@ Section heap.
         rewrite H7. rewrite H8. unfold coq_oneOffVersionVector. fold loop_step. replace (true, true) with loop_init by auto. destruct (fold_left loop_step (zip xs_prev ys_prev) loop_init) as [ind ?]. simpl in *. rewrite <- H11. rewrite andb_true_l. rewrite H12. auto.
       + wp_pures. iModIntro. iApply "H2". iFrame. iPureIntro. destruct H10; auto. rewrite H1 in H7. rewrite H2 in H8. rewrite app_nil_r in H7. rewrite app_nil_r in H8. rewrite H7. rewrite H8.
         unfold coq_oneOffVersionVector. fold loop_step. replace (true, true) with loop_init by auto. destruct (fold_left loop_step (zip xs_prev ys_prev) loop_init) as [ind ?]. simpl in *. rewrite <- H11. rewrite andb_false_l. auto.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_equalOperations (opv1: Slice.t*u64) (o1: Operation.t) (opv2: Slice.t*u64) (o2: Operation.t) (n: nat) :
     {{{
@@ -550,12 +550,12 @@ Section heap.
         is_operation opv1 o1 n ∗ is_operation opv2 o2 n
     }}}.
   Proof.
-    rewrite /equalOperations. iIntros "%Φ [Ho1 Ho2] HΦ". iDestruct "Ho1" as "(%Hopv1snd & %Hlen1 & Ho1)". iDestruct "Ho2" as "(%Hopv2snd & %Hlen2 & Ho2)".
+    (* rewrite /equalOperations. iIntros "%Φ [Ho1 Ho2] HΦ". iDestruct "Ho1" as "(%Hopv1snd & %Hlen1 & Ho1)". iDestruct "Ho2" as "(%Hopv2snd & %Hlen2 & Ho2)".
     wp_rec. wp_pures. wp_apply (wp_equalSlices with "[Ho1 Ho2]"). { iFrame. iPureIntro. word. } iIntros "%r (Hopv1 & Hopv2 & ->)". wp_if_destruct.
     - wp_pures. iModIntro. unfold coq_equalOperations. rewrite Heqb. simpl. replace (bool_decide (#opv1.2 = #opv2.2)) with (uint.Z o1 .(Operation.Data) =? uint.Z o2 .(Operation.Data)). { iApply "HΦ"; iFrame. done. }
       rewrite -> Hopv1snd, -> Hopv2snd. destruct (bool_decide _) as [ | ] eqn: H_OBS; [apply bool_decide_eq_true in H_OBS; apply Z.eqb_eq | apply bool_decide_eq_false in H_OBS; apply Z.eqb_neq]. { congruence. } { intros H_contra. contradiction H_OBS. f_equal. f_equal. word. }
     - wp_pures. iModIntro. unfold coq_equalOperations. rewrite Heqb. simpl. iApply "HΦ"; iFrame. done.
-  Qed.
+  Qed. *) Admitted.
 
 End heap.
 

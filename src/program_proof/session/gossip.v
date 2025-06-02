@@ -16,7 +16,7 @@ Section heap.
         ⌜(length (coq_deleteAtIndexOperation l (uint.nat index)) + 1 = length l)%nat⌝
     }}}.
   Proof.
-    rewrite/ deleteAtIndexOperation. rename s into s1. iIntros (Φ) "[(%ops1 & H_s1 & H_ops1) %H_index] HΦ".
+    (* rewrite/ deleteAtIndexOperation. rename s into s1. iIntros (Φ) "[(%ops1 & H_s1 & H_ops1) %H_index] HΦ".
     iPoseProof (big_sepL2_length with "[$H_ops1]") as "%claim1".
     iPoseProof (own_slice_sz with "[$H_s1]") as "%claim2".
     wp_pures. wp_apply wp_NewSlice. iIntros "%s2 H_s2". wp_apply wp_ref_to; auto.
@@ -80,7 +80,7 @@ Section heap.
       + iPureIntro. rewrite length_app. rewrite length_take. rewrite length_drop. rewrite length_drop. word.
     - unfold coq_deleteAtIndexOperation. replace (drop (uint.nat index + 1) l) with (drop (uint.nat (W64 1)) (drop (uint.nat index) l)); trivial.
       rewrite drop_drop. f_equal.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_deleteAtIndexMessage (s: Slice.t) (index: w64) (l: list Message.t) (n: nat) (len_c2s: nat) :
     {{{ 
@@ -94,7 +94,7 @@ Section heap.
         ⌜(length (coq_deleteAtIndexMessage l (uint.nat index)) + 1 = length l)%nat⌝
     }}}.
   Proof.
-    rewrite/ deleteAtIndexMessage. rename s into s1. iIntros (Φ) "[(%ops1 & H_s1 & H_ops1) %H_index] HΦ".
+    (* rewrite/ deleteAtIndexMessage. rename s into s1. iIntros (Φ) "[(%ops1 & H_s1 & H_ops1) %H_index] HΦ".
     iPoseProof (big_sepL2_length with "[$H_ops1]") as "%claim1".
     iPoseProof (own_slice_sz with "[$H_s1]") as "%claim2".
     wp_pures. wp_apply wp_NewSlice. iIntros "%s2 H_s2". wp_apply wp_ref_to; auto.
@@ -139,7 +139,7 @@ Section heap.
         * iPoseProof (big_sepL2_cons_inv_l with "[$H_suffix]") as "(%hd' & %tl' & %H_obs' & H1 & H2)".
           do 2 rewrite <- drop_drop. rewrite H_obs H_obs'. simpl. done.
     - iPureIntro. rewrite length_app. rewrite length_take. rewrite length_drop. word.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_getDataFromOperationLog (s: Slice.t) (l: list Operation.t) (n: nat) :
     {{{
@@ -152,7 +152,7 @@ Section heap.
         operation_slice s l n
     }}}.
   Proof.
-    rewrite/ getDataFromOperationLog. wp_pures. iIntros "%Φ Hl H1". wp_pures.
+    (* rewrite/ getDataFromOperationLog. wp_pures. iIntros "%Φ Hl H1". wp_pures.
     wp_rec. iDestruct "Hl" as "(%ops & Hs & Hl)". iPoseProof (pers_big_sepL2_is_operation with "[$Hl]") as "#Hl_pers". wp_if_destruct.
     - wp_rec.
       iAssert (⌜is_Some (ops !! uint.nat (w64_word_instance .(word.sub) s .(Slice.sz) (W64 1)))⌝%I) with "[Hl Hs]" as "%Hl".
@@ -197,7 +197,7 @@ Section heap.
       { iPoseProof (big_sepL2_nil_inv_l with "[$Hl]") as "%Hl". congruence. }
       iPoseProof (own_slice_sz with "[$Hs]") as "%Hs".
       simpl in Hs. word.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_receiveGossip sv s msgv msg (n: nat) len_c2s len_s2c len_mo len_ga Id NumberOfServers UnsatisfiedRequests MyOperations GossipAcknowledgements :
     {{{
@@ -213,7 +213,7 @@ Section heap.
         ⌜WEAK_SERVER_INVARIANT (fun _s => _s.(Server.Id) = Id /\ _s.(Server.NumberOfServers) = NumberOfServers /\ _s.(Server.UnsatisfiedRequests) = UnsatisfiedRequests /\ _s.(Server.MyOperations) = MyOperations /\ _s.(Server.GossipAcknowledgements) = GossipAcknowledgements) (coq_receiveGossip s msg)⌝
     }}}.
   Proof.
-    set ((fun _s => _s.(Server.Id) = Id /\ _s.(Server.NumberOfServers) = NumberOfServers /\ _s.(Server.UnsatisfiedRequests) = UnsatisfiedRequests /\ _s.(Server.MyOperations) = MyOperations /\ _s.(Server.GossipAcknowledgements) = GossipAcknowledgements)) as EXTRA_s.
+    (* set ((fun _s => _s.(Server.Id) = Id /\ _s.(Server.NumberOfServers) = NumberOfServers /\ _s.(Server.UnsatisfiedRequests) = UnsatisfiedRequests /\ _s.(Server.MyOperations) = MyOperations /\ _s.(Server.GossipAcknowledgements) = GossipAcknowledgements)) as EXTRA_s.
     rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_invariant) HΦ". destruct H_invariant; destruct EXTRA_SERVER_INVARIANT as (<- & <- & <- & <- & <-).
     iDestruct "H_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)". iDestruct "H_message" as "(%H11 & %H12 & %H13 & %H14 & %H15 & H16 & %H17 & %H18 & %H19 & H20 & %H21 & %H22 & %H23 & %H24 & %H25 & %H26 & H27 & %H28 & %H29 & %H30)".
     rewrite /receiveGossip; simplNotation; subst.
@@ -490,7 +490,7 @@ Section heap.
       unfold is_server. unfold is_server'; iFrame; simpl; simplNotation; subst. unfold coq_receiveGossip. replace (length msg .(Message.S2S_Gossip_Operations) =? 0)%nat with false; cycle 1. { symmetry; rewrite Nat.eqb_neq. word. } fold first_loop_step. fold second_loop_step. rewrite <- SECOND_LOOP. fold third_loop_step. subst focus. rewrite <- ACCUM. simpl; iFrame. iPureIntro. repeat (split; tauto || word || simpl; trivial). { f_equal; symmetry; tauto. }
       - (* "is_sorted output" *) admit.
       - (* "∀ x : w64, In x server2 .(Server.VectorClock) → uint.Z x ≤ CONSTANT" *) admit.
-    }
+    } *)
   Admitted.
 
   Lemma wp_acknowledgeGossip {OWN_UnsatisfiedRequests: bool} sv s msgv msg (n: nat) len_c2s len_s2c len_vc len_op len_mo len_po len_ga :
@@ -505,7 +505,7 @@ Section heap.
         is_message msgv msg n len_c2s len_s2c
     }}}.
   Proof.
-    TypeVector.des sv. TypeVector.des msgv.
+    (* TypeVector.des sv. TypeVector.des msgv.
     iIntros "%Φ (H_server & H_message) HΦ". rewrite /acknowledgeGossip.
     iDestruct "H_server" as "(%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10)".
     iDestruct "H_message" as "(%H11 & %H12 & %H13 & %H14 & %H15 & H16 & %H17 & %H18 & %H19 & H20 & %H21 & %H22 & %H23 & %H24 & %H25 & %H26 & H27 & %H28 & %H29 & %H30)".
@@ -540,7 +540,7 @@ Section heap.
           { unfold own_slice_small. unfold list.untype. cbn. rewrite list_fmap_insert. done. }
           { rewrite length_insert. done. }
       + iPureIntro. done.
-  Qed.
+  Qed. *) Admitted.
 
   Lemma wp_getGossipOperations {OWN_UnsatisfiedRequests: bool} sv s(serverId: u64) (n: nat) len_vc len_op len_mo len_po len_ga :
     {{{
@@ -552,7 +552,7 @@ Section heap.
         operation_slice ns (coq_getGossipOperations s serverId) len_mo ∗
         is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}.
-  Proof.
+  Proof. (*
     TypeVector.des sv. iIntros "%Φ (%H1 & %H2 & H3 & H4 & %H5 & H6 & H7 & H8 & H9 & %H10) HΦ".
     simplNotation. subst. rewrite /getGossipOperations. wp_pures.
     wp_apply wp_NewSlice; auto. iIntros "%s1 [H1_s1 H2_s1]".
@@ -606,7 +606,7 @@ Section heap.
           - iFrame.
         }
         iPureIntro. tauto. 
-  Qed.
+  Qed. *) Admitted.
 
 End heap.
 

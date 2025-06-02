@@ -1,23 +1,6 @@
 From Perennial.program_proof.session Require Export session_prelude.
 From Perennial.program_proof.session Require Export definitions.
 
-Definition CONSTANT : Z :=
-  2 ^ 64 - 2.
-
-Lemma CONSTANT_unfold
-  : CONSTANT = 2 ^ 64 - 2.
-Proof.
-  reflexivity.
-Qed.
-
-Lemma CONSTANT_minus_1
-  : CONSTANT - 1 = 18446744073709551613.
-Proof.
-  reflexivity.
-Qed.
-
-#[global] Opaque CONSTANT.
-
 Definition getOperationVersionVector (op: Operation.t) : list u64 :=
   op.(Operation.VersionVector).
 
@@ -512,7 +495,7 @@ Section heap.
   Lemma Operation_wf_INTRO o opv (n : nat)
     : (is_operation opv o n)%I ⊢@{iProp Σ} (⌜Operation_wf n o⌝)%I.
   Proof.
-    iIntros "H_hd". iDestruct "H_hd" as "(%H1 & %H2 & H3)"; iClear "H3".
+    iIntros "H_hd". iDestruct "H_hd" as "(%H1 & [%H2 %H4]  & H3)"; iClear "H3".
     iPureIntro; split; [eapply SessionPrelude.Forall_True | done].
   Qed.
 
@@ -526,7 +509,7 @@ Section heap.
       iAssert ⌜Forall (Operation_wf n) tl⌝%I as "%YES1".
       { iApply IH; iExact "H_tl". }
       iPureIntro; econstructor; trivial.
-      split; [eapply SessionPrelude.Forall_True | done].
+      destruct H1 as [H1 H1'], H2 as [H2 H2']; split; [eapply SessionPrelude.Forall_True | done].
   Qed.
 
   Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) (n: nat)

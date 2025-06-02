@@ -1,9 +1,32 @@
 From Perennial.program_proof.session Require Export session_prelude.
 
+Definition CONSTANT : Z :=
+  2 ^ 64 - 2.
+
+Lemma CONSTANT_unfold
+  : CONSTANT = 2 ^ 64 - 2.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma CONSTANT_minus_1
+  : CONSTANT - 1 = 18446744073709551613.
+Proof.
+  reflexivity.
+Qed.
+
+#[global] Opaque CONSTANT.
+
+Definition nat_ge_CONSTANT (n : nat) : Prop :=
+  Z.of_nat n <= CONSTANT.
+
+Definition u64_ge_CONSTANT (u : u64) : Prop :=
+  uint.Z u <= CONSTANT.
+
 Module Operation.
 
-  Lemma struct_ty_operation_unfold :
-    struct.t Operation = (slice.T uint64T * (uint64T * unitT))%ht.
+  Lemma struct_ty_operation_unfold
+    : struct.t Operation = (slice.T uint64T * (uint64T * unitT))%ht.
   Proof. reflexivity. Qed.
 
   Record t : Type := mk
@@ -70,7 +93,6 @@ Module Client.
 End Client.
 
 Section heap.
-  Context `{hG: !heapGS Σ}.
 
   Definition operation_val (op:Slice.t*u64) : val :=
     (slice_val op.1, (#op.2, #()))%V.
@@ -101,18 +123,6 @@ Section heap.
   #[global] Instance operation_into_val_for_type : IntoValForType (Slice.t*u64) (struct.t Operation).
   Proof. constructor; auto. Qed.
 
-  Definition is_operation (opv: Slice.t*u64) (op: Operation.t) (len_opv: nat) : iProp Σ :=
-    ⌜opv.2 = op.(Operation.Data)⌝ ∗
-    ⌜len_opv = length (op.(Operation.VersionVector))⌝ ∗
-    own_slice_small opv.1 uint64T DfracDiscarded op.(Operation.VersionVector).
-
-  Definition operation_slice' (op_s: Slice.t) (op: list Operation.t) (n: nat) (dq: dfrac) : iProp Σ :=
-    ∃ ops, own_slice op_s (struct.t Operation) dq ops ∗
-            [∗ list] opv;o ∈ ops;op, is_operation opv o n.
-
-  Definition operation_slice (s: Slice.t) (l: list Operation.t) (n: nat) : iProp Σ :=
-    operation_slice' s l n (DfracOwn 1).
-
   Definition message_val (msg:u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64) : val :=
     (#msg.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1,
        (#msg.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.2,
@@ -131,8 +141,7 @@ Section heap.
                                               (#msg.1.1.1.2,
                                                  (slice_val msg.1.1.2,
                                                     (#msg.1.2,
-                                                       (#msg.2,
-                                                          #()))))))))))))))))))%V.
+                                                       (#msg.2, #()))))))))))))))))))%V.
 
   Lemma redefine_message_val
     : message_val = @SessionPrelude.value_of (tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) _.
@@ -210,33 +219,6 @@ Section heap.
   #[global] Instance message_into_val_for_type : IntoValForType (u64*u64*u64*u64*u64*Slice.t*u64*u64*Slice.t*u64*u64*u64*u64*u64*u64*Slice.t*u64*u64) (struct.t server.Message).
   Proof. constructor; auto. simpl. repeat split; auto. Qed.
 
-  Definition is_message (msgv: tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64])
-    (msg: Message.t) (n: nat) (len_c2s: nat) (len_s2c: nat) : iProp Σ :=
-    ⌜msgv!(0) = msg.(Message.MessageType)⌝ ∗
-    ⌜msgv!(1) = msg.(Message.C2S_Client_Id)⌝ ∗
-    ⌜msgv!(2) = msg.(Message.C2S_Server_Id)⌝ ∗
-    ⌜msgv!(3) = msg.(Message.C2S_Client_OperationType)⌝ ∗
-    ⌜msgv!(4) = msg.(Message.C2S_Client_Data)⌝ ∗
-    own_slice_small msgv!(5) uint64T (DfracOwn 1) msg.(Message.C2S_Client_VersionVector) ∗
-    ⌜len_c2s = length msg.(Message.C2S_Client_VersionVector)⌝ ∗
-    ⌜msgv!(6) = msg.(Message.S2S_Gossip_Sending_ServerId)⌝ ∗
-    ⌜msgv!(7) = msg.(Message.S2S_Gossip_Receiving_ServerId)⌝ ∗
-    operation_slice msgv!(8) msg.(Message.S2S_Gossip_Operations) n ∗
-    ⌜msgv!(9) = msg.(Message.S2S_Gossip_Index)⌝ ∗
-    ⌜msgv!(10) = msg.(Message.S2S_Acknowledge_Gossip_Sending_ServerId)⌝ ∗
-    ⌜msgv!(11) = msg.(Message.S2S_Acknowledge_Gossip_Receiving_ServerId)⌝ ∗
-    ⌜msgv!(12) = msg.(Message.S2S_Acknowledge_Gossip_Index)⌝ ∗
-    ⌜msgv!(13) = msg.(Message.S2C_Client_OperationType)⌝ ∗
-    ⌜msgv!(14) = msg.(Message.S2C_Client_Data)⌝ ∗
-    own_slice_small msgv!(15) uint64T (DfracOwn 1) msg.(Message.S2C_Client_VersionVector) ∗
-    ⌜len_s2c = length msg.(Message.S2C_Client_VersionVector)⌝ ∗
-    ⌜msgv!(16) = msg.(Message.S2C_Server_Id)⌝ ∗
-    ⌜msgv!(17) = msg.(Message.S2C_Client_Number)⌝.
-
-  Definition message_slice (s: Slice.t) (l: list Message.t) (n: nat) (len_c2s: nat) : iProp Σ :=
-    ∃ msgs, own_slice s (struct.t server.Message) (DfracOwn 1) msgs ∗
-            [∗ list] mv;m ∈ msgs;l, ∃ len_s2c, is_message mv m n len_c2s len_s2c.
-
   Definition server_val (s: u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) : val :=
     (#s.1.1.1.1.1.1.1,
        (#s.1.1.1.1.1.1.2,
@@ -306,22 +288,6 @@ Section heap.
   #[global] Instance server_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t*Slice.t) (struct.t server.Server).
   Proof. constructor; auto. simpl. repeat split; auto. Qed.
 
-  Definition is_server' (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t)
-    (n: nat) (len_vc: nat) (len_op: nat) (len_mo: nat) (len_po: nat) (len_ga: nat) (OWN_UnsatisfiedRequests: bool) : iProp Σ :=
-    ⌜sv!(0) = s.(Server.Id)⌝ ∗
-    ⌜sv!(1) = s.(Server.NumberOfServers)⌝ ∗
-    (if OWN_UnsatisfiedRequests then message_slice sv!(2) s.(Server.UnsatisfiedRequests) n len_vc else emp)%I ∗
-    own_slice_small sv!(3) uint64T (DfracOwn 1) s.(Server.VectorClock) ∗
-    ⌜len_vc = length s.(Server.VectorClock)⌝ ∗
-    operation_slice sv!(4) s.(Server.OperationsPerformed) len_op ∗
-    operation_slice sv!(5) s.(Server.MyOperations) len_mo ∗
-    operation_slice sv!(6) s.(Server.PendingOperations) len_po ∗
-    own_slice_small sv!(7) uint64T (DfracOwn 1) s.(Server.GossipAcknowledgements) ∗
-    ⌜len_ga = length s.(Server.GossipAcknowledgements)⌝.
-
-  Definition is_server sv s n len_vc len_op len_mo len_po len_ga : iProp Σ :=
-    is_server' sv s n len_vc len_op len_mo len_po len_ga true.
-
   Definition client_val (c:u64*u64*Slice.t*Slice.t*u64) : val :=
     (#c.1.1.1.1,
        (#c.1.1.1.2,
@@ -378,14 +344,64 @@ Section heap.
   #[global] Instance client_into_val_for_type : IntoValForType (u64*u64*Slice.t*Slice.t*u64) (struct.t client.Client).
   Proof. constructor; auto. cbn. split; auto. Qed.
 
+  Context `{hG: !heapGS Σ}.
+
+  Definition is_operation (opv: Slice.t*u64) (op: Operation.t) (len_opv: nat) : iProp Σ :=
+    (* Data *) ⌜opv.2 = op.(Operation.Data) /\ u64_ge_CONSTANT op.(Operation.Data)⌝ ∗
+    ⌜len_opv = length op.(Operation.VersionVector) /\ Forall u64_ge_CONSTANT op.(Operation.VersionVector)⌝ ∗
+    own_slice_small opv.1 uint64T DfracDiscarded op.(Operation.VersionVector).
+
+  Definition operation_slice (s: Slice.t) (l: list Operation.t) (n: nat) : iProp Σ :=
+    ∃ ops, own_slice s (struct.t Operation) (DfracOwn 1) ops ∗ [∗ list] opv;o ∈ ops;l, is_operation opv o n.
+
+  Definition is_message (msgv: tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) (msg: Message.t) (n: nat) (len_c2s: nat) (len_s2c: nat) : iProp Σ :=
+    ⌜msgv!(0) = msg.(Message.MessageType) /\ u64_ge_CONSTANT msg.(Message.MessageType)⌝ ∗
+    ⌜msgv!(1) = msg.(Message.C2S_Client_Id) /\ u64_ge_CONSTANT msg.(Message.C2S_Client_Id)⌝ ∗
+    ⌜msgv!(2) = msg.(Message.C2S_Server_Id) /\ u64_ge_CONSTANT msg.(Message.C2S_Server_Id)⌝ ∗
+    ⌜msgv!(3) = msg.(Message.C2S_Client_OperationType) /\ u64_ge_CONSTANT msg.(Message.C2S_Client_OperationType)⌝ ∗
+    (* Data *) ⌜msgv!(4) = msg.(Message.C2S_Client_Data) /\ u64_ge_CONSTANT msg.(Message.C2S_Client_Data)⌝ ∗
+    own_slice_small msgv!(5) uint64T (DfracOwn 1) msg.(Message.C2S_Client_VersionVector) ∗
+    ⌜len_c2s = length msg.(Message.C2S_Client_VersionVector) /\ Forall u64_ge_CONSTANT msg.(Message.C2S_Client_VersionVector)⌝ ∗
+    ⌜msgv!(6) = msg.(Message.S2S_Gossip_Sending_ServerId) /\ u64_ge_CONSTANT msg.(Message.S2S_Gossip_Sending_ServerId)⌝ ∗
+    ⌜msgv!(7) = msg.(Message.S2S_Gossip_Receiving_ServerId) /\ u64_ge_CONSTANT msg.(Message.S2S_Gossip_Receiving_ServerId)⌝ ∗
+    operation_slice msgv!(8) msg.(Message.S2S_Gossip_Operations) n ∗
+    ⌜msgv!(9) = msg.(Message.S2S_Gossip_Index) /\ u64_ge_CONSTANT msg.(Message.S2S_Gossip_Index)⌝ ∗
+    ⌜msgv!(10) = msg.(Message.S2S_Acknowledge_Gossip_Sending_ServerId) /\ u64_ge_CONSTANT msg.(Message.S2S_Acknowledge_Gossip_Sending_ServerId)⌝ ∗
+    ⌜msgv!(11) = msg.(Message.S2S_Acknowledge_Gossip_Receiving_ServerId) /\ u64_ge_CONSTANT msg.(Message.S2S_Acknowledge_Gossip_Receiving_ServerId)⌝ ∗
+    ⌜msgv!(12) = msg.(Message.S2S_Acknowledge_Gossip_Index) /\ u64_ge_CONSTANT msg.(Message.S2S_Acknowledge_Gossip_Index)⌝ ∗
+    ⌜msgv!(13) = msg.(Message.S2C_Client_OperationType) /\ u64_ge_CONSTANT msg.(Message.S2C_Client_OperationType)⌝ ∗
+    (* Data *) ⌜msgv!(14) = msg.(Message.S2C_Client_Data) /\ u64_ge_CONSTANT msg.(Message.S2C_Client_Data)⌝ ∗
+    own_slice_small msgv!(15) uint64T (DfracOwn 1) msg.(Message.S2C_Client_VersionVector) ∗
+    ⌜len_s2c = length msg.(Message.S2C_Client_VersionVector) /\ Forall u64_ge_CONSTANT msg.(Message.S2C_Client_VersionVector)⌝ ∗
+    ⌜msgv!(16) = msg.(Message.S2C_Server_Id) /\ u64_ge_CONSTANT msg.(Message.S2C_Server_Id)⌝ ∗
+    ⌜msgv!(17) = msg.(Message.S2C_Client_Number) /\ u64_ge_CONSTANT msg.(Message.S2C_Server_Id)⌝.
+
+  Definition message_slice (s: Slice.t) (l: list Message.t) (n: nat) (len_c2s: nat) : iProp Σ :=
+    ∃ msgs, own_slice s (struct.t server.Message) (DfracOwn 1) msgs ∗ [∗ list] mv;m ∈ msgs;l, ∃ len_s2c, is_message mv m n len_c2s len_s2c.
+
+  Definition is_server' (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t) (n: nat) (len_vc: nat) (len_op: nat) (len_mo: nat) (len_po: nat) (len_ga: nat) (OWN_UnsatisfiedRequests: bool) : iProp Σ :=
+    ⌜sv!(0) = s.(Server.Id) /\ u64_ge_CONSTANT s.(Server.Id)⌝ ∗
+    ⌜sv!(1) = s.(Server.NumberOfServers) /\ u64_ge_CONSTANT s.(Server.NumberOfServers)⌝ ∗
+    (if OWN_UnsatisfiedRequests then message_slice sv!(2) s.(Server.UnsatisfiedRequests) n len_vc else emp)%I ∗
+    own_slice_small sv!(3) uint64T (DfracOwn 1) s.(Server.VectorClock) ∗
+    ⌜len_vc = length s.(Server.VectorClock) /\ Forall u64_ge_CONSTANT s.(Server.VectorClock)⌝ ∗
+    operation_slice sv!(4) s.(Server.OperationsPerformed) len_op ∗
+    operation_slice sv!(5) s.(Server.MyOperations) len_mo ∗
+    operation_slice sv!(6) s.(Server.PendingOperations) len_po ∗
+    own_slice_small sv!(7) uint64T (DfracOwn 1) s.(Server.GossipAcknowledgements) ∗
+    ⌜len_ga = length s.(Server.GossipAcknowledgements) /\ Forall u64_ge_CONSTANT s.(Server.GossipAcknowledgements)⌝.
+
+  Definition is_server sv s n len_vc len_op len_mo len_po len_ga : iProp Σ :=
+    is_server' sv s n len_vc len_op len_mo len_po len_ga true.
+
   Definition is_client (cv: tuple_of [u64,u64,Slice.t,Slice.t,u64]) (c: Client.t) (n: nat) : iProp Σ :=
-    ⌜cv!(0) = c.(Client.Id)⌝ ∗
-    ⌜cv!(1) = c.(Client.NumberOfServers)⌝ ∗
+    ⌜cv!(0) = c.(Client.Id) /\ u64_ge_CONSTANT c.(Client.Id)⌝ ∗
+    ⌜cv!(1) = c.(Client.NumberOfServers) /\ u64_ge_CONSTANT c.(Client.NumberOfServers)⌝ ∗
     ⌜n = uint.nat c.(Client.NumberOfServers)⌝ ∗
     own_slice_small cv!(2) uint64T (DfracOwn 1) c.(Client.WriteVersionVector) ∗
-    ⌜n = length c.(Client.WriteVersionVector)⌝ ∗
+    ⌜n = length c.(Client.WriteVersionVector) /\ Forall u64_ge_CONSTANT c.(Client.WriteVersionVector)⌝ ∗
     own_slice_small cv!(3) uint64T (DfracOwn 1) c.(Client.ReadVersionVector) ∗
-    ⌜n = length c.(Client.ReadVersionVector)⌝ ∗
+    ⌜n = length c.(Client.ReadVersionVector) /\ Forall u64_ge_CONSTANT c.(Client.ReadVersionVector)⌝ ∗
     ⌜cv!(4) = c.(Client.SessionSemantic)⌝.
 
 End heap.
