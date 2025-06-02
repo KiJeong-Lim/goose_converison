@@ -76,7 +76,7 @@ Section heap.
             * destruct (decide (uint.nat i = 0%nat)). { destruct H3 as (? & ? & ? & ? & ? & ?). subst. rewrite e in H3. rewrite e in H4. simpl in *. inversion H3. inversion H4. subst. word. } { destruct H3 as (? & ? & ? & ? & ? & ?). rewrite H1. assert (uint.nat i > 0) by word. left. exists x0. exists x1. rewrite lookup_cons_Some in H3. destruct H3 as [? | [? ?]]; try word. rewrite lookup_cons_Some in H4. destruct H4 as [? | [? ?]]; try word. repeat (split; (eassumption || word || auto)). }
             * destruct H3. rewrite length_cons in H3. right. split. { rewrite H1. word. } eassumption.
       }
-  Admitted.
+  Qed.
 
   Lemma wp_lexicographicCompare (x: Slice.t) (xs: list u64) (y: Slice.t) (ys: list u64) (dx: dfrac) (dy: dfrac) :
     {{{

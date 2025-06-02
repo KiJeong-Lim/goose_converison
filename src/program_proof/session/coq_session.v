@@ -461,7 +461,6 @@ Module INVARIANT.
     | WEAK_SERVER_INVARIANT_INTRO
       (PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations))
       (OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed))
-      (VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= CONSTANT)%Z)
       (EXTRA_SERVER_INVARIANT: EXTRA s)
       : WEAK_SERVER_INVARIANT EXTRA s.
 
@@ -470,8 +469,6 @@ Module INVARIANT.
     { PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations)
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
-    ; VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= CONSTANT)%Z
-    ; MyOperation_length: (Z.of_nat (length s.(Server.MyOperations)) <= CONSTANT)%Z
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
     ; EXTRA_SERVER_INVARIANT: EXTRA s
     }.
