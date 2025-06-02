@@ -16,6 +16,7 @@ Proof.
   pose proof (w64_eq_dec) as H; do 2 red in H. pose proof (OperationVersionVector_dec) as H'. decide equality.
 Qed.
 
+
 Module CoqSessionServer.
 
   Include Goose.github_com.session.server.
@@ -285,6 +286,21 @@ Export CoqSessionServer.
 Section properties.
 
   Import SessionPrelude.
+
+  Lemma Forall_CONSTANT_replicate n
+    : Forall u64_le_CONSTANT (replicate n (W64 0)).
+  Proof.
+    induction n as [ | n IH]; simpl; econstructor; eauto. eapply CONSTANT_ge_0.
+  Qed.
+
+  Lemma CONSTANT_coq_maxTs xs ys
+    (H_xs : Forall u64_le_CONSTANT xs)
+    (H_ys : Forall u64_le_CONSTANT ys)
+    : Forall u64_le_CONSTANT (coq_maxTS xs ys).
+  Proof.
+    revert ys H_ys; induction H_xs as [ | x xs H_x H_xs IH]; intros ys H_ys; destruct H_ys as [ | y ys H_y H_ys]; simpl in *; try congruence; econstructor; simpl; eauto.
+    unfold coq_maxTwoInts. red in H_x, H_y |- *. rewrite -> CONSTANT_unfold in *. rewrite Z.gtb_ltb. destruct (_ <? _) as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_nlt in H_OBS]; word.
+  Qed.
 
   Lemma redefine_coq_lexicographicCompare :
     coq_lexicographicCompare = vectorGt.
