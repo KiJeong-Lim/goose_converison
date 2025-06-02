@@ -509,7 +509,7 @@ Section heap.
       iAssert ⌜Forall (Operation_wf n) tl⌝%I as "%YES1".
       { iApply IH; iExact "H_tl". }
       iPureIntro; econstructor; trivial.
-      destruct H1 as [H1 H1'], H2 as [H2 H2']; split; [eapply SessionPrelude.Forall_True | done].
+      destruct H2 as [H2 H2']; split; [eapply SessionPrelude.Forall_True | done].
   Qed.
 
   Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) (n: nat)
