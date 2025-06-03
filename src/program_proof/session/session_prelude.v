@@ -2,6 +2,11 @@ From Goose.github_com.session Require Export server.
 From Goose.github_com.session Require Export client.
 From Perennial.program_proof Require Export std_proof grove_prelude.
 
+Ltac revert_until y :=
+  lazymatch goal with
+  | [ x : _ |- _ ] => first [convert x y | revert x; revert_until y]
+  end.
+
 #[local] Obligation Tactic := intros.
 
 Create HintDb session_hints.
@@ -9,6 +14,12 @@ Create HintDb session_hints.
 Module SessionPrelude.
 
   Section MORE_LIST_LEMMAS.
+
+    Lemma replicate_nil {A : Type}
+      : forall x : A, forall n : nat, n = 0%nat -> replicate n x = [].
+    Proof.
+      intros; subst; reflexivity.
+    Qed.
 
     Lemma lookup_map {A : Type} {B : Type} (f : A -> B) (xs : list A) (i : nat)
       : map f xs !! i = match xs !! i with Some x => Some (f x) | None => None end.
@@ -81,7 +92,7 @@ Module SessionPrelude.
       rewrite <- rev_involutive with (l := l1). rewrite <- rev_involutive with (l := l2). congruence.
     Qed.
 
-    Lemma list_rev_rect (P : list A -> Type)
+    Lemma list_rev_ind (P : list A -> Prop)
       (NIL : P [])
       (TAIL : forall x, forall xs, P xs -> P (xs ++ [x]))
       : forall xs, P xs.

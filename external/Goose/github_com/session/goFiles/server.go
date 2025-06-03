@@ -263,8 +263,11 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 	} else {
 	    var s = server
 
-		var constant = uint64(18446744073709551613) // 2^64 - 3
-		if !((uint64(s.VectorClock[s.Id]) <= constant) && (uint64(len(s.MyOperations)) <= constant)) {
+		var guard = uint64(18446744073709551613) // 2^64 - 3
+		if !(uint64(s.VectorClock[s.Id]) <= guard) {
+			return false, s, reply
+		}
+		if !(uint64(len(s.MyOperations)) <= guard) {
 			return false, s, reply
 		}
 

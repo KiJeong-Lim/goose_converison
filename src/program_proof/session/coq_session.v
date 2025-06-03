@@ -218,7 +218,7 @@ Module CoqSessionServer.
         (true, s, Message.mk 4 0 0 0 0 [] 0 0 [] 0 0 0 0 0 S2C_Client_Data S2C_Client_VersionVector S2C_Server_Id S2C_Client_Number)
       else
         let v := match s.(Server.VectorClock) !! uint.nat s.(Server.Id) with Some v => uint.Z v | None => 0 end in
-        if (v <=? CONSTANT)%Z && (length s.(Server.MyOperations) <=? CONSTANT)%Z then
+        if (v <=? CONSTANT - 1)%Z && (length s.(Server.MyOperations) <=? CONSTANT - 1)%Z then
           let VectorClock := <[uint.nat s.(Server.Id) := W64 (v + 1)]> s.(Server.VectorClock) in
           let OperationsPerformed := coq_sortedInsert s.(Server.OperationsPerformed) (Operation.mk VectorClock r.(Message.C2S_Client_Data)) in
           let MyOperations := coq_sortedInsert s.(Server.MyOperations) (Operation.mk VectorClock r.(Message.C2S_Client_Data)) in

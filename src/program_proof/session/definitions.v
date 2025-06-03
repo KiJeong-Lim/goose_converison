@@ -199,7 +199,7 @@ Section heap.
     refine (
       {|
         into_val.to_val := server_val;
-        from_val := server_from_val ;
+        from_val := server_from_val;
         IntoVal_def := (W64 0, W64 0, IntoVal_def Slice.t, IntoVal_def Slice.t, IntoVal_def Slice.t, IntoVal_def Slice.t, IntoVal_def Slice.t, IntoVal_def Slice.t);
       |}
     ).
