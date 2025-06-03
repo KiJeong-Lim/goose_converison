@@ -541,7 +541,7 @@ Section heap.
       + iPureIntro. done.
   Qed.
 
-  Lemma wp_getGossipOperations {OWN_UnsatisfiedRequests: bool} sv s(serverId: u64) (n: nat) len_vc len_op len_mo len_po len_ga :
+  Lemma wp_getGossipOperations {OWN_UnsatisfiedRequests: bool} sv s (serverId: u64) (n: nat) len_vc len_op len_mo len_po len_ga :
     {{{
         is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}
