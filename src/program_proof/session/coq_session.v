@@ -1,23 +1,6 @@
 From Perennial.program_proof.session Require Export session_prelude.
 From Perennial.program_proof.session Require Export definitions.
 
-Definition CONSTANT : Z :=
-  2 ^ 64 - 2.
-
-Lemma CONSTANT_unfold
-  : CONSTANT = 2 ^ 64 - 2.
-Proof.
-  reflexivity.
-Qed.
-
-Lemma CONSTANT_minus_1
-  : CONSTANT - 1 = 18446744073709551613.
-Proof.
-  reflexivity.
-Qed.
-
-#[global] Opaque CONSTANT.
-
 Definition getOperationVersionVector (op: Operation.t) : list u64 :=
   op.(Operation.VersionVector).
 
@@ -32,6 +15,7 @@ Lemma Operation_dec (op1: Operation.t) (op2: Operation.t)
 Proof.
   pose proof (w64_eq_dec) as H; do 2 red in H. pose proof (OperationVersionVector_dec) as H'. decide equality.
 Qed.
+
 
 Module CoqSessionServer.
 
@@ -303,6 +287,21 @@ Section properties.
 
   Import SessionPrelude.
 
+  Lemma Forall_CONSTANT_replicate n
+    : Forall u64_le_CONSTANT (replicate n (W64 0)).
+  Proof.
+    induction n as [ | n IH]; simpl; econstructor; eauto. eapply CONSTANT_ge_0.
+  Qed.
+
+  Lemma CONSTANT_coq_maxTs xs ys
+    (H_xs : Forall u64_le_CONSTANT xs)
+    (H_ys : Forall u64_le_CONSTANT ys)
+    : Forall u64_le_CONSTANT (coq_maxTS xs ys).
+  Proof.
+    revert ys H_ys; induction H_xs as [ | x xs H_x H_xs IH]; intros ys H_ys; destruct H_ys as [ | y ys H_y H_ys]; simpl in *; try congruence; econstructor; simpl; eauto.
+    unfold coq_maxTwoInts. red in H_x, H_y |- *. rewrite -> CONSTANT_unfold in *. rewrite Z.gtb_ltb. destruct (_ <? _) as [ | ] eqn: H_OBS; [rewrite Z.ltb_lt in H_OBS | rewrite Z.ltb_nlt in H_OBS]; word.
+  Qed.
+
   Lemma redefine_coq_lexicographicCompare :
     coq_lexicographicCompare = vectorGt.
   Proof.
@@ -478,7 +477,6 @@ Module INVARIANT.
     | WEAK_SERVER_INVARIANT_INTRO
       (PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations))
       (OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed))
-      (VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= CONSTANT)%Z)
       (EXTRA_SERVER_INVARIANT: EXTRA s)
       : WEAK_SERVER_INVARIANT EXTRA s.
 
@@ -487,8 +485,6 @@ Module INVARIANT.
     { PendingOperations_is_sorted: is_sorted s.(Server.PendingOperations)
     ; OperationsPerformed_is_sorted: is_sorted s.(Server.OperationsPerformed)
     ; MyOperations_is_sorted: is_sorted s.(Server.MyOperations)
-    ; VectorClock_bounded: forall x, In x s.(Server.VectorClock) -> (uint.Z x <= CONSTANT)%Z
-    ; MyOperation_length: (Z.of_nat (length s.(Server.MyOperations)) <= CONSTANT)%Z
     ; Id_in_range: (uint.Z s.(Server.Id) >= 0)%Z /\ (uint.nat s.(Server.Id) < length s.(Server.VectorClock))%nat
     ; EXTRA_SERVER_INVARIANT: EXTRA s
     }.
@@ -512,7 +508,7 @@ Section heap.
   Lemma Operation_wf_INTRO o opv (n : nat)
     : (is_operation opv o n)%I ⊢@{iProp Σ} (⌜Operation_wf n o⌝)%I.
   Proof.
-    iIntros "H_hd". iDestruct "H_hd" as "(%H1 & %H2 & H3)"; iClear "H3".
+    iIntros "H_hd". iDestruct "H_hd" as "(%H1 & [%H2 %H4]  & H3)"; iClear "H3".
     iPureIntro; split; [eapply SessionPrelude.Forall_True | done].
   Qed.
 
@@ -526,7 +522,7 @@ Section heap.
       iAssert ⌜Forall (Operation_wf n) tl⌝%I as "%YES1".
       { iApply IH; iExact "H_tl". }
       iPureIntro; econstructor; trivial.
-      split; [eapply SessionPrelude.Forall_True | done].
+      destruct H2 as [H2 H2']; split; [eapply SessionPrelude.Forall_True | done].
   Qed.
 
   Lemma op_versionVector_len (s: Slice.t) (l: list Operation.t) (n: nat)

@@ -259,7 +259,7 @@ Section heap.
           } 
           assert (uint.Z a >? uint.Z a0 = false) by word.
           rewrite /coq_maxTS. assert (a0 = coq_maxTwoInts a a0). { rewrite /coq_maxTwoInts. rewrite H0. auto. } rewrite <- H1.
-          assert (0%nat < uint.nat i <= length (a :: xs)). { destruct H8; auto. rewrite H3. repeat rewrite length_cons. word. } eapply H10 in H2.
+          assert (0%nat < uint.nat i <= length (a :: xs)). { destruct H8; auto. rewrite H3. repeat rewrite length_cons. word. } eapply H10 in H2; trivial.
           { rewrite <- head_lookup in H2. rewrite head_Some in H2. destruct H2 as [l' H2]. rewrite H2. f_equal; try eassumption. eapply IHxs; auto.
             - intros. inversion H3. destruct H8; auto. rewrite length_cons in H3. assert (uint.nat (uint.nat i - 1)%nat = length xs) by word. eassumption.
             - rewrite H. rewrite length_cons in H11. word.
@@ -269,8 +269,6 @@ Section heap.
               + rewrite lookup_cons_Some. right. split. { word. } { simpl. replace (i' - 0)%nat with i' by word. eassumption. }
               + rewrite lookup_cons_Some. right. split. { word. } { simpl. replace (i' - 0)%nat with i' by word. eassumption. }
           }
-          { reflexivity. }
-          { reflexivity. }
   Qed.
 
   Lemma wp_equalSlices (x: Slice.t) (xs: list w64) (y: Slice.t) (ys: list w64) (dx: dfrac) (dy: dfrac) :
@@ -372,7 +370,7 @@ Section heap.
           - assert ((uint.Z a =? uint.Z a0) = false) by word.
             rewrite H0. simpl. destruct H11; auto.
             + destruct H1.  destruct H1. destruct H1. destruct H2.  destruct H3. auto.
-            + destruct H1. eapply H8; simpl; auto.
+            + destruct H1; simpl; auto. eapply H8; simpl; auto.
               * rewrite length_cons in H1. rewrite length_cons in H6. assert (uint.nat i = S (length xs)) by word. assert (0%nat < uint.nat i <= length (a :: xs)). { rewrite length_cons. word. } apply H4.
               * simpl. auto.
               * simpl. auto.

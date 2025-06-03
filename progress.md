@@ -7,15 +7,15 @@
 
 ## prelude
 
-- session_prelude.v (1077 lines) [v]
-- definitions.v (392 lines) [v]
-- coq_session.v (650 lines) [v]
+- session_prelude.v (1164 lines) [v]
+- definitions.v (314 lines) [v]
+- coq_session.v (646 lines) [v]
 
 ## equivalence proofs
 
-1. versionVector.v (569 lines) [v]
+1. versionVector.v (567 lines) [v]
 2. sort.v (198 lines) [v]
-3. gossip.v [x] (WIP)
+3. gossip.v (618 lines) [v]
 4. processRequest.v [x]
-5. coq_session_client.v (809 lines) [v]
+5. coq_session_client.v (808 lines) [v]
 6. nat_equivalence.v [x]

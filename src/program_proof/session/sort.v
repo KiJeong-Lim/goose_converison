@@ -85,8 +85,8 @@ Section heap.
         + rewrite length_map. rewrite length_take. word.
         + rewrite H_OBS. eapply SessionPrelude.list_ext.
           { do 2 rewrite length_app. simpl. repeat rewrite length_map. rewrite length_take. rewrite length_drop. enough (uint.nat i_val + 1 <= length l)%nat by word. enough (uint.nat i_val ≠ length l)%nat by word.
-            intros H_contra. rewrite <- H_contra in H_k. assert (H_IN : In x (take (uint.nat i_val) l)). { eapply SessionPrelude.lookup_In. rewrite lookup_take; eauto. word. }
-            apply H_prefix in H_IN. pose proof (aux4_lexicographicCompare _ _ H_IN) as H_CONTRA; apply aux2_equalSlices in H_CONTRA; try congruence.
+            intros H_contra. rewrite <- H_contra in H_k. assert (H_IN : In x (take (uint.nat i_val) l)). { eapply SessionPrelude.lookup_In. rewrite lookup_take; eauto. }
+            apply H_prefix in H_IN. pose proof (aux4_lexicographicCompare _ _ H_IN) as H_CONTRA; apply aux2_equalSlices in H_CONTRA; try congruence. rewrite LENGTH. destruct H2_n; word.
           }
           clear i j. intros i op1 op2 [H_op1 H_op2]. assert (i < uint.nat i_val \/ i = uint.nat i_val \/ i > uint.nat i_val) as [LT | [EQ | GT]] by word.
           { rewrite lookup_app_l in H_op2; cycle 1. { rewrite length_map. rewrite length_take; word. } rewrite -> SessionPrelude.lookup_map in H_op1, H_op2. rewrite lookup_take in H_op2; try congruence. word. }
