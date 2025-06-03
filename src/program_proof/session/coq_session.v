@@ -245,7 +245,7 @@ Module CoqSessionServer.
       let server := coq_receiveGossip server request in
       let focus := server.(Server.UnsatisfiedRequests) in
       let loop_init : nat * Server.t * list Message.t :=
-        (0%nat, server, [Message.mk 2 0 0 0 0 [] 0 0 [] 0 (server.(Server.Id)) (request.(Message.S2S_Gossip_Sending_ServerId)) (request.(Message.S2S_Gossip_Index)) 0 0 [] 0 0])
+        (0%nat, server, [])
       in
       let loop_step (acc: nat * Server.t * list Message.t) (element: Message.t) : nat * Server.t * list Message.t :=
         let '(i, s, outGoingRequests) := acc in
@@ -260,22 +260,24 @@ Module CoqSessionServer.
       (server, outGoingRequests)
     | 2%nat => (coq_acknowledgeGossip server request, [])
     | 3%nat =>
-      let loop_step (acc: list Message.t) (index: u64) : list Message.t :=
+      let loop_step (acc: Server.t * list Message.t) (index: u64) : Server.t * list Message.t :=
+        let '(server, outGoingRequests) := acc in
         if negb (uint.nat index =? uint.nat server.(Server.Id))%nat && negb (length (coq_getGossipOperations server index) =? 0)%nat then
+          let GossipAcknowledgements := <[uint.nat index := W64 (length server.(Server.MyOperations))]> server.(Server.GossipAcknowledgements) in
           let S2S_Gossip_Sending_ServerId := server.(Server.Id) in
           let S2S_Gossip_Receiving_ServerId := index in
           let S2S_Gossip_Operations := coq_getGossipOperations server index in
           let S2S_Gossip_Index := length (server.(Server.MyOperations)) in
           let message := Message.mk 1 0 0 0 0 [] S2S_Gossip_Sending_ServerId S2S_Gossip_Receiving_ServerId S2S_Gossip_Operations S2S_Gossip_Index 0 0 0 0 0 [] 0 0 in
-          acc ++ [message]
+          (Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) server.(Server.PendingOperations) GossipAcknowledgements, outGoingRequests ++ [message])
         else
-          acc
+          (server, outGoingRequests)
       in
       let nat_to_u64 (i: nat) : u64 :=
         W64 i
       in
       let focus := map nat_to_u64 (seq 0%nat (uint.nat server.(Server.NumberOfServers))) in
-      (server, fold_left loop_step focus [])
+      fold_left loop_step focus (server, [])
     | _ => (server, [])
     end.
 

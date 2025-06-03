@@ -336,7 +336,7 @@ Definition processRequest: val :=
                 let: "operations" := getGossipOperations (![struct.t Server] "s") "index" in
                 (if: (slice.len "operations") ≠ #0
                 then
-                  SliceSet uint64T (struct.get Server "GossipAcknowledgements" "server") "index" (slice.len (struct.get Server "MyOperations" (![struct.t Server] "s")));;
+                  SliceSet uint64T (struct.get Server "GossipAcknowledgements" (![struct.t Server] "s")) "index" (slice.len (struct.get Server "MyOperations" (![struct.t Server] "s")));;
                   "outGoingRequests" <-[slice.T (struct.t Message)] (SliceAppend (struct.t Message) (![slice.T (struct.t Message)] "outGoingRequests") (struct.mk Message [
                     "MessageType" ::= #1;
                     "S2S_Gossip_Sending_ServerId" ::= struct.get Server "Id" (![struct.t Server] "s");
