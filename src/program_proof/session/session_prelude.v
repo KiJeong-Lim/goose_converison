@@ -81,6 +81,18 @@ Module SessionPrelude.
       rewrite <- rev_involutive with (l := l1). rewrite <- rev_involutive with (l := l2). congruence.
     Qed.
 
+    Lemma list_rev_rect (P : list A -> Type)
+      (NIL : P [])
+      (TAIL : forall x, forall xs, P xs -> P (xs ++ [x]))
+      : forall xs, P xs.
+    Proof.
+      intros xs'. rewrite <- rev_involutive with (l := xs').
+      generalize (rev xs') as xs. clear xs'.
+      induction xs as [ | x xs IH]; simpl.
+      - exact NIL.
+      - eapply TAIL. exact IH.
+    Qed.
+
     Lemma app_cancel_l (prefix : list A) (suffix1 : list A) (suffix2 : list A)
       (EQ : prefix ++ suffix1 = prefix ++ suffix2)
       : suffix1 = suffix2.
@@ -106,10 +118,10 @@ Module SessionPrelude.
 
     Lemma In_lookup (xs : list A) (x : A)
       (IN : In x xs)
-      : exists n : nat, xs !! n = Some x /\ n < length xs.
+      : exists n : nat, xs !! n = Some x /\ (n < length xs)%nat.
     Proof with try (word || done).
       revert x IN; induction xs as [ | x1 xs IH]; simpl; intros x0 IN... destruct IN as [<- | IN].
-      - exists 0%nat...
+      - exists 0%nat... split...
       - pose proof (IH x0 IN) as (n & EQ & LE). exists (S n). split...
     Qed.
 
@@ -133,7 +145,44 @@ Module SessionPrelude.
         + eapply IH; word.
     Qed.
 
+    Lemma snoc_inv_iff (xs1 : list A) (xs2 : list A) (y1 : A) (y2 : A)
+      : xs1 ++ [y1] = xs2 ++ [y2] <-> (xs1 = xs2 /\ y1 = y2).
+    Proof.
+      split.
+      - intros EQ.
+        assert (length xs1 = length xs2) as LENGTH.
+        { enough (length xs1 + 1 = length xs2 + 1)%nat by word. apply f_equal with (f := length) in EQ. do 2 rewrite length_app in EQ; trivial. }
+        assert (y1 = y2) as H_y.
+        { enough (Some y1 = Some y2) by congruence. erewrite <- lookup_snoc with (l := xs1). erewrite <- lookup_snoc with (l := xs2). congruence. }
+        split; trivial. eapply app_cancel_r with (suffix := [y1]). congruence.
+      - intros [? ?]; congruence.
+    Qed.
+
+    Inductive subseq : list A -> list A -> Prop :=
+      | subseq_nil
+        : subseq [] []
+      | subseq_snoc xs ys z
+        (SUBSEQ : subseq xs ys)
+        : subseq xs (ys ++ [z])
+      | subseq_skip xs ys z
+        (SUBSEQ : subseq xs ys)
+        : subseq (xs ++ [z]) (ys ++ [z]).
+
+    #[local] Hint Constructors subseq : core.
+
+    Lemma subseq_Forall_Forall (P : A -> Prop) xs ys
+      (SUBSEQ : subseq xs ys)
+      (FORALL : Forall P ys)
+      : Forall P xs.
+    Proof.
+      induction SUBSEQ; eauto.
+      - rewrite Forall_app in FORALL. tauto.
+      - rewrite -> Forall_app in FORALL |- *. tauto.
+    Qed.
+
   End MORE_LIST_LEMMAS.
+
+  #[local] Hint Constructors subseq : core.
 
   Class hsEq (A : Type) {well_formed : A -> Prop} : Type :=
     { eqProp (x : A) (y : A) : Prop
@@ -739,6 +788,36 @@ Module SessionPrelude.
             * rewrite length_app. simpl...
       }
       { simpl in *; subst xs... }
+    Qed.
+
+    Lemma isSorted_snoc_iff (xs : list A) (y : A)
+      : isSorted (xs ++ [y]) <-> (isSorted xs /\ Forall (fun x => ltb x y = true) xs).
+    Proof.
+      split.
+      - intros SORTED. split.
+        + intros i1 i2 LT z1 z2 H_z1 H_z2. eapply SORTED with (i := i1) (j := i2); trivial.
+          * rewrite lookup_app_l; trivial. eapply lookup_lt_is_Some_1. exists z1; trivial.
+          * rewrite lookup_app_l; trivial. eapply lookup_lt_is_Some_1. exists z2; trivial.
+        + rewrite List.Forall_forall. intros z H_z. pose proof (In_lookup xs z H_z) as (i & LOOKUP & H_i).
+          eapply SORTED with (i := i) (j := length xs); trivial.
+          * rewrite lookup_app_l; trivial.
+          * rewrite lookup_snoc; trivial.
+      - intros [SORTED FORALL] i1 i2 LT z1 z2 H_z1 H_z2. rewrite -> lookup_app in H_z1, H_z2.
+        (destruct (i1 <? _)%nat as [ | ] eqn: H_OBS1; [rewrite Nat.ltb_lt in H_OBS1 | rewrite Nat.ltb_nlt in H_OBS1]); (destruct (i2 <? _)%nat as [ | ] eqn: H_OBS2; [rewrite Nat.ltb_lt in H_OBS2 | rewrite Nat.ltb_nlt in H_OBS2]); try word.
+        + eapply SORTED with (i := i1) (j := i2); trivial.
+        + rewrite lookup_one in H_z2. destruct H_z2 as [<- LENGTH]. rewrite List.Forall_forall in FORALL. eapply FORALL. eapply lookup_In; eauto.
+        + rewrite -> lookup_one in H_z1, H_z2. destruct H_z1 as [<- LENGTH1], H_z2 as [<- LENGTH2]; try word.
+    Qed.
+
+    Theorem subseq_isSorted_isSorted xs ys
+      (SUBSEQ : subseq xs ys)
+      (SORTED : isSorted ys)
+      : isSorted xs.
+    Proof.
+      induction SUBSEQ; trivial.
+      - rewrite isSorted_snoc_iff in SORTED. tauto.
+      - rewrite isSorted_snoc_iff in SORTED. rewrite isSorted_snoc_iff. split; try tauto.
+        eapply subseq_Forall_Forall with (ys := ys); try tauto.
     Qed.
 
   End SORTED.
