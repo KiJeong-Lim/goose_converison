@@ -500,6 +500,17 @@ Module INVARIANT.
 
 End INVARIANT.
 
+Definition FINAL_SERVER_INVARIANT {n: nat} : Server.t -> Prop :=
+  let EXTRA_SERVER_INVARIANT (s: Server.t) : Prop :=
+    (uint.nat s.(Server.Id) < n)%nat /\
+    (uint.nat s.(Server.NumberOfServers) = n)%nat /\
+    (length s.(Server.OperationsPerformed) = n)%nat /\
+    (length s.(Server.OperationsPerformed) = n)%nat /\
+    (length s.(Server.GossipAcknowledgements) = n)%nat (* /\
+    Forall (fun a : nat => a <= s.(Server.MyOperations))%nat s.(Server.GossipAcknowledgements) *)
+  in
+  SERVER_INVARIANT EXTRA_SERVER_INVARIANT.
+
 Notation WEAK_SERVER_INVARIANT := INVARIANT.WEAK_SERVER_INVARIANT.
 Notation SERVER_INVARIANT := INVARIANT.SERVER.
 Notation CLIENT_INVARIANT := INVARIANT.CLIENT.

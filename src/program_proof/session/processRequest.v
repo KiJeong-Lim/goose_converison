@@ -1,17 +1,6 @@
 From Perennial.program_proof.session Require Export session_prelude coq_session.
 From Perennial.program_proof.session Require Export versionVector sort gossip.
 
-Definition FINAL_SERVER_INVARIANT {n: nat} : Server.t -> Prop :=
-  let EXTRA_SERVER_INVARIANT (s: Server.t) : Prop :=
-    (uint.nat s.(Server.Id) < n)%nat /\
-    (uint.nat s.(Server.NumberOfServers) = n)%nat /\
-    (length s.(Server.OperationsPerformed) = n)%nat /\
-    (length s.(Server.OperationsPerformed) = n)%nat /\
-    (length s.(Server.GossipAcknowledgements) = n)%nat (* /\
-    Forall (fun a : nat => a <= s.(Server.MyOperations))%nat s.(Server.GossipAcknowledgements) *)
-  in
-  SERVER_INVARIANT EXTRA_SERVER_INVARIANT.
-
 Section heap.
   Context `{hG: !heapGS Σ}.
 
