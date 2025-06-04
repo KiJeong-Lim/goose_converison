@@ -283,7 +283,7 @@ Section heap.
     ⌜msgv!(17) = msg.(Message.S2C_Client_Number) /\ u64_le_CONSTANT msg.(Message.S2C_Server_Id)⌝.
 
   Definition message_slice (s: Slice.t) (l: list Message.t) (n: nat) (len_c2s: nat) : iProp Σ :=
-    ∃ msgs, own_slice s (struct.t server.Message) (DfracOwn 1) msgs ∗ [∗ list] mv;m ∈ msgs;l, ∃ len_s2c, is_message mv m n len_c2s len_s2c.
+    ∃ msgs, own_slice s (struct.t server.Message) (DfracOwn 1) msgs ∗ [∗ list] mv;m ∈ msgs;l, is_message mv m n len_c2s n.
 
   Definition is_server' (sv: tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) (s: Server.t) (n: nat) (len_vc: nat) (len_op: nat) (len_mo: nat) (len_po: nat) (len_ga: nat) (OWN_UnsatisfiedRequests: bool) : iProp Σ :=
     ⌜sv!(0) = s.(Server.Id) /\ u64_le_CONSTANT s.(Server.Id)⌝ ∗

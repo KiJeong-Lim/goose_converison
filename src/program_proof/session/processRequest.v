@@ -6,7 +6,7 @@ Section heap.
 
   #[local] Hint Constructors Forall : core.
 
-  Lemma wp_processClientRequest {OWN_UnsatisfiedRequests: bool} UnsatisfiedRequests GossipAcknowledgements sv s msgv msg (n: nat) (m: nat) len_po len_ga len_s2c :
+  Lemma wp_processClientRequest {OWN_UnsatisfiedRequests: bool} {s} {n: nat} {m: nat} UnsatisfiedRequests GossipAcknowledgements sv msgv msg len_po len_ga len_s2c :
     {{{
         is_server' sv s n m m m len_po len_ga OWN_UnsatisfiedRequests ∗
         is_message msgv msg n m len_s2c ∗
@@ -199,18 +199,18 @@ Section heap.
 
   #[local] Opaque CoqSessionServer.processClientRequest.
 
-  Lemma wp_processRequest sv s msgv msg (n: nat) len_s2c :
+  Lemma wp_processRequest {s} {n: nat} sv msgv msg len_s2c :
     {{{
         is_server sv s n n n n n n ∗
         is_message msgv msg n n len_s2c ∗
-        ⌜SERVER_INVARIANT (fun _s => True) s⌝
+        ⌜FINAL_SERVER_INVARIANT (n := n) s⌝
     }}}
       CoqSessionServer.processRequest (server_val sv) (message_val msgv)
     {{{
         ns nms, RET (server_val ns, slice_val nms);
         is_server ns (coq_processRequest s msg).1 n n n n n n ∗
         message_slice nms (coq_processRequest s msg).2 n 0%nat ∗
-        ⌜SERVER_INVARIANT (fun _s => True) (coq_processRequest s msg).1⌝
+        ⌜FINAL_SERVER_INVARIANT (n := n) (coq_processRequest s msg).1⌝
     }}}.
   Proof. (*
     unfold is_server. rewrite redefine_server_val redefine_message_val. TypeVector.des sv. TypeVector.des msgv. iIntros "%Φ (H_server & H_message & %H_precondition) HΦ".

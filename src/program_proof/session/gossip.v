@@ -4,7 +4,7 @@ From Perennial.program_proof.session Require Export versionVector sort.
 Section heap.
   Context `{hG: !heapGS Σ}.
 
-  Lemma wp_deleteAtIndexOperation (s: Slice.t) (index: w64) (l: list Operation.t) (n: nat) :
+  Lemma wp_deleteAtIndexOperation {n: nat} (s: Slice.t) (index: w64) (l: list Operation.t) :
     {{{
         operation_slice s l n ∗
         ⌜(uint.nat index < length l)%nat⌝
@@ -82,7 +82,7 @@ Section heap.
       rewrite drop_drop. f_equal.
   Qed.
 
-  Lemma wp_deleteAtIndexMessage (s: Slice.t) (index: w64) (l: list Message.t) (n: nat) (len_c2s: nat) :
+  Lemma wp_deleteAtIndexMessage {n: nat} (s: Slice.t) (index: w64) (l: list Message.t) (len_c2s: nat) :
     {{{ 
         message_slice s l n len_c2s ∗
         ⌜(uint.nat index < length l)%nat⌝
@@ -131,7 +131,7 @@ Section heap.
         iApply big_sepL2_app_equiv. { do 2 rewrite length_take; word. }
         rewrite <- take_drop with (l := ops1) (i := uint.nat index) at 1.
         rewrite <- take_drop with (l := l) (i := uint.nat index) at 1.
-        iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, ∃ b, is_message mv m n len_c2s b) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, ∃ b, is_message mv m n len_c2s b))%I with "[H_ops1]" as "[H_prefix H_suffix]".
+        iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, is_message mv m n len_c2s n) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, is_message mv m n len_c2s n))%I with "[H_ops1]" as "[H_prefix H_suffix]".
         { iApply (big_sepL2_app_equiv with "[$H_ops1]"). do 2 rewrite length_take. word. }
         iFrame. destruct (drop (uint.nat index) ops1) as [ | hd tl] eqn: H_obs.
         * iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%H_obs'".
@@ -141,7 +141,7 @@ Section heap.
     - iPureIntro. rewrite length_app. rewrite length_take. rewrite length_drop. word.
   Qed.
 
-  Lemma wp_getDataFromOperationLog (s: Slice.t) (l: list Operation.t) (n: nat) :
+  Lemma wp_getDataFromOperationLog {n: nat} (s: Slice.t) (l: list Operation.t) :
     {{{
         operation_slice s l n
     }}}
@@ -199,7 +199,7 @@ Section heap.
       simpl in Hs. word.
   Qed.
 
-  Lemma wp_receiveGossip sv s msgv msg (n: nat) len_c2s len_s2c len_mo len_ga Id NumberOfServers UnsatisfiedRequests MyOperations GossipAcknowledgements :
+  Lemma wp_receiveGossip {s} {n: nat} sv msgv msg len_c2s len_s2c len_mo len_ga Id NumberOfServers UnsatisfiedRequests MyOperations GossipAcknowledgements :
     {{{
         is_server sv s n n n len_mo n len_ga ∗ 
         is_message msgv msg n len_c2s len_s2c ∗
@@ -492,7 +492,7 @@ Section heap.
     }
   Qed.
 
-  Lemma wp_acknowledgeGossip {OWN_UnsatisfiedRequests: bool} sv s msgv msg (n: nat) len_c2s len_s2c len_vc len_op len_mo len_po len_ga :
+  Lemma wp_acknowledgeGossip {OWN_UnsatisfiedRequests: bool} {s} {n: nat} sv msgv msg len_c2s len_s2c len_vc len_op len_mo len_po len_ga :
     {{{
         is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests ∗ 
         is_message msgv msg n len_c2s len_s2c
@@ -541,7 +541,7 @@ Section heap.
       + iPureIntro. done.
   Qed.
 
-  Lemma wp_getGossipOperations {OWN_UnsatisfiedRequests: bool} sv s (serverId: u64) (n: nat) len_vc len_op len_mo len_po len_ga :
+  Lemma wp_getGossipOperations {OWN_UnsatisfiedRequests: bool} {s} {n: nat} sv (serverId: u64) len_vc len_op len_mo len_po len_ga :
     {{{
         is_server' sv s n len_vc len_op len_mo len_po len_ga OWN_UnsatisfiedRequests
     }}}
