@@ -8,8 +8,8 @@
 ## prelude
 
 - session_prelude.v (1175 lines) [v]
-- definitions.v (314 lines) [v]
-- coq_session.v (659 lines) [v]
+- definitions.v (308 lines) [v]
+- coq_session.v (654 lines) [v]
 
 ## equivalence proofs
 

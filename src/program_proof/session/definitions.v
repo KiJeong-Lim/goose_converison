@@ -136,9 +136,7 @@ Section heap.
 
   Lemma redefine_message_val
     : message_val = @SessionPrelude.value_of (tuple_of [u64,u64,u64,u64,u64,Slice.t,u64,u64,Slice.t,u64,u64,u64,u64,u64,u64,Slice.t,u64,u64]) _.
-  Proof.
-    reflexivity.
-  Defined.
+  Proof. reflexivity. Defined.
 
   Theorem message_val_t msg : val_ty (message_val msg) (struct.t server.Message).
   Proof. repeat constructor; auto. Qed.
@@ -175,9 +173,7 @@ Section heap.
 
   Lemma redefine_server_val
     : server_val = @SessionPrelude.value_of (tuple_of [u64,u64,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t,Slice.t]) _.
-  Proof.
-    reflexivity.
-  Defined.
+  Proof. reflexivity. Defined.
 
   Theorem server_val_t server : val_ty (server_val server) (struct.t Server).
   Proof. repeat constructor; auto. Qed.
@@ -214,9 +210,7 @@ Section heap.
 
   Lemma redefine_client_val
     : client_val = @SessionPrelude.value_of (tuple_of [u64,u64,Slice.t,Slice.t,u64]) _.
-  Proof.
-    reflexivity.
-  Defined.
+  Proof. reflexivity. Defined.
 
   Theorem client_val_t client : val_ty (client_val client) (struct.t client.Client).
   Proof.
