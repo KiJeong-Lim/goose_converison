@@ -16,7 +16,6 @@ Proof.
   pose proof (w64_eq_dec) as H; do 2 red in H. pose proof (OperationVersionVector_dec) as H'. decide equality.
 Qed.
 
-
 Module CoqSessionServer.
 
   Include Goose.github_com.session.server.
@@ -472,6 +471,14 @@ Section properties.
     revert xs ys LEN1 LEN2; induction n as [ | n IH], xs as [ | x xs], ys as [ | y ys]; simpl in *; intros; try congruence; f_equal; eapply IH; word.
   Qed.
 
+  Lemma coq_sortedInsert_length (n : nat) l i
+    : (length (coq_sortedInsert l i) <= length l + 1)%nat.
+  Proof.
+    induction l as [ | x l IH]; simpl; try word.
+    destruct (coq_lexicographicCompare _ _) as [ | ]; simpl; try word.
+    destruct (coq_equalSlices _ _) as [ | ]; simpl; try word.
+  Qed.
+
 End properties.
 
 Module INVARIANT.
@@ -507,7 +514,7 @@ Notation CLIENT_INVARIANT := INVARIANT.CLIENT.
 
 Definition FINAL_SERVER_INVARIANT {n: nat} : Server.t -> Prop :=
   let EXTRA_SERVER_INVARIANT (s: Server.t) : Prop :=
-    uint.nat s.(Server.NumberOfServers) = n /\ length s.(Server.GossipAcknowledgements) = n
+    uint.nat s.(Server.NumberOfServers) = n /\ length s.(Server.GossipAcknowledgements) = n /\ (Z.of_nat (length s.(Server.MyOperations)) <= CONSTANT)%Z
   in
   SERVER_INVARIANT EXTRA_SERVER_INVARIANT.
 
