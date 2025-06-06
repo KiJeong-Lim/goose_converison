@@ -471,7 +471,7 @@ Section properties.
     revert xs ys LEN1 LEN2; induction n as [ | n IH], xs as [ | x xs], ys as [ | y ys]; simpl in *; intros; try congruence; f_equal; eapply IH; word.
   Qed.
 
-  Lemma coq_sortedInsert_length (n : nat) l i
+  Lemma coq_sortedInsert_length l i
     : (length (coq_sortedInsert l i) <= length l + 1)%nat.
   Proof.
     induction l as [ | x l IH]; simpl; try word.
