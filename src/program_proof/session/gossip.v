@@ -131,7 +131,7 @@ Section heap.
         iApply big_sepL2_app_equiv. { do 2 rewrite length_take; word. }
         rewrite <- take_drop with (l := ops1) (i := uint.nat index) at 1.
         rewrite <- take_drop with (l := l) (i := uint.nat index) at 1.
-        iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, is_message mv m n len_c2s n) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, is_message mv m n len_c2s n))%I with "[H_ops1]" as "[H_prefix H_suffix]".
+        iAssert (([∗ list] mv;m ∈ take (uint.nat index) ops1;take (uint.nat index) l, ∃ b, is_message mv m n len_c2s b) ∗ ([∗ list] mv;m ∈ drop (uint.nat index) ops1;drop (uint.nat index) l, ∃ b, is_message mv m n len_c2s b))%I with "[H_ops1]" as "[H_prefix H_suffix]".
         { iApply (big_sepL2_app_equiv with "[$H_ops1]"). do 2 rewrite length_take. word. }
         iFrame. destruct (drop (uint.nat index) ops1) as [ | hd tl] eqn: H_obs.
         * iPoseProof (big_sepL2_nil_inv_l with "[$H_suffix]") as "%H_obs'".

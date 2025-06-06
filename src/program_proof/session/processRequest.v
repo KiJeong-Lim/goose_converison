@@ -199,57 +199,6 @@ Section heap.
 
   #[local] Opaque CoqSessionServer.processClientRequest.
 
-  Definition coq_processRequest (server: Server.t) (request: Message.t) : Server.t * list Message.t :=
-    match uint.nat request.(Message.MessageType) with
-    | 0%nat =>
-      let '(succeeded, server, reply) := coq_processClientRequest server request in
-      if succeeded then
-        (server, [reply])
-      else
-        let UnsatisfiedRequests := server.(Server.UnsatisfiedRequests) ++ [request] in 
-        let server := Server.mk server.(Server.Id) server.(Server.NumberOfServers) UnsatisfiedRequests server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements) in
-        (server, [])
-    | 1%nat =>
-      let server := coq_receiveGossip server request in
-      let focus := server.(Server.UnsatisfiedRequests) in
-      let loop_init : nat * Server.t * list Message.t :=
-        (0%nat, server, [])
-      in
-      let loop_step (acc: nat * Server.t * list Message.t) (element: Message.t) : nat * Server.t * list Message.t :=
-        let '(i, s, outGoingRequests) := acc in
-        let '(succeeded, s, reply) := coq_processClientRequest s element in
-        if succeeded then
-          let UnsatisfiedRequests := coq_deleteAtIndexMessage s.(Server.UnsatisfiedRequests) i in
-          (i, Server.mk s.(Server.Id) s.(Server.NumberOfServers) UnsatisfiedRequests s.(Server.VectorClock) s.(Server.OperationsPerformed) s.(Server.MyOperations) s.(Server.PendingOperations) s.(Server.GossipAcknowledgements), outGoingRequests ++ [reply])
-        else
-          ((i + 1)%nat, s, outGoingRequests)
-      in
-      let '(_, server, outGoingRequests) := fold_left loop_step focus loop_init in
-      (server, outGoingRequests)
-    | 2%nat => (coq_acknowledgeGossip server request, [])
-    | 3%nat =>
-      let loop_step (acc: Server.t * list Message.t) (index: u64) : Server.t * list Message.t :=
-        let '(server, outGoingRequests) := acc in
-        let operations := coq_getGossipOperations server index in
-        if negb (uint.nat index =? uint.nat server.(Server.Id))%nat && negb (length operations =? 0)%nat then
-          let GossipAcknowledgements := <[uint.nat index := W64 (length server.(Server.MyOperations))]> server.(Server.GossipAcknowledgements) in
-          let S2S_Gossip_Sending_ServerId := server.(Server.Id) in
-          let S2S_Gossip_Receiving_ServerId := index in
-          let S2S_Gossip_Operations := operations in
-          let S2S_Gossip_Index := length (server.(Server.MyOperations)) in
-          let message := Message.mk 1 0 0 0 0 [] S2S_Gossip_Sending_ServerId S2S_Gossip_Receiving_ServerId S2S_Gossip_Operations S2S_Gossip_Index 0 0 0 0 0 [] 0 0 in
-          (Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) server.(Server.VectorClock) server.(Server.OperationsPerformed) server.(Server.MyOperations) server.(Server.PendingOperations) GossipAcknowledgements, outGoingRequests ++ [message])
-        else
-          (server, outGoingRequests)
-      in
-      let nat_to_u64 (i: nat) : u64 :=
-        W64 i
-      in
-      let focus := map nat_to_u64 (seq 0%nat (uint.nat server.(Server.NumberOfServers))) in
-      fold_left loop_step focus (server, [])
-    | _ => (server, [])
-    end.
-
   Lemma wp_processRequest {s} {n: nat} sv msgv msg :
     {{{
         is_server sv s n n n n n n ∗
@@ -507,8 +456,7 @@ Section heap.
                 rewrite t1_SZ'. replace (W64 (uint.nat t1 .(Slice.sz))) with t1.(Slice.sz) by word. simpl; congruence.
               }
               simpl; replace (length s.(Server.VectorClock)) with (length s'.(Server.VectorClock)) by congruence. replace (length s'.(Server.VectorClock)) with n by congruence.
-              rewrite H_NumberOfServers H_VectorClock H_UnsatisfiedRequests H_OperationsPerformed H_MyOperations H_PendingOperations. iFrame; simplNotation; simpl. iSplitR "H_i H_server".
-              { repeat (iSplit; try done). iSplitL "". { iApply own_slice_to_small. iApply own_slice_zero. } admit. } admit.
+              rewrite H_NumberOfServers H_VectorClock H_UnsatisfiedRequests H_OperationsPerformed H_MyOperations H_PendingOperations. admit.
             * admit.
           + admit.
         - admit.
