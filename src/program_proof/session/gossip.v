@@ -327,17 +327,17 @@ Section heap.
       iIntros "(%prevs & %nexts & %index & %server & %OperationsPerformed_REP & %VectorClock_REP & %PendingOperations_REP & %FOCUS & %SERVER & H_i & H_s & H3 & H4 & H6 & H7 & H8 & H9 & H16 & H20 & H27 & %H_continue & %H_pure)". specialize (H_continue eq_refl). subst nexts. rewrite app_nil_r in FOCUS. subst prevs. subst focus. destruct H_pure as ([H_index H_bound] & (H1_sorted & H2_sorted & H0_length) & [EXTRA_s1 BOUND_VectorClock]). red in EXTRA_s1.
       apply f_equal with (f := id) in SERVER. rename SERVER into FIRST_LOOP. wp_store. wp_apply (wp_NewSlice). iIntros "%seen_REP H_seen_REP". wp_apply (wp_ref_to); eauto. iIntros "%seen H_seen". wp_pures.
       rename server into server1, server' into server0. set (focus := server1.(Server.PendingOperations)). replace (replicate (uint.nat (W64 0)) u64_IntoVal .(IntoVal_def w64)) with ( @nil w64) by reflexivity. rename seen into seen_ref. iRename "H_seen" into "H_seen_ref".
-      set (fun acc: Server.t * nat * list u64 => fun elem: Operation.t =>
+      set (fun acc: Server.t * u64 * list u64 => fun elem: Operation.t =>
         let '(server, i, seen) := acc in
         if coq_oneOffVersionVector server.(Server.VectorClock) elem.(Operation.VersionVector) then
-          (Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) (coq_maxTS server.(Server.VectorClock) elem.(Operation.VersionVector)) (coq_sortedInsert server.(Server.OperationsPerformed) elem) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements), (i + 1)%nat, seen ++ [W64 (Z.of_nat i)])
+          (Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) (coq_maxTS server.(Server.VectorClock) elem.(Operation.VersionVector)) (coq_sortedInsert server.(Server.OperationsPerformed) elem) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements), W64 (uint.Z i + 1), seen ++ [i])
         else
-          (server, (i + 1)%nat, seen)
+          (server, W64 (uint.Z i + 1), seen)
       ) as second_loop_step. clear index H_index H_bound.
       wp_apply (wp_forBreak_cond
         ( λ continue, ∃ prevs: list Operation.t, ∃ nexts: list Operation.t, ∃ index: w64, ∃ server: Server.t, ∃ OperationsPerformed_REP: Slice.t, ∃ VectorClock_REP: Slice.t, ∃ seen: list u64, ∃ seen_REP: Slice.t,
           ⌜focus = prevs ++ nexts⌝ ∗
-          ⌜(server, uint.nat index, seen) = fold_left second_loop_step prevs (server1, 0%nat, [])⌝ ∗
+          ⌜(server, index, seen) = fold_left second_loop_step prevs (server1, W64 0, [])⌝ ∗
           i ↦[uint64T] #index ∗
           s ↦[struct.t Server] server_val (server.(Server.Id), server.(Server.NumberOfServers), UnsatisfiedRequests_REP, VectorClock_REP, OperationsPerformed_REP, MyOperations_REP, PendingOperations_REP, GossipAcknowledgements_REP)%core ∗
           seen_ref ↦[slice.T uint64T] seen_REP ∗
@@ -401,7 +401,7 @@ Section heap.
       { iExists []. iExists focus. iExists (W64 0). iExists server1. iExists OperationsPerformed_REP. iExists VectorClock_REP. iExists []. iExists seen_REP. rewrite app_nil_l. iFrame. simpl. iPureIntro. repeat (split; try (congruence || done)). word. }
       clear OperationsPerformed_REP VectorClock_REP seen_REP. iIntros "(%prevs & %nexts & %index & %server & %OperationsPerformed_REP & %VectorClock_REP & %seen & %seen_REP & %FOCUS & %ACCUM & H_i & H_s & H_seen_ref & H_seen_REP & H3 & H4 & H6 & H7 & H8 & H9 & H16 & H20 & H27 & %H_pure)". destruct H_pure as (H_continue & (H_index & H_bound & H_PendingOperations) & (H3_sorted & H4_sorted & H1_length) & (EXTRA_s2 & H_GossipOperations & H_MyOperations & BOUND_VectorClock')). red in EXTRA_s2.
       specialize (H_continue eq_refl). subst nexts. rewrite -> app_nil_r in *. subst prevs. apply f_equal with (f := id) in ACCUM. rename ACCUM into SECOND_LOOP. wp_store. rename server into server2. subst focus. set (focus := server2.(Server.PendingOperations)) in *.
-      wp_apply wp_ref_to; eauto. iIntros "%j H_j". wp_apply wp_NewSlice. iIntros "%output_REP H_output_REP". wp_apply wp_ref_to; eauto. iIntros "%output H_output". wp_pures. replace (replicate (uint.nat (W64 0)) operation_into_val .(IntoVal_def (Slice.t * w64))) with ( @nil (Slice.t * w64)) by reflexivity. rewrite -> H_index in SECOND_LOOP. clear index H_index H_bound. rename output into output_ref. iRename "H_output" into "H_output_ref".
+      wp_apply wp_ref_to; eauto. iIntros "%j H_j". wp_apply wp_NewSlice. iIntros "%output_REP H_output_REP". wp_apply wp_ref_to; eauto. iIntros "%output H_output". wp_pures. replace (replicate (uint.nat (W64 0)) operation_into_val .(IntoVal_def (Slice.t * w64))) with ( @nil (Slice.t * w64)) by reflexivity. rename index into index0. rename H_index into H_index0. rename H_bound into H_bound0. rename output into output_ref. iRename "H_output" into "H_output_ref".
       set (fun acc: nat * nat * list Operation.t => fun elem: Operation.t =>
         let '(i, j, output) := acc in
         match seen !! j with

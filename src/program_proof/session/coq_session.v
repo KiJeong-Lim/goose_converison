@@ -148,16 +148,16 @@ Module CoqSessionServer.
         fold_left loop_step focus server
       in
       let server := first_loop_output in
-      let second_loop_output : Server.t * nat * list u64 :=
+      let second_loop_output : Server.t * u64 * list u64 :=
         let focus := server.(Server.PendingOperations) in
-        let loop_step (acc: Server.t * nat * list u64) (elem: Operation.t) : Server.t * nat * list u64 :=
+        let loop_step (acc: Server.t * u64 * list u64) (elem: Operation.t) : Server.t * u64 * list u64 :=
           let '(server, i, seen) := acc in
             if coq_oneOffVersionVector server.(Server.VectorClock) elem.(Operation.VersionVector) then
-              (Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) (coq_maxTS server.(Server.VectorClock) elem.(Operation.VersionVector)) (coq_sortedInsert server.(Server.OperationsPerformed) elem) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements), (i + 1)%nat, seen ++ [W64 (Z.of_nat i)])
+              (Server.mk server.(Server.Id) server.(Server.NumberOfServers) server.(Server.UnsatisfiedRequests) (coq_maxTS server.(Server.VectorClock) elem.(Operation.VersionVector)) (coq_sortedInsert server.(Server.OperationsPerformed) elem) server.(Server.MyOperations) server.(Server.PendingOperations) server.(Server.GossipAcknowledgements), W64 (uint.Z i + 1), seen ++ [i])
             else
-              (server, (i + 1)%nat, seen)
+              (server, W64 (uint.Z i + 1), seen)
         in
-        fold_left loop_step focus (server, 0%nat, [])
+        fold_left loop_step focus (server, W64 0, [])
       in
       let '(server, _, seen) := second_loop_output in
       let third_loop_output : nat * nat * list Operation.t :=
