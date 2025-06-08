@@ -843,7 +843,9 @@ Module SessionPrelude.
 
     Context {A : Type} {well_formed : A -> Prop}.
 
-    #[local] Hint Resolve ( @Forall_well_formed_elim A well_formed) : core.
+    Definition mk_hint := @Forall_well_formed_elim A well_formed.
+
+    #[local] Hint Resolve mk_hint : core.
 
     Context {hsEq : hsEq A (well_formed := well_formed)}.
 
