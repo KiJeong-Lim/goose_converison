@@ -273,7 +273,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 
 		s.VectorClock[s.Id] += 1
 
-		var oper = Operation{
+		oper := Operation{
 			VersionVector: append(make([]uint64, 0), s.VectorClock...),
 			Data:          request.C2S_Client_Data,
 		}
