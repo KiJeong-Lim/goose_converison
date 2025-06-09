@@ -187,7 +187,7 @@ Module SessionPrelude.
       : Forall P xs.
     Proof.
       induction SUBSEQ; eauto.
-      - rewrite Forall_app in FORALL. tauto.
+      - rewrite -> Forall_app in FORALL. tauto.
       - rewrite -> Forall_app in FORALL |- *. tauto.
     Qed.
 

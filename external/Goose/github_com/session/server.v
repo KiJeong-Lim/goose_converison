@@ -100,16 +100,13 @@ Definition oneOffVersionVector: val :=
     Skip;;
     (for: (λ: <>, (![uint64T] "i") < (![uint64T] "l")); (λ: <>, Skip) := λ: <>,
       (if: (![boolT] "canApply") && (((SliceGet uint64T "v1" (![uint64T] "i")) + #1) = (SliceGet uint64T "v2" (![uint64T] "i")))
-      then
-        "canApply" <-[boolT] #false;;
-        "i" <-[uint64T] ((![uint64T] "i") + #1);;
-        Continue
+      then "canApply" <-[boolT] #false
       else
         (if: (SliceGet uint64T "v1" (![uint64T] "i")) < (SliceGet uint64T "v2" (![uint64T] "i"))
         then "output" <-[boolT] #false
-        else #());;
-        "i" <-[uint64T] ((![uint64T] "i") + #1);;
-        Continue));;
+        else #()));;
+      "i" <-[uint64T] ((![uint64T] "i") + #1);;
+      Continue);;
     (![boolT] "output") && (~ (![boolT] "canApply")).
 
 Definition equalSlices: val :=
@@ -149,16 +146,16 @@ Definition binarySearch: val :=
     ![uint64T] "i".
 
 Definition sortedInsert: val :=
-  rec: "sortedInsert" "s" "value" :=
-    let: "index" := binarySearch "s" "value" in
-    (if: (slice.len "s") = "index"
-    then SliceAppend (struct.t Operation) "s" "value"
+  rec: "sortedInsert" "l" "value" :=
+    let: "index" := binarySearch "l" "value" in
+    (if: (slice.len "l") = "index"
+    then SliceAppend (struct.t Operation) "l" "value"
     else
-      (if: equalSlices (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) "s" "index")) (struct.get Operation "VersionVector" "value")
-      then "s"
+      (if: equalSlices (struct.get Operation "VersionVector" (SliceGet (struct.t Operation) "l" "index")) (struct.get Operation "VersionVector" "value")
+      then "l"
       else
-        let: "right" := SliceAppendSlice (struct.t Operation) (SliceSingleton "value") (SliceSkip (struct.t Operation) "s" "index") in
-        let: "result" := SliceAppendSlice (struct.t Operation) (SliceTake "s" "index") "right" in
+        let: "right" := SliceAppendSlice (struct.t Operation) (SliceSingleton "value") (SliceSkip (struct.t Operation) "l" "index") in
+        let: "result" := SliceAppendSlice (struct.t Operation) (SliceTake "l" "index") "right" in
         "result")).
 
 Definition deleteAtIndexOperation: val :=

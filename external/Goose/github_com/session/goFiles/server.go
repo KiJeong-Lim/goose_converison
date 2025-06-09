@@ -63,11 +63,10 @@ func lexicographicCompare(v1 []uint64, v2 []uint64) bool {
 		if v1[i] == v2[i] {
 			i++
 		} else {
-			output = v1[i] > v2[i]
+			output = (v1[i] > v2[i])
 			break
 		}
 	}
-
 	return output
 }
 
@@ -85,7 +84,7 @@ func maxTS(t1 []uint64, t2 []uint64) []uint64 {
 	var output = make([]uint64, len(t1))
 	for i < length {
 		output[i] = maxTwoInts(t1[i], t2[i])
-		i += 1
+		i++
 	}
 	return output
 }
@@ -99,13 +98,10 @@ func oneOffVersionVector(v1 []uint64, v2 []uint64) bool {
 	for i < l {
 		if canApply && v1[i]+1 == v2[i] {
 			canApply = false
-			i = i + 1
-			continue
-		}
-		if v1[i] < v2[i] {
+		} else if v1[i] < v2[i] {
 			output = false
 		}
-		i = i + 1
+		i++
 	}
 
 	return output && !canApply
@@ -135,7 +131,7 @@ func binarySearch(s []Operation, needle Operation) uint64 {
 	var i = uint64(0)
 	var j = uint64(len(s))
 	for i < j {
-		mid := i + (j-i)/2
+		mid := i + (j - i) / 2
 		if lexicographicCompare(needle.VersionVector, s[mid].VersionVector) {
 			i = mid + 1
 		} else {
@@ -146,15 +142,15 @@ func binarySearch(s []Operation, needle Operation) uint64 {
 	return i
 }
 
-func sortedInsert(s []Operation, value Operation) []Operation {
-	index := binarySearch(s, value)
-	if uint64(len(s)) == index {
-		return append(s, value)
-	} else if equalSlices(s[index].VersionVector, value.VersionVector) {
-		return s
+func sortedInsert(l []Operation, value Operation) []Operation {
+	index := binarySearch(l, value)
+	if uint64(len(l)) == index {
+		return append(l, value)
+	} else if equalSlices(l[index].VersionVector, value.VersionVector) {
+		return l
 	} else {
-		right := append([]Operation{value}, s[index:]...)
-		result := append(s[:index], right...)
+		right := append([]Operation{value}, l[index:]...)
+		result := append(l[:index], right...)
 		return result
 	}
 }
@@ -193,7 +189,7 @@ func receiveGossip(server Server, request Message) Server {
 		} else if !compareVersionVector(s.VectorClock, request.S2S_Gossip_Operations[i].VersionVector) {
 			s.PendingOperations = sortedInsert(s.PendingOperations, request.S2S_Gossip_Operations[i])
 		}
-		i = i + 1
+		i++
 	}
 
 	i = uint64(0)
@@ -204,7 +200,7 @@ func receiveGossip(server Server, request Message) Server {
 			s.VectorClock = maxTS(s.VectorClock, s.PendingOperations[i].VersionVector)
 			seen = append(seen, i)
 		}
-		i = i + 1
+		i++
 	}
 
 	i = uint64(0)
@@ -213,14 +209,14 @@ func receiveGossip(server Server, request Message) Server {
 	for i < uint64(len(s.PendingOperations)) {
 		if j < uint64(len(seen)) {
 			if (i == seen[j]) {
-				j = j + 1
+				j++
 			} else {
 				output = append(output, s.PendingOperations[i])
 			}
 		} else {
 			output = append(output, s.PendingOperations[i])
 		}
-		i = i + 1
+		i++
 	}
 
 	s.PendingOperations = output
@@ -341,7 +337,7 @@ func processRequest(server Server, request Message) (Server, []Message) {
 						})
 				}
 			}
-			i = i + 1
+			i++
 		}
 	}
 
