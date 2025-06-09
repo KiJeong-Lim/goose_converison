@@ -263,25 +263,23 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 	} else {
 	    var s = server
 
-		var guard = uint64(18446744073709551613) // 2^64 - 3
-		if !(uint64(s.VectorClock[s.Id]) <= guard) {
-			return false, s, reply
-		}
-		if !(uint64(len(s.MyOperations)) <= guard) {
-			return false, s, reply
-		}
+		// var guard = uint64(18446744073709551613) // 2^64 - 3
+		// if !(uint64(s.VectorClock[s.Id]) <= guard) {
+		//	return false, s, reply
+		// }
+		// if !(uint64(len(s.MyOperations)) <= guard) {
+		//	return false, s, reply
+		// }
 
 		s.VectorClock[s.Id] += 1
 
-		s.OperationsPerformed = sortedInsert(s.OperationsPerformed, Operation{
+		var oper = Operation{
 			VersionVector: append(make([]uint64, 0), s.VectorClock...),
 			Data:          request.C2S_Client_Data,
-		})
+		}
 
-		s.MyOperations = sortedInsert(s.MyOperations, Operation{
-			VersionVector: append(make([]uint64, 0), s.VectorClock...),
-			Data:          request.C2S_Client_Data,
-		})
+		s.OperationsPerformed = sortedInsert(s.OperationsPerformed, oper)
+		s.MyOperations = sortedInsert(s.MyOperations, oper)
 
 		reply.MessageType = 4
 		reply.S2C_Client_OperationType = 1
