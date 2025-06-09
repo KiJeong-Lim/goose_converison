@@ -271,7 +271,7 @@ func processClientRequest(server Server, request Message) (bool, Server, Message
 			return false, s, reply
 		}
 
-		s.VectorClock[server.Id] += 1
+		s.VectorClock[s.Id] += 1
 
 		s.OperationsPerformed = sortedInsert(s.OperationsPerformed, Operation{
 			VersionVector: append(make([]uint64, 0), s.VectorClock...),
