@@ -6,7 +6,7 @@ Section heap.
 
   #[local] Hint Constructors Forall : core.
 
-  Lemma wp_processClientRequest {OWN_UnsatisfiedRequests: bool} {s} {n: nat} {m: nat} NumberOfServers UnsatisfiedRequests GossipAcknowledgements sv msgv msg len_po len_ga len_s2c :
+  Lemma wp_processClientRequest {OWN_UnsatisfiedRequests: bool} {s: Server.t} {n: nat} {m: nat} NumberOfServers UnsatisfiedRequests GossipAcknowledgements sv msgv msg len_po len_ga len_s2c :
     {{{
         is_server' sv s n m m m len_po len_ga OWN_UnsatisfiedRequests ∗
         is_message msgv msg n m len_s2c ∗
@@ -202,7 +202,7 @@ Section heap.
 
   #[local] Opaque CoqSessionServer.processClientRequest.
 
-  Lemma wp_processRequest {s} {n: nat} sv msgv msg :
+  Lemma wp_processRequest {s: Server.t} {n: nat} sv msgv msg :
     {{{
         is_server sv s n n n n n n ∗
         is_message msgv msg n n n ∗
